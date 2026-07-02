@@ -1,0 +1,99 @@
+/**
+ * CourseBanner — pixel art banner matched by course-name keyword.
+ * Mirror of V1's logic: keyword → /banners/<slug>.png, fallback gradient
+ * with course initial. Pixel art preserved via image-rendering: pixelated.
+ */
+
+type Props = {
+  courseName: string;
+  className?: string;
+};
+
+// Orden importa: los más específicos primero (e.g., "Álgebra Lineal" antes
+// que "Álgebra" genérica, "Cálculo Integral" antes que "Cálculo Diferencial").
+const BANNER_RULES: Array<{ test: RegExp; file: string }> = [
+  { test: /geometr|geometry/i, file: "geometria.png" },
+  { test: /aritm|arithm/i, file: "aritmetica.png" },
+  { test: /algebra\s*lineal|linear\s*algebra/i, file: "algebra_lineal.png" },
+  { test: /algebra/i, file: "algebra.png" },
+  { test: /logic/i, file: "logica.png" },
+  { test: /conteo|combinat/i, file: "conteo_combinatoria.png" },
+  { test: /probabil/i, file: "probabilidad.png" },
+  // Cursos de Universidad — nuevos banners pixel-art
+  { test: /calculo.*integral|integral.*calculo/i, file: "calculo_integral.png" },
+  { test: /varias\s*variables|multivariable|multivariate/i, file: "calculo_varias_variables.png" },
+  { test: /calculo.*diferencial|calculus/i, file: "calculo_diferencial.png" },
+  { test: /ecuaciones\s*diferenciales|differential\s*equations/i, file: "ecuaciones_diferenciales.png" },
+  { test: /trigonometr/i, file: "trigonometria.png" },
+  { test: /dian/i, file: "DIAN.png" },
+  { test: /sena/i, file: "SENA.png" },
+];
+
+// Strip diacritics so "Geometría" / "Lógica" / "Álgebra" match plain ASCII keywords.
+function deburr(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function resolveBanner(name: string): string | null {
+  const ascii = deburr(name);
+  for (const rule of BANNER_RULES) {
+    if (rule.test.test(ascii)) return `/banners/${rule.file}`;
+  }
+  return null;
+}
+
+// Stable hue from the course name so fallback gradients don't all collapse to the same tone.
+function hueFromName(name: string): number {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
+export function CourseBanner({ courseName, className = "" }: Props) {
+  const src = resolveBanner(courseName);
+  const initial = courseName.trim().charAt(0).toUpperCase() || "?";
+
+  if (src) {
+    return (
+      <div
+        className={`relative w-full aspect-[16/7] overflow-hidden rounded-t-xl bg-[var(--canvas)] ${className}`}
+      >
+        <img
+          src={src}
+          alt=""
+          aria-hidden="true"
+          className="w-full h-full object-cover"
+          style={{ imageRendering: "pixelated" }}
+          loading="lazy"
+        />
+        {/* Gradiente sutil inferior: fade decorativo que no oscurece la
+            zona de la fórmula matemática (que ya tiene su propio backdrop). */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-[18%] pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(180deg, transparent 0%, rgba(10,10,15,0.45) 100%)",
+          }}
+        />
+      </div>
+    );
+  }
+
+  const hue = hueFromName(courseName);
+  return (
+    <div
+      className={`relative w-full aspect-[16/7] overflow-hidden rounded-t-xl flex items-center justify-center ${className}`}
+      style={{
+        background: `linear-gradient(135deg, hsl(${hue} 35% 18%) 0%, hsl(${(hue + 40) % 360} 30% 10%) 100%)`,
+      }}
+      aria-hidden="true"
+    >
+      <span
+        className="text-5xl font-black tracking-tight select-none"
+        style={{ color: `hsl(${hue} 55% 72%)`, opacity: 0.85 }}
+      >
+        {initial}
+      </span>
+    </div>
+  );
+}

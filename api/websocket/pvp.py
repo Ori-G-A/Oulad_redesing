@@ -1,0 +1,343 @@
+"""
+api/websocket/pvp.py
+====================
+Liga PvP en tiempo real — carrera libre, ELO por resultado de partida.
+
+Flujo:
+  1. Cliente conecta → autentica con JWT en primer mensaje
+  2. Entra a lobby del curso; si ya hay rival → crea partida
+  3. Ambos reciben 10 ítems aleatorios del curso y responden a su ritmo
+  4. Timer 180s: al expirar (o cuando ambos terminan) → se calcula ganador + ELO
+"""
+
+import asyncio
+import json
+import logging
+import random
+from dataclasses import dataclass, field
+
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocketState
+
+logger = logging.getLogger("api.pvp")
+
+pvp_router = APIRouter(prefix="/ws", tags=["pvp"])
+
+MATCH_ITEMS = 10
+MATCH_DURATION = 180  # segundos
+K = 24
+
+
+# ── Estado en memoria por proceso ────────────────────────────────────────────
+
+@dataclass
+class LobbySlot:
+    user_id: int
+    username: str
+    elo: float
+    ws: WebSocket
+    # Señalización para el jugador en espera: el segundo en entrar setea match+event
+    matched: asyncio.Event = field(default_factory=asyncio.Event)
+    match: "ActiveMatch | None" = None
+
+
+@dataclass
+class ActiveMatch:
+    match_id: int
+    course_id: str
+    p1: LobbySlot
+    p2: LobbySlot
+    items: list[dict]          # sin correct_option
+    correct: dict[str, str]    # item_id → correct_option
+    score: dict[int, int] = field(default_factory=dict)
+    answered: dict[int, set] = field(default_factory=dict)
+    done: dict[int, bool] = field(default_factory=dict)
+    finished: bool = False
+
+    def all_done(self) -> bool:
+        return self.done.get(self.p1.user_id) and self.done.get(self.p2.user_id)
+
+
+# course_id → LobbySlot en espera
+_lobby: dict[str, LobbySlot] = {}
+# match_id → ActiveMatch
+_matches: dict[int, ActiveMatch] = {}
+_lock = asyncio.Lock()
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+async def _send(ws: WebSocket, msg: dict) -> bool:
+    try:
+        await ws.send_json(msg)
+        return True
+    except Exception as e:
+        logger.warning("_send failed (%s): %s", msg.get("type"), e)
+        return False
+
+
+def _elo_deltas(winner_elo: float, loser_elo: float, draw: bool = False):
+    from src.domain.elo.model import expected_score
+    exp = expected_score(winner_elo, loser_elo)
+    if draw:
+        delta_w = round(K * (0.5 - exp), 2)
+        delta_l = round(K * (0.5 - (1 - exp)), 2)
+    else:
+        delta_w = round(K * (1 - exp), 2)
+        delta_l = round(K * (0 - (1 - exp)), 2)
+    return delta_w, delta_l
+
+
+async def _finish_match(match: ActiveMatch, repo) -> None:
+    # Guard contra doble-cierre: ambos loops o el timer pueden disparar a la vez
+    async with _lock:
+        if match.finished:
+            return
+        match.finished = True
+
+    s1 = match.score.get(match.p1.user_id, 0)
+    s2 = match.score.get(match.p2.user_id, 0)
+
+    if s1 > s2:
+        winner_id = match.p1.user_id
+        dw, dl = _elo_deltas(match.p1.elo, match.p2.elo)
+        d1, d2 = dw, dl
+    elif s2 > s1:
+        winner_id = match.p2.user_id
+        dw, dl = _elo_deltas(match.p2.elo, match.p1.elo)
+        d1, d2 = dl, dw
+    else:
+        winner_id = None
+        dw, dl = _elo_deltas(match.p1.elo, match.p2.elo, draw=True)
+        d1, d2 = dw, dl
+
+    try:
+        repo.finish_pvp_match(
+            match_id=match.match_id,
+            winner_id=winner_id,
+            score_p1=s1, score_p2=s2,
+            elo_delta_p1=d1, elo_delta_p2=d2,
+            p1_id=match.p1.user_id, p2_id=match.p2.user_id,
+        )
+    except Exception as e:
+        logger.error("finish_pvp_match error: %s", e)
+
+    result_p1 = {"type": "game_end", "your_score": s1, "opp_score": s2,
+                 "won": winner_id == match.p1.user_id, "draw": winner_id is None,
+                 "elo_delta": d1}
+    result_p2 = {"type": "game_end", "your_score": s2, "opp_score": s1,
+                 "won": winner_id == match.p2.user_id, "draw": winner_id is None,
+                 "elo_delta": d2}
+
+    await asyncio.gather(
+        _send(match.p1.ws, result_p1),
+        _send(match.p2.ws, result_p2),
+        return_exceptions=True,
+    )
+
+    async with _lock:
+        _matches.pop(match.match_id, None)
+
+
+async def _timer(match: ActiveMatch, repo) -> None:
+    await asyncio.sleep(MATCH_DURATION)
+    async with _lock:
+        if match.match_id not in _matches:
+            return
+    await _finish_match(match, repo)
+
+
+# ── Endpoint ─────────────────────────────────────────────────────────────────
+
+@pvp_router.websocket("/pvp/{course_id}")
+async def pvp_ws(websocket: WebSocket, course_id: str):
+    from api.dependencies import decode_token, get_repository
+
+    await websocket.accept()
+
+    # 1. Autenticación
+    try:
+        raw = await asyncio.wait_for(websocket.receive_text(), timeout=10.0)
+        msg = json.loads(raw)
+        payload = decode_token(msg.get("token", ""))
+        user_id = int(payload["sub"])
+        username = payload.get("username", f"user_{user_id}")
+    except Exception as exc:
+        await websocket.close(code=4001, reason="Auth failed")
+        logger.warning("PvP auth failed: %s", exc)
+        return
+
+    repo = get_repository()
+
+    # Obtener ELO actual del jugador
+    try:
+        user_info = repo.get_user_by_id(user_id)
+        player_elo = float(user_info.get("current_elo", 1000.0))
+    except Exception:
+        player_elo = 1000.0
+
+    slot = LobbySlot(user_id=user_id, username=username, elo=player_elo, ws=websocket)
+    match: ActiveMatch | None = None
+    is_creator = False  # True = segundo en entrar (emite game_start y arranca timer)
+
+    async with _lock:
+        waiting = _lobby.get(course_id)
+        # Descartar slot fantasma: si el que esperaba ya se desconectó, no emparejar
+        if waiting and waiting.ws.client_state != WebSocketState.CONNECTED:
+            del _lobby[course_id]
+            waiting = None
+        if waiting and waiting.user_id != user_id:
+            # Emparejar — este jugador es el creador (p2)
+            del _lobby[course_id]
+            is_creator = True
+
+            # Seleccionar ítems aleatorios
+            try:
+                all_items = repo.get_items_from_db(course_id=course_id)
+            except Exception:
+                all_items = []
+
+            selected = random.sample(all_items, min(MATCH_ITEMS, len(all_items)))
+            item_ids = [i["id"] for i in selected]
+            correct = {i["id"]: i["correct_option"] for i in selected}
+            # No revelar correct_option al cliente (V2-R9)
+            safe_items = [
+                {"id": i["id"], "content": i["content"],
+                 "options": i["options"], "topic": i["topic"],
+                 "difficulty": i["difficulty"]}
+                for i in selected
+            ]
+
+            try:
+                match_id = repo.create_pvp_match(course_id, waiting.user_id, user_id, item_ids)
+            except Exception as e:
+                logger.error("create_pvp_match: %s", e)
+                await websocket.close(code=4500, reason="DB error")
+                return
+
+            match = ActiveMatch(
+                match_id=match_id, course_id=course_id,
+                p1=waiting, p2=slot,
+                items=safe_items, correct=correct,
+                score={waiting.user_id: 0, user_id: 0},
+                answered={waiting.user_id: set(), user_id: set()},
+                done={waiting.user_id: False, user_id: False},
+            )
+            _matches[match_id] = match
+            # Despertar al jugador en espera (instantáneo, sin sondeo)
+            waiting.match = match
+            waiting.matched.set()
+        else:
+            _lobby[course_id] = slot
+
+    if match is None:
+        # En espera — el creador setea slot.matched al emparejar.
+        # Vigilamos el socket en PARALELO: si el jugador cierra la pestaña mientras
+        # espera, receive_text() falla y lo sacamos del lobby (no queda fantasma).
+        await _send(websocket, {"type": "waiting"})
+        matched_task = asyncio.ensure_future(slot.matched.wait())
+        disconnect_task = asyncio.ensure_future(websocket.receive_text())
+        done, pending = await asyncio.wait(
+            {matched_task, disconnect_task},
+            timeout=300.0,
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        # Drenar las tareas canceladas: si no esperamos la cancelación del
+        # receive_text(), el canal de recepción queda ocupado y el loop de
+        # respuestas falla con "cannot call recv while another coroutine is waiting".
+        for t in pending:
+            t.cancel()
+            try:
+                await t
+            except BaseException:
+                pass
+
+        if matched_task not in done:
+            # Desconexión o timeout → limpiar lobby y cerrar
+            async with _lock:
+                if _lobby.get(course_id) is slot:
+                    del _lobby[course_id]
+            try:
+                await websocket.close()
+            except Exception:
+                pass
+            return
+        match = slot.match
+
+    is_p1 = match.p1.user_id == user_id
+    opponent = match.p2 if is_p1 else match.p1
+
+    # Solo el creador (p2) emite game_start a ambos y arranca el ÚNICO cronómetro.
+    # El jugador en espera entra directo a su loop de respuestas (su cliente ya
+    # recibió game_start desde la coroutine del creador).
+    timer_task: asyncio.Task | None = None
+    if is_creator:
+        await asyncio.gather(
+            _send(match.p1.ws, {"type": "game_start", "match_id": match.match_id,
+                                 "items": match.items,
+                                 "opponent": {"username": match.p2.username, "elo": match.p2.elo},
+                                 "duration_seconds": MATCH_DURATION}),
+            _send(match.p2.ws, {"type": "game_start", "match_id": match.match_id,
+                                 "items": match.items,
+                                 "opponent": {"username": match.p1.username, "elo": match.p1.elo},
+                                 "duration_seconds": MATCH_DURATION}),
+        )
+        timer_task = asyncio.create_task(_timer(match, repo))
+
+    # 2. Loop de respuestas
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            msg = json.loads(raw)
+
+            if msg.get("type") != "answer":
+                continue
+
+            item_id = msg.get("item_id", "")
+            selected = msg.get("selected", "")
+
+            if item_id in match.answered[user_id]:
+                continue  # ya respondió este ítem
+
+            is_correct = (selected == match.correct.get(item_id))
+            match.answered[user_id].add(item_id)
+            if is_correct:
+                match.score[user_id] = match.score.get(user_id, 0) + 1
+
+            try:
+                repo.save_pvp_answer(match.match_id, user_id, item_id, is_correct)
+            except Exception as e:
+                logger.warning("save_pvp_answer: %s", e)
+
+            my_score = match.score[user_id]
+            opp_score = match.score.get(opponent.user_id, 0)
+
+            await _send(websocket, {
+                "type": "answer_result",
+                "item_id": item_id,
+                "is_correct": is_correct,
+                "your_score": my_score,
+                "opp_score": opp_score,
+            })
+            await _send(opponent.ws, {
+                "type": "opponent_update",
+                "opp_score": my_score,
+            })
+
+            # Marcar como terminado si respondió todos
+            if len(match.answered[user_id]) >= len(match.items):
+                match.done[user_id] = True
+
+            if match.all_done():
+                if timer_task:
+                    timer_task.cancel()
+                await _finish_match(match, repo)
+                break
+
+    except WebSocketDisconnect:
+        logger.info("PvP disconnect: user=%s match=%s", user_id, match.match_id)
+        # ponytail: NO cancelamos el timer aquí — si un jugador cae, el timer
+        # (propiedad del creador) finaliza la partida a los 180s y el otro recibe
+        # su resultado. El guard match.finished evita doble-cierre.
+    except Exception as exc:
+        logger.error("PvP loop error user=%s: %s", user_id, exc)

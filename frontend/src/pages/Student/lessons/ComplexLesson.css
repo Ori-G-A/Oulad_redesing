@@ -1,0 +1,156 @@
+.complex-shell { width: min(100%, 1120px); }
+
+.complex-heading { max-width: 760px; }
+.complex-heading h1 {
+  max-width: min(100%, 22ch);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(38px, 6vw, 64px);
+  line-height: 1.03;
+  letter-spacing: -.05em;
+  text-wrap: balance;
+}
+.complex-heading > p {
+  max-width: 56ch;
+  margin: 18px 0 0;
+  color: var(--dim);
+  font-size: clamp(16px, 2vw, 19px);
+  line-height: 1.6;
+}
+
+.complex-step-scene {
+  margin: clamp(26px, 5vw, 48px) 0 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 24%, var(--border));
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--surface-2);
+  box-shadow: 0 28px 80px -62px color-mix(in srgb, var(--accent-2) 64%, transparent);
+}
+.complex-step-scene img {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.complex-formula {
+  width: fit-content;
+  margin: 4px 0 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  font-size: clamp(20px, 4vw, 28px);
+}
+
+.complex-set-diagram {
+  margin-top: 18px;
+}
+.complex-set-shell {
+  position: relative;
+  padding: 38px 16px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.complex-label {
+  position: absolute;
+  top: 10px;
+  left: 16px;
+}
+.complex-set-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(220px, .85fr);
+  gap: 14px;
+}
+.complex-real-region,
+.complex-nonreal-region {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 238px;
+  padding: 18px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+}
+.complex-real-region {
+  background: color-mix(in srgb, var(--accent-2) 8%, transparent);
+}
+.complex-nonreal-region {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.complex-real-union {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.complex-real-union > div {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 156px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 30%, var(--border));
+  border-radius: 12px;
+  background: var(--canvas);
+}
+.set-diagram-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--dim);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+}
+.set-diagram-label .math-rendered {
+  color: var(--text);
+}
+.set-example-row,
+.set-example-column {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.set-example-row .math-rendered,
+.set-example-column .math-rendered {
+  min-width: 44px;
+  padding: 7px 10px;
+  text-align: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-2) 86%, var(--accent) 14%);
+}
+.set-example-column {
+  align-content: start;
+  align-items: stretch;
+  flex-direction: column;
+}
+.complex-union-note {
+  margin-top: 12px;
+  padding: 12px;
+  overflow-x: auto;
+  text-align: center;
+  border-radius: 12px;
+  background: var(--canvas);
+  font-size: clamp(18px, 2.7vw, 25px);
+}
+
+.complex-practice { display: grid; gap: 20px; }
+.complex-question { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 16px; }
+.complex-question h2 { margin: 0 0 12px; font-size: clamp(18px, 2.4vw, 22px); }
+.complex-sample { font-size: clamp(20px, 4vw, 28px); margin: 0 0 12px; }
+
+@media (max-width: 760px) {
+  .complex-set-grid,
+  .complex-real-union {
+    grid-template-columns: 1fr;
+  }
+  .complex-real-region,
+  .complex-nonreal-region,
+  .complex-real-union > div {
+    min-height: auto;
+  }
+  .complex-question {
+    grid-template-columns: 1fr;
+  }
+}

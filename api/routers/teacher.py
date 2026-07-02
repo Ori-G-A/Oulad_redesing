@@ -1,0 +1,591 @@
+"""
+api/routers/teacher.py
+======================
+Endpoints del panel del docente:
+  GET  /teacher/dashboard         → resumen de grupos y estudiantes
+  GET  /teacher/groups            → grupos del docente
+  POST /teacher/groups            → crear grupo
+  POST /teacher/groups/{id}/invite-code → generar código de invitación
+  GET  /teacher/procedures        → cola de procedimientos pendientes
+  POST /teacher/procedures/grade  → calificar procedimiento
+  GET  /teacher/student/{id}      → reporte detallado de un estudiante
+  GET  /teacher/export            → descarga CSV/XLSX de datos
+"""
+
+import io
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi.responses import StreamingResponse
+
+from api.dependencies import CurrentUser, RepoDep, require_role
+from api.schemas.teacher import (
+    ApproveTeacherRequest,
+    ChangeGroupRequest,
+    CreateGroupRequest,
+    ExamAssignmentCreateRequest,
+    ExamAssignmentResponse,
+    ExamTemplateCreateRequest,
+    ExamTemplatePatchRequest,
+    ExamTemplateResponse,
+    GradeRequest,
+    GradeResponse,
+    GroupResponse,
+    ItemCatalogEntry,
+    PendingProcedure,
+    StudentReportResponse,
+    UserAdminRow,
+)
+from src.application.services.teacher_service import TeacherService
+
+router = APIRouter(
+    prefix="/teacher",
+    tags=["teacher"],
+    dependencies=[require_role("teacher", "admin")],
+)
+
+
+def _svc(repo) -> TeacherService:
+    return TeacherService(repository=repo)
+
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+
+
+@router.get("/dashboard")
+def dashboard(user: CurrentUser, repo: RepoDep):
+    """Resumen de grupos, ELO promedio y últimos intentos de los estudiantes."""
+    students = repo.get_teacher_dashboard_stats(user["user_id"])
+    _, groups = _svc(repo).get_dashboard_data(user["user_id"])
+    return {"students": students, "groups": groups}
+
+
+# ── Grupos ────────────────────────────────────────────────────────────────────
+
+
+@router.get("/groups", response_model=list[GroupResponse])
+def get_groups(user: CurrentUser, repo: RepoDep):
+    """Lista de grupos del docente con contador de estudiantes."""
+    rows = repo.get_groups_by_teacher(user["user_id"])
+    result = []
+    for r in rows:
+        row = (
+            dict(r)
+            if isinstance(r, dict)
+            else {
+                "id": r[0],
+                "name": r[1],
+                "course_id": r[2] if len(r) > 2 else None,
+                "invite_code": r[3] if len(r) > 3 else None,
+                "student_count": r[4] if len(r) > 4 else 0,
+            }
+        )
+        result.append(
+            GroupResponse(
+                group_id=row.get("group_id") or row.get("id"),  # both keys present
+                name=row["name"],
+                course_id=row.get("course_id"),
+                invite_code=row.get("invite_code"),
+                student_count=row.get("student_count", 0),
+            )
+        )
+    return result
+
+
+@router.post("/groups", status_code=status.HTTP_201_CREATED, response_model=GroupResponse)
+def create_group(body: CreateGroupRequest, user: CurrentUser, repo: RepoDep):
+    """Crea un nuevo grupo para el docente."""
+    svc = _svc(repo)
+    ok, msg, group_id = svc.create_new_group(user["user_id"], body.course_id, body.group_name)
+    if not ok:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    return GroupResponse(
+        group_id=group_id,
+        name=body.group_name,
+        course_id=body.course_id,
+        invite_code=None,
+        student_count=0,
+    )
+
+
+@router.post("/groups/{group_id}/invite-code")
+def generate_invite_code(group_id: int, user: CurrentUser, repo: RepoDep):
+    """Genera o renueva el código de invitación del grupo."""
+    code = repo.generate_group_invite_code(group_id)
+    return {"invite_code": code}
+
+
+# ── Procedimientos ────────────────────────────────────────────────────────────
+
+
+@router.get("/procedures", response_model=list[PendingProcedure])
+def pending_procedures(user: CurrentUser, repo: RepoDep):
+    """Cola de procedimientos pendientes de calificación."""
+    rows = repo.get_pending_submissions_for_teacher(user["user_id"])
+    result = []
+    for r in rows:
+        row = dict(r) if isinstance(r, dict) else {}
+        if not row:
+            continue
+        has_image = bool(
+            row.get("storage_url") or row.get("image_data") or row.get("procedure_image_path")
+        )
+        result.append(
+            PendingProcedure(
+                submission_id=row.get("id", 0),
+                student_id=row.get("student_id") or row.get("user_id", 0),
+                student_username=row.get("student_name") or row.get("username", ""),
+                item_id=row.get("item_id", ""),
+                item_content=row.get("item_content"),
+                ai_score=row.get("ai_proposed_score"),
+                status=row.get("status", "pending"),
+                created_at=str(row.get("submitted_at") or row.get("created_at", "")),
+                has_image=has_image,
+            )
+        )
+    return result
+
+
+@router.get("/procedures/{submission_id}/image")
+def procedure_image(submission_id: int, user: CurrentUser, repo: RepoDep):
+    """Retorna la imagen de un procedimiento (desde Supabase Storage o BYTEA)."""
+    from fastapi.responses import Response as FastAPIResponse
+
+    rows = repo.get_pending_submissions_for_teacher(user["user_id"])
+    row = next(
+        (
+            dict(r)
+            for r in rows
+            if (dict(r) if isinstance(r, dict) else {}).get("id") == submission_id
+        ),
+        None,
+    )
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Procedimiento no encontrado."
+        )
+
+    image_bytes: bytes | None = None
+    mime = row.get("mime_type") or "image/jpeg"
+
+    # Intentar desde Supabase Storage primero
+    storage_url = row.get("storage_url")
+    if storage_url and hasattr(repo, "resolve_storage_image"):
+        try:
+            image_bytes = repo.resolve_storage_image(storage_url)
+        except Exception:
+            pass
+
+    # Fallback a BYTEA en DB
+    if not image_bytes:
+        image_bytes = row.get("image_data")
+
+    if not image_bytes:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Imagen no disponible.")
+
+    return FastAPIResponse(content=bytes(image_bytes), media_type=mime)
+
+
+@router.post("/procedures/grade", response_model=GradeResponse)
+def grade_procedure(body: GradeRequest, user: CurrentUser, repo: RepoDep):
+    """Califica un procedimiento y aplica el delta ELO al estudiante."""
+    svc = _svc(repo)
+    ok, msg, elo_delta = svc.validate_procedure(
+        teacher_id=user["user_id"],
+        submission_id=body.submission_id,
+        teacher_score=body.teacher_score,
+        teacher_feedback=body.teacher_feedback or "",
+    )
+    if not ok:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+
+    # Notificar al estudiante en tiempo real (WebSocket)
+    try:
+        submission = repo.get_procedure_submission(body.submission_id)
+        if submission:
+            student_id = submission["user_id"] if isinstance(submission, dict) else submission[1]
+            from api.websocket.notifications import notify_sync
+
+            notify_sync(
+                room=f"student_{student_id}",
+                event="procedure_graded",
+                data={
+                    "submission_id": body.submission_id,
+                    "teacher_score": body.teacher_score,
+                    "elo_delta": elo_delta or 0.0,
+                    "feedback": body.teacher_feedback or "",
+                },
+            )
+    except Exception:
+        pass  # No fallar el endpoint si la notificación falla
+
+    return GradeResponse(
+        submission_id=body.submission_id,
+        teacher_score=body.teacher_score,
+        elo_delta=elo_delta or 0.0,
+        status="graded",
+    )
+
+
+# ── Reporte por estudiante ────────────────────────────────────────────────────
+
+
+@router.get("/student/{student_id}")
+def student_report(student_id: int, user: CurrentUser, repo: RepoDep):
+    """Reporte detallado de un estudiante (ELO, intentos, procedimientos)."""
+    svc = _svc(repo)
+    return svc.get_student_dashboard(student_id)
+
+
+@router.get("/student/{student_id}/elo-history")
+def student_elo_history(student_id: int, user: CurrentUser, repo: RepoDep, limit: int = 20):
+    """Historial de ELO del estudiante para el gráfico temporal."""
+    attempts = repo.get_latest_attempts(student_id, limit=limit)
+    return {"attempts": list(reversed(attempts))}
+
+
+@router.get("/student/{student_id}/katia-history")
+def student_katia_history(student_id: int, user: CurrentUser, repo: RepoDep):
+    """Historial de interacciones socrátidas del estudiante con KatIA."""
+    rows = repo.get_katia_interactions(student_id)
+    return {"interactions": [dict(r) if not isinstance(r, dict) else r for r in (rows or [])]}
+
+
+@router.post("/student/{student_id}/ai-analysis")
+def student_ai_analysis(
+    student_id: int,
+    user: CurrentUser,
+    repo: RepoDep,
+    api_key: str | None = None,
+    provider: str = "groq",
+):
+    """Genera un análisis pedagógico del estudiante. Key: docente > AI_KEY_TEACHER_ANALYSIS > general."""
+    from api.config import settings
+
+    svc = _svc(repo)
+    from src.domain.elo.vector_elo import aggregate_global_elo
+    from api.dependencies import build_vector_rating
+
+    effective_key = settings.get_ai_key("teacher_analysis", api_key or "")
+
+    vector = build_vector_rating(student_id, repo)
+    global_elo = aggregate_global_elo(vector)
+
+    analysis = svc.generate_ai_analysis(
+        student_id=student_id,
+        global_elo=global_elo,
+        api_key=effective_key,
+        provider=provider,
+    )
+    return {"analysis": analysis}
+
+
+@router.get("/metrics")
+def teacher_metrics(user: CurrentUser, repo: RepoDep):
+    """Métricas de uso del grupo: tiempo promedio por pregunta, tasa de abandono, temas top, actividad."""
+    return repo.get_teacher_metrics(user["user_id"])
+
+
+@router.get("/student/{student_id}/ranking")
+def student_group_ranking(student_id: int, user: CurrentUser, repo: RepoDep):
+    """Ranking del grupo al que pertenece el estudiante."""
+    student = repo.get_user_by_id(student_id)
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado."
+        )
+    group_id = student.get("group_id")
+    if not group_id:
+        return {"ranking": [], "my_rank": None}
+    ranking = repo.get_group_ranking(group_id)
+    my_rank = next((r["rank_pos"] for r in ranking if r["user_id"] == student_id), None)
+    return {"ranking": ranking, "my_rank": my_rank}
+
+
+# ── Exportación ───────────────────────────────────────────────────────────────
+
+
+@router.get("/export/csv")
+def export_csv(user: CurrentUser, repo: RepoDep):
+    """Exporta los datos de intentos de los estudiantes del docente como CSV."""
+    import csv
+    import io
+
+    rows = repo.export_teacher_student_data(user["user_id"])
+    if not rows:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Sin datos para exportar."
+        )
+
+    output = io.StringIO()
+    keys = list(rows[0].keys()) if isinstance(rows[0], dict) else []
+    writer = csv.DictWriter(output, fieldnames=keys)
+    writer.writeheader()
+    writer.writerows([dict(r) for r in rows])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=levelup_data.csv"},
+    )
+
+
+@router.get("/export/xlsx")
+def export_xlsx(user: CurrentUser, repo: RepoDep):
+    """Exporta los datos de los estudiantes como Excel con 4 hojas."""
+    try:
+        import openpyxl
+    except ImportError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="openpyxl no instalado en el servidor.",
+        )
+
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
+
+    datasets = {
+        "Intentos": repo.export_teacher_student_data(user["user_id"]),
+        "Matrículas": repo.export_teacher_enrollments(user["user_id"]),
+        "Procedimientos": repo.export_teacher_procedures(user["user_id"]),
+        "KatIA": repo.export_teacher_katia_interactions(user["user_id"]),
+    }
+
+    for sheet_name, rows in datasets.items():
+        ws = wb.create_sheet(title=sheet_name)
+        if rows:
+            headers = list(rows[0].keys()) if isinstance(rows[0], dict) else []
+            ws.append(headers)
+            for row in rows:
+                ws.append(list(dict(row).values()))
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=levelup_data.xlsx"},
+    )
+
+
+# ── Sprint C: Plantillas de examen del docente ───────────────────────────────
+
+
+def _template_to_response(t: dict) -> ExamTemplateResponse:
+    return ExamTemplateResponse(
+        id=t["id"],
+        teacher_id=t["teacher_id"],
+        course_id=t["course_id"],
+        title=t["title"],
+        time_limit_min=t["time_limit_min"],
+        item_ids=t["item_ids"],
+        archived=t["archived"],
+        created_at=t["created_at"],
+    )
+
+
+@router.get("/exam-templates", response_model=list[ExamTemplateResponse])
+def list_exam_templates(
+    user: CurrentUser,
+    repo: RepoDep,
+    course_id: str | None = None,
+    include_archived: bool = False,
+):
+    """Lista las plantillas creadas por el docente actual (filtrable por curso)."""
+    templates = repo.list_exam_templates(
+        course_id=course_id,
+        teacher_id=user["user_id"],
+        include_archived=include_archived,
+    )
+    return [_template_to_response(t) for t in templates]
+
+
+@router.post(
+    "/exam-templates",
+    response_model=ExamTemplateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_exam_template(body: ExamTemplateCreateRequest, user: CurrentUser, repo: RepoDep):
+    """Crea una plantilla de examen manual."""
+    # Validar que todos los item_ids existan en el curso indicado
+    bank_items = repo.get_items_from_db(course_id=body.course_id)
+    valid_ids = {it["id"] for it in bank_items}
+    invalid = [i for i in body.item_ids if i not in valid_ids]
+    if invalid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Items no encontrados en el curso: {invalid[:5]}",
+        )
+    template_id = repo.create_exam_template(
+        teacher_id=user["user_id"],
+        course_id=body.course_id,
+        title=body.title,
+        time_limit_min=body.time_limit_min,
+        item_ids=body.item_ids,
+    )
+    created = repo.get_exam_template(template_id)
+    return _template_to_response(created)
+
+
+@router.patch("/exam-templates/{template_id}", response_model=ExamTemplateResponse)
+def update_exam_template(
+    template_id: int,
+    body: ExamTemplatePatchRequest,
+    user: CurrentUser,
+    repo: RepoDep,
+):
+    """Actualiza campos puntuales de una plantilla propia."""
+    template = repo.get_exam_template(template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Plantilla no encontrada.")
+    if template["teacher_id"] != user["user_id"] and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="No es tu plantilla.")
+    if body.item_ids is not None:
+        bank_items = repo.get_items_from_db(course_id=template["course_id"])
+        valid_ids = {it["id"] for it in bank_items}
+        invalid = [i for i in body.item_ids if i not in valid_ids]
+        if invalid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Items no encontrados en el curso: {invalid[:5]}",
+            )
+    repo.update_exam_template(
+        template_id,
+        title=body.title,
+        time_limit_min=body.time_limit_min,
+        item_ids=body.item_ids,
+    )
+    return _template_to_response(repo.get_exam_template(template_id))
+
+
+@router.delete("/exam-templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
+def archive_exam_template(template_id: int, user: CurrentUser, repo: RepoDep):
+    """Archiva (soft delete) una plantilla propia."""
+    template = repo.get_exam_template(template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Plantilla no encontrada.")
+    if template["teacher_id"] != user["user_id"] and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="No es tu plantilla.")
+    repo.archive_exam_template(template_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ── Asignación de plantillas a grupos + ventana de tiempo ────────────────────
+
+
+def _ensure_owns_template(repo, template_id: int, user: dict) -> dict:
+    """Carga la plantilla y verifica autoría (o rol admin). Lanza HTTPException."""
+    template = repo.get_exam_template(template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Plantilla no encontrada.")
+    if template["teacher_id"] != user["user_id"] and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="No es tu plantilla.")
+    return template
+
+
+@router.get(
+    "/exam-templates/{template_id}/assignments",
+    response_model=list[ExamAssignmentResponse],
+)
+def list_template_assignments(template_id: int, user: CurrentUser, repo: RepoDep):
+    """Lista a qué grupos está asignada esta plantilla y sus ventanas de tiempo."""
+    _ensure_owns_template(repo, template_id, user)
+    rows = repo.list_assignments_for_template(template_id)
+    return [ExamAssignmentResponse(**r) for r in rows]
+
+
+@router.post(
+    "/exam-templates/{template_id}/assignments",
+    response_model=list[ExamAssignmentResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+def create_template_assignments(
+    template_id: int,
+    body: ExamAssignmentCreateRequest,
+    user: CurrentUser,
+    repo: RepoDep,
+):
+    """Asigna la plantilla a uno o varios grupos. Upsert por (template, group)."""
+    _ensure_owns_template(repo, template_id, user)
+    # Validar que el docente sea dueño de los grupos (o admin)
+    if user.get("role") != "admin":
+        teacher_groups = {g["group_id"] for g in repo.get_groups_by_teacher(user["user_id"])}
+        invalid = [gid for gid in body.group_ids if gid not in teacher_groups]
+        if invalid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Grupos no autorizados: {invalid}",
+            )
+    for gid in body.group_ids:
+        repo.create_exam_assignment(
+            template_id=template_id,
+            group_id=gid,
+            starts_at=body.starts_at,
+            ends_at=body.ends_at,
+        )
+    rows = repo.list_assignments_for_template(template_id)
+    return [ExamAssignmentResponse(**r) for r in rows]
+
+
+@router.delete(
+    "/exam-templates/{template_id}/assignments/{assignment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_template_assignment(
+    template_id: int,
+    assignment_id: int,
+    user: CurrentUser,
+    repo: RepoDep,
+):
+    """Elimina una asignación específica."""
+    _ensure_owns_template(repo, template_id, user)
+    repo.delete_exam_assignment(assignment_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/exam-templates/{template_id}/results")
+def exam_template_results(template_id: int, user: CurrentUser, repo: RepoDep):
+    """Análisis de resultados del examen: por pregunta, por tópico, mejor/peor
+    pregunta y tema a reforzar. Los exámenes se califican automáticamente; este
+    endpoint solo agrega las respuestas ya guardadas (no afecta ELO)."""
+    template = _ensure_owns_template(repo, template_id, user)
+    analysis = repo.get_exam_template_results(template_id)
+    analysis["title"] = template["title"]
+    return analysis
+
+
+@router.get("/courses")
+def list_all_courses(repo: RepoDep, user: CurrentUser):
+    """Lista todos los cursos del banco — para que el docente arme exámenes."""
+    courses = repo.get_courses()
+    return [
+        {
+            "id": c["id"] if isinstance(c, dict) else c[0],
+            "name": c["name"] if isinstance(c, dict) else c[1],
+            "block": c["block"] if isinstance(c, dict) else c[2],
+        }
+        for c in courses
+    ]
+
+
+@router.get("/items", response_model=list[ItemCatalogEntry])
+def list_items_catalog(
+    repo: RepoDep,
+    user: CurrentUser,
+    course_id: str,
+):
+    """Catálogo de items de un curso — para que el docente arme exámenes."""
+    items = repo.get_items_from_db(course_id=course_id)
+    items.sort(key=lambda it: it["difficulty"])
+    return [
+        ItemCatalogEntry(
+            id=it["id"],
+            content=it["content"],
+            difficulty=it["difficulty"],
+            topic=it["topic"],
+            tags=it.get("tags") or [],
+        )
+        for it in items
+    ]

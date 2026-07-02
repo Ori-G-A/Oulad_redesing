@@ -1,0 +1,5569 @@
+import json
+import os
+import re
+import time
+import functools
+import logging
+import psycopg2
+import psycopg2.errors
+import psycopg2.extras
+import psycopg2.pool
+from psycopg2.extras import RealDictCursor
+from src.infrastructure.security.hashing_service import HashingService
+from src.infrastructure.storage.supabase_storage import SupabaseStorage
+from src.domain.elo.model import expected_score
+
+
+logger = logging.getLogger(__name__)
+
+
+def _timing(func):
+    """Decorator que mide y reporta el tiempo de ejecución de cada método."""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        elapsed_ms = (time.time() - start) * 1000
+        print(f"[TIMING] {func.__name__}: {elapsed_ms:.0f}ms")
+        return result
+
+    return wrapper
+
+
+def _retry_on_deadlock(max_retries=2, delay=0.05):
+    """Reintenta automáticamente la función si PostgreSQL detecta un deadlock.
+
+    Tras cada intento fallido hace rollback de la conexión y espera
+    `delay * intento` segundos antes de reintentar. Si se agotan los reintentos
+    propaga la excepción original.
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            last_exc = None
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(self, *args, **kwargs)
+                except psycopg2.errors.DeadlockDetected as exc:
+                    last_exc = exc
+                    if attempt < max_retries:
+                        time.sleep(delay * (attempt + 1))
+            raise last_exc
+
+        return wrapper
+
+    return decorator
+
+
+class PostgresRepository:
+
+    _COURSE_BLOCK_MAP = {
+        # ── Bloque Universidad ────────────────────────────────────────────────
+        "algebra_lineal": "Universidad",
+        "calculo_diferencial": "Universidad",
+        "calculo_integral": "Universidad",
+        "calculo_varias_variables": "Universidad",
+        "ecuaciones_diferenciales": "Universidad",
+        "probabilidad": "Universidad",
+        # ── Bloque Colegio ────────────────────────────────────────────────────
+        "algebra_basica": "Colegio",
+        "aritmetica": "Colegio",
+        "aritmetica_basica": "Colegio",
+        "trigonometria": "Colegio",
+        "geometria": "Colegio",
+        # ── Bloque Concursos (preparación para concursos públicos) ────────────
+        "DIAN": "Concursos",
+        "SENA": "Concursos",
+        # ── Bloque Semillero (Olimpiadas Matemáticas UdeA, grados 6–11) ───────
+        "logica_semillero_6": "Semillero",
+        "algebra_semillero_6": "Semillero",
+        "geometria_semillero_6": "Semillero",
+        "conteo_combinatoria_semillero_6": "Semillero",
+        "probabilidad_semillero_6": "Semillero",
+        "aritmetica_semillero_6": "Semillero",
+        "logica_semillero_7": "Semillero",
+        "algebra_semillero_7": "Semillero",
+        "geometria_semillero_7": "Semillero",
+        "conteo_combinatoria_semillero_7": "Semillero",
+        "probabilidad_semillero_7": "Semillero",
+        "aritmetica_semillero_7": "Semillero",
+        "logica_semillero_8": "Semillero",
+        "algebra_semillero_8": "Semillero",
+        "geometria_semillero_8": "Semillero",
+        "conteo_combinatoria_semillero_8": "Semillero",
+        "probabilidad_semillero_8": "Semillero",
+        "aritmetica_semillero_8": "Semillero",
+        "aritmetica_semillero_9": "Semillero",
+        "logica_semillero_9": "Semillero",
+        "algebra_semillero_9": "Semillero",
+        "geometria_semillero_9": "Semillero",
+        "conteo_combinatoria_semillero_9": "Semillero",
+        "probabilidad_semillero_9": "Semillero",
+        "logica_semillero_10": "Semillero",
+        "algebra_semillero_10": "Semillero",
+        "geometria_semillero_10": "Semillero",
+        "conteo_combinatoria_semillero_10": "Semillero",
+        "probabilidad_semillero_10": "Semillero",
+        "aritmetica_semillero_10": "Semillero",
+        "logica_semillero_11": "Semillero",
+        "algebra_semillero_11": "Semillero",
+        "geometria_semillero_11": "Semillero",
+        "conteo_combinatoria_semillero_11": "Semillero",
+        "probabilidad_semillero_11": "Semillero",
+        "aritmetica_semillero_11": "Semillero",
+    }
+
+    _COURSE_NAME_MAP = {
+        "DIAN": "Concurso DIAN — Gestor I",
+        "SENA": "Concurso SENA — Profesional 10",
+        "logica_semillero_6": "Lógica Semillero 6°",
+        "algebra_semillero_6": "Álgebra Semillero 6°",
+        "geometria_semillero_6": "Geometría Semillero 6°",
+        "conteo_combinatoria_semillero_6": "Conteo y Combinatoria Semillero 6°",
+        "probabilidad_semillero_6": "Probabilidad Semillero 6°",
+        "aritmetica_semillero_6": "Aritmética Semillero 6°",
+        "logica_semillero_7": "Lógica Semillero 7°",
+        "algebra_semillero_7": "Álgebra Semillero 7°",
+        "geometria_semillero_7": "Geometría Semillero 7°",
+        "conteo_combinatoria_semillero_7": "Conteo y Combinatoria Semillero 7°",
+        "probabilidad_semillero_7": "Probabilidad Semillero 7°",
+        "aritmetica_semillero_7": "Aritmética Semillero 7°",
+        "logica_semillero_8": "Lógica Semillero 8°",
+        "algebra_semillero_8": "Álgebra Semillero 8°",
+        "geometria_semillero_8": "Geometría Semillero 8°",
+        "conteo_combinatoria_semillero_8": "Conteo y Combinatoria Semillero 8°",
+        "probabilidad_semillero_8": "Probabilidad Semillero 8°",
+        "aritmetica_semillero_8": "Aritmética Semillero 8°",
+        "aritmetica_semillero_9": "Aritmética Semillero 9°",
+        "logica_semillero_9": "Lógica Semillero 9°",
+        "algebra_semillero_9": "Álgebra Semillero 9°",
+        "geometria_semillero_9": "Geometría Semillero 9°",
+        "conteo_combinatoria_semillero_9": "Conteo y Combinatoria Semillero 9°",
+        "probabilidad_semillero_9": "Probabilidad Semillero 9°",
+        "logica_semillero_10": "Lógica Semillero 10°",
+        "algebra_semillero_10": "Álgebra Semillero 10°",
+        "geometria_semillero_10": "Geometría Semillero 10°",
+        "conteo_combinatoria_semillero_10": "Conteo y Combinatoria Semillero 10°",
+        "probabilidad_semillero_10": "Probabilidad Semillero 10°",
+        "aritmetica_semillero_10": "Aritmética Semillero 10°",
+        "logica_semillero_11": "Lógica Semillero 11°",
+        "algebra_semillero_11": "Álgebra Semillero 11°",
+        "geometria_semillero_11": "Geometría Semillero 11°",
+        "conteo_combinatoria_semillero_11": "Conteo y Combinatoria Semillero 11°",
+        "probabilidad_semillero_11": "Probabilidad Semillero 11°",
+        "aritmetica_semillero_11": "Aritmética Semillero 11°",
+    }
+
+    _URL_RE = re.compile(r"^(?:postgresql|postgres)://([^:]+):(.+)@([^:]+):(\d+)/(.+)$")
+
+    def __init__(self):
+        self.database_url = os.environ.get("DATABASE_URL")
+        if not self.database_url:
+            raise RuntimeError(
+                "DATABASE_URL environment variable is not defined. "
+                "Set it to a PostgreSQL connection string, e.g. "
+                "'postgresql://user:pass@host:5432/dbname'"
+            )
+
+        # Parsear URL una sola vez y crear pool de conexiones
+        m = self._URL_RE.match(self.database_url)
+        if not m:
+            raise RuntimeError(f"Cannot parse DATABASE_URL: {self.database_url[:20]}…")
+        user, password, host, port, dbname = m.groups()
+        self._conn_kwargs = dict(
+            host=host,
+            port=int(port),
+            dbname=dbname,
+            user=user,
+            password=password,
+            sslmode="require",
+            options="-c statement_timeout=60000",
+        )
+        _is_pooler = "pooler" in host
+        _conn_mode = "pooler" if _is_pooler else "directa"
+        print(f"[DB] Modo de conexión: {_conn_mode} ({host}:{port})")
+        try:
+            self._pool = psycopg2.pool.ThreadedConnectionPool(
+                minconn=1, maxconn=5, **self._conn_kwargs
+            )
+        except psycopg2.OperationalError as exc:
+            _hint = (
+                "Usando pooler — verifica que el host sea accesible desde este entorno."
+                if _is_pooler
+                else "Usando conexión directa — verifica que el host sea accesible "
+                "(en Streamlit Cloud usa el pooler: aws-...pooler.supabase.com:6543)."
+            )
+            raise RuntimeError(
+                f"No se pudo conectar a PostgreSQL ({_conn_mode}). {_hint} Error: {exc}"
+            ) from exc
+
+        self.hashing = HashingService()
+        self._storage = SupabaseStorage()
+        print("Iniciando init_db...")
+        self.init_db()
+        print("init_db OK")
+        print("Iniciando _migrate_db...")
+        self._migrate_db()  # no-op si otra instancia ya tiene el lock
+        print("_migrate_db OK")
+        print("Iniciando _seed_admin...")
+        self._seed_admin()
+        print("_seed_admin OK")
+        print("Iniciando _seed_demo_data...")
+        self._seed_demo_data()
+        print("_seed_demo_data OK")
+        print("Iniciando _backfill_prob_failure...")
+        self._backfill_prob_failure()
+        print("_backfill_prob_failure OK")
+        print("Iniciando sync_items_from_bank_folder...")
+        self.sync_items_from_bank_folder()
+        print("sync_items_from_bank_folder OK")
+        print("Iniciando _seed_test_students...")
+        self._seed_test_students()
+        print("_seed_test_students OK")
+        print("Iniciando _backfill_current_elo...")
+        self._backfill_current_elo()
+        print("_backfill_current_elo OK")
+
+    def get_connection(self, timeout: float = 30.0):
+        """Obtiene una conexión del pool. Caller debe devolverla con put_connection().
+
+        Reintenta durante `timeout` segundos si el pool está agotado (todas las
+        conexiones en uso por otras peticiones concurrentes de FastAPI).
+        """
+        deadline = time.monotonic() + timeout
+        sleep_interval = 0.1
+        while True:
+            try:
+                conn = self._pool.getconn()
+            except psycopg2.pool.PoolError:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(sleep_interval)
+                sleep_interval = min(sleep_interval * 1.5, 1.0)  # backoff hasta 1s
+                continue
+            try:
+                # Verificar que la conexión siga viva; si no, el pool la reemplaza
+                conn.isolation_level
+            except psycopg2.OperationalError:
+                self._pool.putconn(conn, close=True)
+                conn = self._pool.getconn()
+            return conn
+
+    def resolve_storage_image(self, storage_url: str) -> bytes | None:
+        """Download procedure image bytes from Supabase Storage.
+
+        Handles both legacy public URLs and plain storage paths stored in
+        ``procedure_submissions.storage_url``.  Returns raw bytes suitable
+        for ``st.image()``, or None if unavailable.
+        """
+        print(f"[RESOLVE_IMG] Intentando descargar: {storage_url}")
+        if not storage_url:
+            print("[RESOLVE_IMG] storage_url es None/vacío")
+            return None
+        result = self._storage.get_file("procedimientos", storage_url)
+        print(f"[RESOLVE_IMG] Resultado: {'bytes:'+str(len(result)) if result else 'None'}")
+        return result
+
+    def put_connection(self, conn):
+        """Devuelve una conexión al pool para reutilización.
+
+        Siempre hace rollback antes de devolver al pool: es un no-op si la
+        transacción ya fue committed o si no había transacción activa; pero
+        limpia el estado de error si ocurrió un deadlock o cualquier otra
+        excepción que dejó la conexión en estado abortado.
+        """
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        self._pool.putconn(conn)
+
+    @_timing
+    def init_db(self):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Tabla de grupos
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS groups (
+                    id SERIAL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    teacher_id INTEGER NOT NULL,
+                    course_id TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
+            # Tabla de usuarios
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    role TEXT DEFAULT 'student' CHECK (role IN ('student', 'teacher', 'admin')),
+                    approved INTEGER DEFAULT 1,
+                    active INTEGER DEFAULT 1,
+                    group_id INTEGER,
+                    rating_deviation REAL DEFAULT 350.0,
+                    education_level TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
+            # Tabla de intentos/progreso
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS attempts (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER,
+                    item_id TEXT,
+                    is_correct BOOLEAN,
+                    difficulty INTEGER,
+                    topic TEXT,
+                    elo_after REAL,
+                    prob_failure REAL,
+                    expected_score REAL,
+                    time_taken REAL,
+                    confidence_score REAL,
+                    error_type TEXT,
+                    rating_deviation REAL,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
+            # Tabla de ítems (preguntas con rating propio)
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS items (
+                    id TEXT PRIMARY KEY,
+                    topic TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    options TEXT NOT NULL,
+                    correct_option TEXT NOT NULL,
+                    difficulty REAL NOT NULL,
+                    rating_deviation REAL DEFAULT 350.0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sessions (
+                    token TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    expires_at TIMESTAMP NOT NULL
+                )
+            """
+            )
+
+            # ── Índices para acelerar JOINs y filtros frecuentes ─────────
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_attempts_user_id ON attempts(user_id)")
+            # Índice compuesto para DISTINCT ON (topic) ORDER BY topic, timestamp DESC
+            # Acelera get_latest_elo_by_topic() de O(n_intentos) a O(log n)
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_attempts_user_topic_ts "
+                "ON attempts(user_id, topic, timestamp DESC)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_enrollments_user_id ON enrollments(user_id)"
+            )
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_groups_teacher_id ON groups(teacher_id)")
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_procedure_submissions_student_id ON procedure_submissions(student_id)"
+            )
+
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_student_procedure_scores(self, student_id):
+        """Retorna notas de procedimientos validados, normalizadas a escala 0-100."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT
+                    CASE
+                        WHEN final_score IS NOT NULL THEN final_score
+                        ELSE procedure_score * 20.0
+                    END AS score,
+                    submitted_at
+                FROM procedure_submissions
+                WHERE student_id = %s
+                  AND (final_score IS NOT NULL OR procedure_score IS NOT NULL)
+                ORDER BY submitted_at DESC
+            """,
+                (student_id,),
+            )
+            rows = cursor.fetchall()
+            return [{"score": row["score"], "submitted_at": row["submitted_at"]} for row in rows]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_student_procedure_submissions(self, student_id, limit: int = 50):
+        """Lista los últimos procedimientos enviados por el estudiante con
+        estado, score docente, comentario y delta ELO. Usado por la vista
+        de Feedback. NUNCA expone respuestas correctas (no aplica a procedimientos)."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT id AS submission_id, item_id, item_content, status,
+                       ai_proposed_score, teacher_score, final_score,
+                       teacher_feedback, elo_delta, submitted_at, reviewed_at
+                FROM procedure_submissions
+                WHERE student_id = %s
+                ORDER BY submitted_at DESC
+                LIMIT %s
+                """,
+                (student_id, limit),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "submission_id": r["submission_id"],
+                    "item_id": r["item_id"],
+                    "item_content": r["item_content"],
+                    "status": r["status"],
+                    "ai_proposed_score": r["ai_proposed_score"],
+                    "teacher_score": r["teacher_score"],
+                    "final_score": r["final_score"],
+                    "teacher_feedback": r["teacher_feedback"],
+                    "elo_delta": r["elo_delta"],
+                    "submitted_at": str(r["submitted_at"]) if r["submitted_at"] else None,
+                    "reviewed_at": str(r["reviewed_at"]) if r["reviewed_at"] else None,
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_procedure_stats_by_course(self, student_id):
+        """Retorna dict {course_id: {'course_name', 'avg_score', 'count'}} con el
+        promedio de notas de procedimiento agrupadas por curso del estudiante."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT i.course_id, c.name AS course_name,
+                       AVG(CASE
+                           WHEN ps.final_score IS NOT NULL THEN ps.final_score
+                           ELSE ps.procedure_score * 20.0
+                       END) AS avg_score,
+                       COUNT(ps.id) AS cnt
+                FROM procedure_submissions ps
+                JOIN items i ON ps.item_id = i.id
+                LEFT JOIN courses c ON i.course_id = c.id
+                WHERE ps.student_id = %s
+                  AND (ps.final_score IS NOT NULL OR ps.procedure_score IS NOT NULL)
+                GROUP BY i.course_id, c.name
+            """,
+                (student_id,),
+            )
+            rows = cursor.fetchall()
+            return {
+                row["course_id"]: {
+                    "course_name": row["course_name"] or row["course_id"],
+                    "avg_score": round(row["avg_score"], 2),
+                    "count": row["cnt"],
+                }
+                for row in rows
+                if row["course_id"]
+            }
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_students_procedure_summary_table(self, teacher_id):
+        """Para el panel docente: lista de dicts con promedio de procedimiento
+        por estudiante y curso, filtrado por los grupos del profesor."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT u.id AS student_id, u.username AS student, i.course_id,
+                       c.name AS course_name,
+                       AVG(ps.procedure_score) AS avg_score, COUNT(ps.id) AS count
+                FROM procedure_submissions ps
+                JOIN users u ON ps.student_id = u.id
+                JOIN items i ON ps.item_id = i.id
+                LEFT JOIN courses c ON i.course_id = c.id
+                JOIN groups g ON u.group_id = g.id
+                WHERE g.teacher_id = %s AND ps.procedure_score IS NOT NULL
+                GROUP BY u.id, u.username, i.course_id, c.name
+                ORDER BY u.username, i.course_id
+            """,
+                (teacher_id,),
+            )
+            rows = cursor.fetchall()
+            result = []
+            for row in rows:
+                result.append(
+                    {
+                        "student_id": row["student_id"],
+                        "student": row["student"],
+                        "course_id": row["course_id"],
+                        "course_name": row["course_name"],
+                        "avg_score": round(row["avg_score"], 2),
+                        "count": row["count"],
+                    }
+                )
+            return result
+        finally:
+            self.put_connection(conn)
+
+    def _column_exists(self, cursor, table: str, column: str) -> bool:
+        """Devuelve True si `column` ya existe en `table` (usa pg_attribute, más rápido que information_schema)."""
+        cursor.execute(
+            "SELECT 1 FROM pg_attribute WHERE attrelid = %s::regclass AND attname = %s AND NOT attisdropped",
+            (table, column),
+        )
+        return cursor.fetchone() is not None
+
+    def _add_column_if_not_exists(self, cursor, table: str, column: str, definition: str) -> None:
+        """Ejecuta ALTER TABLE ADD COLUMN IF NOT EXISTS — idempotente y sin query extra."""
+        cursor.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {definition}")
+
+    def _migrate_db(self):
+        """Agrega columnas nuevas de forma segura si no existen (migración).
+
+        Usa pg_try_advisory_lock (no-bloqueante, nivel sesión) para que solo
+        una instancia ejecute las migraciones a la vez.  Si otra instancia ya
+        tiene el lock, esta retorna inmediatamente sin hacer nada.  El lock
+        se libera explícitamente en el bloque finally con pg_advisory_unlock.
+        """
+        conn = self.get_connection()
+        locked = False
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        try:
+            # ── Advisory lock no-bloqueante ───────────────────────────────────
+            cursor.execute("SELECT pg_try_advisory_lock(12345)")
+            locked = cursor.fetchone()["pg_try_advisory_lock"]
+            if not locked:
+                return  # Otra instancia está migrando; salir sin bloquear
+
+            # users
+            self._add_column_if_not_exists(cursor, "users", "role", "TEXT DEFAULT 'student'")
+            self._add_column_if_not_exists(cursor, "users", "approved", "INTEGER DEFAULT 1")
+            self._add_column_if_not_exists(cursor, "users", "active", "INTEGER DEFAULT 1")
+            self._add_column_if_not_exists(cursor, "users", "group_id", "INTEGER")
+            self._add_column_if_not_exists(
+                cursor, "users", "rating_deviation", "REAL DEFAULT 350.0"
+            )
+            self._add_column_if_not_exists(cursor, "users", "education_level", "TEXT")
+            self._add_column_if_not_exists(cursor, "users", "is_test_user", "INTEGER DEFAULT 0")
+            # Grado escolar (solo para education_level = 'semillero'; valores '6'–'11')
+            self._add_column_if_not_exists(cursor, "users", "grade", "TEXT")
+            # ELO actual del estudiante — se actualiza al responder y al validar procedimientos
+            self._add_column_if_not_exists(cursor, "users", "current_elo", "REAL DEFAULT 1000.0")
+            # Correo electrónico — NULL para usuarios existentes, UNIQUE parcial (solo no-NULL)
+            self._add_column_if_not_exists(cursor, "users", "email", "TEXT")
+            cursor.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email
+                ON users(email) WHERE email IS NOT NULL
+            """
+            )
+
+            # Asegurar índices si no existen
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_groups_teacher ON groups(teacher_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_group ON users(group_id)")
+            # Índice compuesto para get_latest_elo_by_topic() — MAX(timestamp) por (user_id, topic)
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_attempts_user_topic_ts "
+                "ON attempts(user_id, topic, timestamp DESC)"
+            )
+
+            # Migración: vincular grupos a un curso del catálogo (course_id nullable)
+            self._add_column_if_not_exists(cursor, "groups", "course_id", "TEXT")
+
+            # Asegurar tabla de auditoría
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS audit_group_changes (
+                    id SERIAL PRIMARY KEY,
+                    student_id INTEGER NOT NULL,
+                    old_group_id INTEGER,
+                    new_group_id INTEGER,
+                    admin_id INTEGER NOT NULL,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
+            # attempts
+            self._add_column_if_not_exists(cursor, "attempts", "prob_failure", "REAL")
+            self._add_column_if_not_exists(cursor, "attempts", "expected_score", "REAL")
+            self._add_column_if_not_exists(cursor, "attempts", "time_taken", "REAL")
+            self._add_column_if_not_exists(cursor, "attempts", "confidence_score", "REAL")
+            self._add_column_if_not_exists(cursor, "attempts", "error_type", "TEXT")
+            self._add_column_if_not_exists(cursor, "attempts", "rating_deviation", "REAL")
+            # 1 = intento con tiempo válido (3-600s) → actualiza ELO
+            # 0 = adivinanza (<3s) o sesión abandonada (>600s) → no actualiza ELO
+            self._add_column_if_not_exists(cursor, "attempts", "elo_valid", "INTEGER DEFAULT 1")
+
+            # Asegurar tabla items
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS items (
+                    id TEXT PRIMARY KEY,
+                    topic TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    options TEXT NOT NULL,
+                    correct_option TEXT NOT NULL,
+                    difficulty REAL NOT NULL,
+                    rating_deviation REAL DEFAULT 350.0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
+            # Tabla de procedimientos enviados por estudiantes para revisión del docente
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS procedure_submissions (
+                    id SERIAL PRIMARY KEY,
+                    student_id INTEGER NOT NULL,
+                    item_id TEXT NOT NULL,
+                    item_content TEXT NOT NULL,
+                    image_data BYTEA,
+                    mime_type TEXT DEFAULT 'image/jpeg',
+                    status TEXT DEFAULT 'pending',
+                    teacher_feedback TEXT,
+                    feedback_image BYTEA,
+                    feedback_mime_type TEXT,
+                    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    reviewed_at TIMESTAMP
+                )
+            """
+            )
+
+            # Migración de procedure_submissions: columnas añadidas en v2
+            self._add_column_if_not_exists(
+                cursor, "procedure_submissions", "procedure_score", "REAL"
+            )
+            self._add_column_if_not_exists(
+                cursor, "procedure_submissions", "procedure_image_path", "TEXT"
+            )
+            self._add_column_if_not_exists(
+                cursor, "procedure_submissions", "feedback_image_path", "TEXT"
+            )
+            # v3 — flujo formal de validación docente
+            self._add_column_if_not_exists(
+                cursor, "procedure_submissions", "ai_proposed_score", "REAL"
+            )
+            self._add_column_if_not_exists(cursor, "procedure_submissions", "teacher_score", "REAL")
+            self._add_column_if_not_exists(cursor, "procedure_submissions", "final_score", "REAL")
+            # v4 — delta ELO calculado al momento de la validación docente
+            self._add_column_if_not_exists(cursor, "procedure_submissions", "elo_delta", "REAL")
+            # v5 — retroalimentación textual generada por la IA
+            self._add_column_if_not_exists(cursor, "procedure_submissions", "ai_feedback", "TEXT")
+            # v6 — hash SHA-256 del archivo subido para detección anti-plagio
+            self._add_column_if_not_exists(cursor, "procedure_submissions", "file_hash", "TEXT")
+            # v7 — Sprint C: examen manual del docente (exam_templates)
+            # Vincula sesiones de examen con la plantilla usada (NULL = examen estándar).
+            self._add_column_if_not_exists(cursor, "exam_sessions", "exam_template_id", "INTEGER")
+            # v7 — URL de Supabase Storage (reemplaza BYTEA para nuevos registros)
+            self._add_column_if_not_exists(cursor, "procedure_submissions", "storage_url", "TEXT")
+            # v7b — image_data ya no es obligatorio (NULL cuando se usa Storage)
+            cursor.execute(
+                """
+                ALTER TABLE procedure_submissions
+                ALTER COLUMN image_data DROP NOT NULL
+            """
+            )
+
+            # ── LMS: Cursos y Matrículas ─────────────────────────────────────
+
+            # Catálogo de cursos (uno por archivo JSON en items/bank/)
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS courses (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    block TEXT NOT NULL CHECK (block IN (
+                        'Universidad', 'Colegio', 'Concursos',
+                        'Semillero',
+                        'Semillero', 'Semillero', 'Semillero',
+                        'Semillero', 'Semillero', 'Semillero 11°'
+                    )),
+                    description TEXT DEFAULT ''
+                )
+            """
+            )
+
+            # Matrículas: relación N-N entre estudiantes y cursos
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS enrollments (
+                    user_id INTEGER NOT NULL,
+                    course_id TEXT NOT NULL,
+                    group_id INTEGER,
+                    enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, course_id)
+                )
+            """
+            )
+
+            # Migración: asociar matrícula a un grupo (nullable)
+            self._add_column_if_not_exists(cursor, "enrollments", "group_id", "INTEGER")
+
+            # Vincular ítems a su curso (migración aditiva)
+            self._add_column_if_not_exists(cursor, "items", "course_id", "TEXT")
+            # T14: campo opcional para imagen/diagrama asociado a la pregunta
+            self._add_column_if_not_exists(cursor, "items", "image_url", "TEXT")
+            # Tags de taxonomía (JSON array): dimensión cognitiva, general y específica
+            self._add_column_if_not_exists(cursor, "items", "tags", "TEXT")
+            # Bloque temático dentro del curso (p.ej. "Constitución Política" en DIAN)
+            self._add_column_if_not_exists(cursor, "items", "block", "TEXT DEFAULT ''")
+
+            # ── Migración: ampliar CHECK constraint de courses.block ──────
+            self._migrate_courses_block_check(cursor)
+
+            # ── Unicidad de nombre de grupo por profesor (case-insensitive) ─
+            self._add_column_if_not_exists(cursor, "groups", "name_normalized", "TEXT")
+            # Rellenar valores existentes que estén NULL
+            try:
+                cursor.execute(
+                    """
+                    UPDATE groups SET name_normalized = LOWER(TRIM(name))
+                    WHERE name_normalized IS NULL
+                """
+                )
+            except Exception:
+                conn.rollback()
+                # Otra instancia ya lo hizo, continuar
+            # Resolver duplicados existentes antes de crear el índice único:
+            # renombrar grupos con sufijo -DUP-{id} para desambiguar
+            cursor.execute(
+                """
+                SELECT id, name, teacher_id, name_normalized
+                FROM groups
+                WHERE (teacher_id, name_normalized) IN (
+                    SELECT teacher_id, name_normalized
+                    FROM groups
+                    GROUP BY teacher_id, name_normalized
+                    HAVING COUNT(*) > 1
+                )
+                ORDER BY teacher_id, name_normalized, id
+            """
+            )
+            dup_rows = cursor.fetchall()
+            # Agrupar por (teacher_id, name_normalized); conservar el primero, renombrar el resto
+            seen = set()
+            for row in dup_rows:
+                row_id = row["id"]
+                row_name = row["name"]
+                row_teacher = row["teacher_id"]
+                row_norm = row["name_normalized"]
+                key = (row_teacher, row_norm)
+                if key not in seen:
+                    seen.add(key)  # el primero se conserva intacto
+                    continue
+                new_name = f"{row_name}-DUP-{row_id}"
+                new_norm = new_name.strip().lower()
+                cursor.execute(
+                    "UPDATE groups SET name = %s, name_normalized = %s WHERE id = %s",
+                    (new_name, new_norm, row_id),
+                )
+            # Índice único: (teacher_id, nombre normalizado)
+            cursor.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_teacher_name_unique
+                ON groups(teacher_id, name_normalized)
+            """
+            )
+
+            # Código de invitación por grupo (opcional, generado por el docente)
+            self._add_column_if_not_exists(cursor, "groups", "invite_code", "TEXT")
+            cursor.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_invite_code
+                ON groups(invite_code) WHERE invite_code IS NOT NULL
+            """
+            )
+
+            # ── Desactivar usuarios con contraseña vacía o nula ────────────
+            cursor.execute(
+                """
+                UPDATE users SET active = 0
+                WHERE (password_hash IS NULL OR TRIM(password_hash) = '')
+                  AND active = 1
+            """
+            )
+
+            # ── Tabla problem_reports (reportes técnicos de usuarios) ─
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS problem_reports (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    description TEXT NOT NULL,
+                    status TEXT DEFAULT 'pending',
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """
+            )
+
+            # ── Tabla weekly_rankings ─────────────────────────────────
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS weekly_rankings (
+                    id SERIAL PRIMARY KEY,
+                    week_start DATE NOT NULL,
+                    week_end DATE NOT NULL,
+                    group_id INTEGER NOT NULL,
+                    rank INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    username TEXT NOT NULL,
+                    global_elo REAL NOT NULL,
+                    attempts_count INTEGER NOT NULL,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """
+            )
+            cursor.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_rankings_unique
+                ON weekly_rankings(week_start, group_id, user_id)
+            """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_weekly_rankings_week_group
+                ON weekly_rankings(week_start, group_id)
+            """
+            )
+
+            # ── Tabla katia_interactions (registro de interacciones con KatIA) ──
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS katia_interactions (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id),
+                    course_id TEXT,
+                    item_id TEXT,
+                    item_topic TEXT,
+                    student_message TEXT NOT NULL,
+                    katia_response TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_katia_interactions_user
+                ON katia_interactions(user_id)
+            """
+            )
+
+            # ── Tabla achievements (logros/badges del estudiante) ─────────────
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS achievements (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id),
+                    badge_id TEXT NOT NULL,
+                    earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, badge_id)
+                )
+            """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_achievements_user
+                ON achievements(user_id)
+            """
+            )
+
+            # ── Tabla student_topic_elo (ELO actual por materia, consultable) ──
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS student_topic_elo (
+                    user_id INTEGER NOT NULL REFERENCES users(id),
+                    topic TEXT NOT NULL,
+                    current_elo REAL NOT NULL DEFAULT 1000.0,
+                    rd REAL NOT NULL DEFAULT 350.0,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, topic)
+                )
+            """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_student_topic_elo_topic
+                ON student_topic_elo(topic)
+            """
+            )
+
+            # ── Tabla exam_sessions (historial de exámenes del estudiante) ────
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS exam_sessions (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    course_id TEXT NOT NULL,
+                    course_name TEXT NOT NULL DEFAULT '',
+                    n_questions INTEGER NOT NULL,
+                    correct_count INTEGER NOT NULL,
+                    score_pct REAL NOT NULL,
+                    global_elo_after REAL NOT NULL DEFAULT 0,
+                    exam_template_id INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+            # ── Tabla exam_templates (plantillas de examen del docente) ──────
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS exam_templates (
+                    id SERIAL PRIMARY KEY,
+                    teacher_id INTEGER NOT NULL,
+                    course_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    time_limit_min INTEGER NOT NULL DEFAULT 20,
+                    item_ids TEXT NOT NULL DEFAULT '[]',
+                    archived BOOLEAN NOT NULL DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_exam_templates_course "
+                "ON exam_templates(course_id, archived)"
+            )
+
+            # ── Tabla exam_assignments (asignaciones a grupos + ventana de tiempo) ──
+            # Sin filas para un template => visible a todos los inscritos al curso
+            # (backward-compat con plantillas creadas antes de esta tabla).
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS exam_assignments (
+                    id SERIAL PRIMARY KEY,
+                    template_id INTEGER NOT NULL
+                        REFERENCES exam_templates(id) ON DELETE CASCADE,
+                    group_id INTEGER NOT NULL
+                        REFERENCES groups(id) ON DELETE CASCADE,
+                    starts_at TIMESTAMP NULL,
+                    ends_at TIMESTAMP NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (template_id, group_id)
+                )
+                """
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_exam_assignments_template "
+                "ON exam_assignments(template_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_exam_assignments_group "
+                "ON exam_assignments(group_id)"
+            )
+
+            # ── Tabla exam_responses (respuesta por pregunta de cada examen) ──
+            # Habilita el análisis de resultados del docente. Evaluativo: NO
+            # afecta ELO ni dificultad del ítem.
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS exam_responses (
+                    id SERIAL PRIMARY KEY,
+                    session_id INTEGER NOT NULL,
+                    template_id INTEGER,
+                    user_id INTEGER NOT NULL,
+                    item_id TEXT NOT NULL,
+                    topic TEXT,
+                    is_correct INTEGER NOT NULL DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_exam_responses_template "
+                "ON exam_responses(template_id)"
+            )
+
+            # ── Tabla diagnostics (examen diagnóstico de inicio de materia) ──
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS diagnostics (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    course_id TEXT NOT NULL,
+                    initial_elo REAL NOT NULL,
+                    score_pct REAL NOT NULL,
+                    result_json TEXT NOT NULL DEFAULT '{}',
+                    completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (user_id, course_id)
+                )
+                """
+            )
+
+            # Progreso curricular independiente del ELO (nodos de contenido).
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS lesson_progress (
+                    user_id INTEGER NOT NULL,
+                    course_id TEXT NOT NULL,
+                    node_id TEXT NOT NULL,
+                    state TEXT NOT NULL DEFAULT 'available',
+                    objectives_viewed INTEGER NOT NULL DEFAULT 0,
+                    math_convention_viewed INTEGER NOT NULL DEFAULT 0,
+                    viewed_at TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, course_id, node_id)
+                )
+                """
+            )
+
+            # Respuestas cerradas de lecciones; por diseño no admite texto libre.
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS lesson_interactions (
+                    user_id INTEGER NOT NULL,
+                    course_id TEXT NOT NULL,
+                    node_id TEXT NOT NULL,
+                    interaction_id TEXT NOT NULL,
+                    selected_option TEXT NOT NULL,
+                    is_expected INTEGER,
+                    misconception_tag TEXT,
+                    answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, course_id, node_id, interaction_id)
+                )
+                """
+            )
+
+            # ── Tablas PvP (ligas en tiempo real) ────────────────────────────
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS pvp_matches (
+                    id SERIAL PRIMARY KEY,
+                    course_id TEXT NOT NULL,
+                    player1_id INTEGER NOT NULL,
+                    player2_id INTEGER NOT NULL,
+                    item_ids TEXT NOT NULL DEFAULT '[]',
+                    status TEXT NOT NULL DEFAULT 'active',
+                    winner_id INTEGER,
+                    score_p1 INTEGER NOT NULL DEFAULT 0,
+                    score_p2 INTEGER NOT NULL DEFAULT 0,
+                    elo_delta_p1 REAL,
+                    elo_delta_p2 REAL,
+                    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    finished_at TIMESTAMP
+                )
+                """
+            )
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS pvp_answers (
+                    id SERIAL PRIMARY KEY,
+                    match_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    item_id TEXT NOT NULL,
+                    is_correct INTEGER NOT NULL DEFAULT 0,
+                    answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_pvp_matches_players "
+                "ON pvp_matches(player1_id, player2_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_pvp_answers_match "
+                "ON pvp_answers(match_id, user_id)"
+            )
+
+            conn.commit()
+
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            raise
+
+        finally:
+            if locked:
+                try:
+                    cursor.execute("SELECT pg_advisory_unlock(12345)")
+                    conn.commit()
+                except Exception:
+                    pass
+            self.put_connection(conn)
+
+    def _migrate_courses_block_check(self, cursor):
+        """Actualiza el CHECK constraint de courses.block para incluir todos los bloques.
+
+        Solo ejecuta el DROP/ADD si el constraint actual no incluye ya los bloques
+        de grado específicos ('Semillero 6°' … 'Semillero 11°').
+        """
+        # Verificar si el constraint ya incluye los bloques de grado específicos
+        cursor.execute(
+            """
+            SELECT pg_get_constraintdef(oid)
+            FROM pg_constraint
+            WHERE conname = 'courses_block_check'
+              AND conrelid = 'courses'::regclass
+        """
+        )
+        row = cursor.fetchone()
+        if row and "Semillero 6" in row["pg_get_constraintdef"]:
+            return  # Ya está actualizado, no hacer nada
+
+        cursor.execute(
+            """
+            ALTER TABLE courses DROP CONSTRAINT IF EXISTS courses_block_check
+        """
+        )
+        cursor.execute(
+            """
+            ALTER TABLE courses ADD CONSTRAINT courses_block_check
+            CHECK (block IN (
+                'Universidad', 'Colegio', 'Concursos',
+                'Semillero',
+                'Semillero', 'Semillero', 'Semillero',
+                'Semillero', 'Semillero', 'Semillero 11°'
+            ))
+        """
+        )
+
+    def _backfill_prob_failure(self):
+        """Rellena prob_failure para intentos históricos que tienen NULL.
+        Reconstruye el ELO por tópico en orden cronológico para cada estudiante."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Obtener todos los estudiantes con intentos sin prob_failure
+            cursor.execute("SELECT DISTINCT user_id FROM attempts WHERE prob_failure IS NULL")
+            user_ids = [row["user_id"] for row in cursor.fetchall()]
+
+            for user_id in user_ids:
+                # Traer TODOS los intentos del usuario en orden cronológico
+                cursor.execute(
+                    "SELECT id, topic, difficulty, elo_after FROM attempts "
+                    "WHERE user_id = %s ORDER BY timestamp ASC, id ASC",
+                    (user_id,),
+                )
+                attempts = cursor.fetchall()
+
+                elo_by_topic = {}  # ELO reconstruido antes de cada intento
+                for attempt in attempts:
+                    attempt_id = attempt["id"]
+                    topic = attempt["topic"]
+                    difficulty = attempt["difficulty"]
+                    elo_after = attempt["elo_after"]
+
+                    elo_before = elo_by_topic.get(topic, 1000.0)
+                    p_success = expected_score(elo_before, difficulty)
+                    prob_failure = 1.0 - p_success
+
+                    cursor.execute(
+                        "UPDATE attempts SET prob_failure = %s WHERE id = %s",
+                        (prob_failure, attempt_id),
+                    )
+                    # Avanzar ELO reconstruido
+                    elo_by_topic[topic] = elo_after
+
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    def _seed_admin(self):
+        """Crea el usuario admin desde variables de entorno si no existe."""
+        admin_password = os.getenv("ADMIN_PASSWORD")
+        if not admin_password:
+            return
+
+        admin_user = os.getenv("ADMIN_USER", "admin")
+        admin_hash = self.hashing.hash_password(admin_password)
+
+        conn = self.get_connection()
+        locked = False
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT pg_try_advisory_lock(12346)")
+            locked = cursor.fetchone()["pg_try_advisory_lock"]
+            if not locked:
+                return
+            try:
+                cursor.execute("SELECT id FROM users WHERE username = %s", (admin_user,))
+                if not cursor.fetchone():
+                    cursor.execute(
+                        "INSERT INTO users (username, password_hash, role, approved) VALUES (%s, %s, 'admin', 1)",
+                        (admin_user, admin_hash),
+                    )
+                conn.commit()
+            except Exception:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                raise
+        finally:
+            if locked:
+                try:
+                    cursor.execute("SELECT pg_advisory_unlock(12346)")
+                    conn.commit()
+                except Exception:
+                    pass
+            self.put_connection(conn)
+
+    def _seed_demo_data(self):
+        """Crea usuarios, grupos y matrículas demo si no existen (idempotente).
+
+        - profesor1 / demo1234 (docente pre-aprobado)
+        - estudiante1 / demo1234 (universidad, Cálculo Diferencial)
+        - estudiante2 / demo1234 (colegio, Álgebra Básica)
+        - concursante1 / demo1234 (concursos, DIAN)
+        """
+        demo_hash = self.hashing.hash_password("demo1234")
+
+        conn = self.get_connection()
+        locked = False
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT pg_try_advisory_lock(12347)")
+            locked = cursor.fetchone()["pg_try_advisory_lock"]
+            if not locked:
+                return
+            try:
+
+                # Profesor demo
+                cursor.execute("SELECT id FROM users WHERE username = 'profesor1'")
+                if not cursor.fetchone():
+                    cursor.execute(
+                        "INSERT INTO users (username, password_hash, role, approved) VALUES (%s, %s, 'teacher', 1)",
+                        ("profesor1", demo_hash),
+                    )
+
+                conn.commit()
+
+                # ID del profesor para crear grupos
+                cursor.execute("SELECT id FROM users WHERE username = 'profesor1'")
+                profesor_id = cursor.fetchone()["id"]
+
+                # Grupos demo vinculados a cursos del catálogo
+                _demo_groups = [
+                    ("Grupo Demo - Cálculo", "calculo_diferencial"),
+                    ("Grupo Demo - Álgebra", "algebra_basica"),
+                    ("Grupo Demo - DIAN", "DIAN"),
+                ]
+                group_ids = {}
+                for g_name, g_course in _demo_groups:
+                    g_norm = g_name.strip().lower()
+                    cursor.execute(
+                        "SELECT id FROM groups WHERE name_normalized = %s AND teacher_id = %s",
+                        (g_norm, profesor_id),
+                    )
+                    row = cursor.fetchone()
+                    if not row:
+                        cursor.execute(
+                            "INSERT INTO groups (name, teacher_id, course_id, name_normalized) VALUES (%s, %s, %s, %s) RETURNING id",
+                            (g_name, profesor_id, g_course, g_norm),
+                        )
+                        conn.commit()
+                        group_ids[g_course] = cursor.fetchone()["id"]
+                    else:
+                        group_ids[g_course] = row["id"]
+                        # Asegurar que el grupo tenga course_id (migra grupos legacy sin curso)
+                        cursor.execute(
+                            "UPDATE groups SET course_id = %s WHERE id = %s AND course_id IS NULL",
+                            (g_course, row["id"]),
+                        )
+
+                conn.commit()
+
+                # Estudiantes demo: cada uno en su nivel y grupo correspondiente
+                _demo_students = [
+                    ("estudiante1", "universidad", "calculo_diferencial"),
+                    ("estudiante2", "colegio", "algebra_basica"),
+                    ("concursante1", "concursos", "DIAN"),
+                ]
+                for username, edu_level, primary_course in _demo_students:
+                    primary_gid = group_ids.get(primary_course)
+                    cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+                    row = cursor.fetchone()
+                    if not row:
+                        cursor.execute(
+                            "INSERT INTO users (username, password_hash, role, approved, group_id, rating_deviation, education_level) "
+                            "VALUES (%s, %s, 'student', 1, %s, 350.0, %s)",
+                            (username, demo_hash, primary_gid, edu_level),
+                        )
+                    else:
+                        # Asegurar que el estudiante tenga grupo y nivel asignados
+                        cursor.execute(
+                            "UPDATE users SET group_id = COALESCE(group_id, %s), "
+                            "education_level = COALESCE(education_level, %s) "
+                            "WHERE id = %s",
+                            (primary_gid, edu_level, row["id"]),
+                        )
+
+                conn.commit()
+
+                # Matrículas demo: cada estudiante se inscribe en su grupo principal
+                for username, _edu, primary_course in _demo_students:
+                    cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+                    student_id = cursor.fetchone()["id"]
+                    g_id = group_ids.get(primary_course)
+                    cursor.execute(
+                        "SELECT 1 FROM enrollments WHERE user_id = %s AND course_id = %s AND group_id = %s",
+                        (student_id, primary_course, g_id),
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute(
+                            "INSERT INTO enrollments (user_id, course_id, group_id) VALUES (%s, %s, %s)",
+                            (student_id, primary_course, g_id),
+                        )
+
+                conn.commit()
+            except Exception:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                raise
+        finally:
+            if locked:
+                try:
+                    cursor.execute("SELECT pg_advisory_unlock(12347)")
+                    conn.commit()
+                except Exception:
+                    pass
+            self.put_connection(conn)
+
+    def _update_password_hash(self, user_id, password):
+        """Actualiza el hash de un usuario al nuevo estándar Argon2id."""
+        new_hash = self.hashing.hash_password(password)
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("UPDATE users SET password_hash = %s WHERE id = %s", (new_hash, user_id))
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def register_user(
+        self,
+        username,
+        password,
+        role="student",
+        group_id=None,
+        education_level=None,
+        grade=None,
+        email=None,
+    ):
+        """Registra un nuevo usuario.
+
+        `grade` solo aplica cuando education_level = 'semillero' ('6'–'11').
+        `email` opcional — si se provee, se valida formato y unicidad.
+        """
+        if not password or not password.strip():
+            return False, "La contraseña es obligatoria."
+        if len(password.strip()) < 6:
+            return False, "La contraseña debe tener al menos 6 caracteres."
+        # Validar email si se provee
+        if email is not None:
+            email = email.strip() or None
+        if email is not None:
+            if not self._valid_email_format(email):
+                return False, "Formato de correo inválido."
+            if self.email_exists(email):
+                return False, "Este correo ya está registrado."
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            password_hash = self.hashing.hash_password(password)
+            approved = 0 if role == "teacher" else 1
+            _grade = grade if education_level == "semillero" else None
+            cursor.execute(
+                "INSERT INTO users (username, password_hash, role, approved, group_id, "
+                "rating_deviation, education_level, grade, email) "
+                "VALUES (%s, %s, %s, %s, %s, 350.0, %s, %s, %s)",
+                (username, password_hash, role, approved, group_id, education_level, _grade, email),
+            )
+            conn.commit()
+            return True, "Registro exitoso."
+        except psycopg2.IntegrityError:
+            conn.rollback()
+            return False, "Error: El nombre de usuario ya existe."
+        finally:
+            self.put_connection(conn)
+
+    def get_user_by_id(self, user_id: int) -> dict | None:
+        """Retorna datos básicos de un usuario por su ID."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT id, username, role, group_id, education_level, current_elo "
+                "FROM users WHERE id = %s",
+                (user_id,),
+            )
+            row = cursor.fetchone()
+        finally:
+            self.put_connection(conn)
+        if not row:
+            return None
+        return {
+            "id": row["id"],
+            "username": row["username"],
+            "role": row["role"],
+            "group_id": row["group_id"],
+            "education_level": row["education_level"],
+            "current_elo": row["current_elo"],
+        }
+
+    @_timing
+    def login_user(self, username, password):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            # Buscar por username O email
+            cursor.execute(
+                "SELECT id, username, role, approved, password_hash "
+                "FROM users WHERE (username = %s OR (email = %s AND email IS NOT NULL)) AND active = 1 "
+                "LIMIT 1",
+                (username, username),
+            )
+            row = cursor.fetchone()
+        finally:
+            self.put_connection(conn)
+
+        if row:
+            user_id = row["id"]
+            uname = row["username"]
+            role = row["role"]
+            approved = row["approved"]
+            stored_hash = row["password_hash"]
+
+            # Rechazar cuentas con contraseña vacía o nula
+            if not stored_hash or not stored_hash.strip():
+                return None
+
+            # 1. Intentar verificación con Argon2
+            if stored_hash.startswith("$argon2id$"):
+                try:
+                    verified, new_hash = self.hashing.verify_and_update(password, stored_hash)
+                    if verified:
+                        if new_hash:
+                            self._update_password_hash(user_id, password)
+                        return (user_id, uname, role, approved)
+                except Exception:
+                    pass
+
+            # 2. Si no es Argon2 o falló, intentar legado
+            if self.hashing.verify_legacy_sha256(password, stored_hash):
+                self._update_password_hash(user_id, password)
+                return (user_id, uname, role, approved)
+
+        return None  # Credenciales inválidas o usuario inactivo
+
+    # ── Email helpers ────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _valid_email_format(email: str) -> bool:
+        import re
+
+        return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email))
+
+    def get_user_by_login(self, login: str):
+        """Busca usuario por username O email. Retorna dict o None."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT id, username, role, approved, password_hash "
+                "FROM users WHERE (username = %s OR (email = %s AND email IS NOT NULL)) AND active = 1 "
+                "LIMIT 1",
+                (login, login),
+            )
+            return cursor.fetchone()
+        finally:
+            self.put_connection(conn)
+
+    def email_exists(self, email: str) -> bool:
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT COUNT(*) AS cnt FROM users WHERE email = %s AND email IS NOT NULL",
+                (email,),
+            )
+            return cursor.fetchone()["cnt"] > 0
+        finally:
+            self.put_connection(conn)
+
+    def update_user_email(self, user_id: int, email: str) -> None:
+        if not self._valid_email_format(email):
+            raise ValueError("Formato de correo inválido")
+        if self.email_exists(email):
+            raise ValueError("Este correo ya está registrado")
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("UPDATE users SET email = %s WHERE id = %s", (email, user_id))
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def save_attempt(
+        self,
+        user_id,
+        item_id,
+        is_correct,
+        difficulty,
+        topic,
+        elo_after,
+        prob_failure=None,
+        expected_score=None,
+        time_taken=None,
+        confidence_score=None,
+        error_type=None,
+        rating_deviation=None,
+    ):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                INSERT INTO attempts (user_id, item_id, is_correct, difficulty, topic, elo_after,
+                                      prob_failure, expected_score, time_taken, confidence_score,
+                                      error_type, rating_deviation)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+                (
+                    user_id,
+                    item_id,
+                    is_correct,
+                    difficulty,
+                    topic,
+                    elo_after,
+                    prob_failure,
+                    expected_score,
+                    time_taken,
+                    confidence_score,
+                    error_type,
+                    rating_deviation,
+                ),
+            )
+            # Actualizar current_elo en users (promedio de últimos ELO por tópico)
+            self._update_current_elo(cursor, user_id)
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    def _tiempo_valido(self, time_taken: float) -> bool:
+        """Rango válido para actualizar ELO: [3s, 600s].
+        <3s = adivinanza sin leer; >600s = sesión abandonada.
+        """
+        return 3.0 <= time_taken <= 600.0
+
+    def save_answer_transaction(
+        self,
+        user_id: int,
+        item_id: str,
+        item_difficulty_new: float,
+        item_rd_new: float,
+        attempt_data: dict,
+    ) -> None:
+        """
+        Persiste el resultado de una respuesta de forma atómica.
+        El intento siempre se guarda. La actualización de ELO (ítem +
+        current_elo del usuario) solo ocurre si el tiempo de respuesta
+        está en el rango válido [3s, 600s] (elo_valid=1).
+        """
+        time_taken = attempt_data.get("time_taken", 30.0) or 30.0
+        elo_valid = 1 if self._tiempo_valido(time_taken) else 0
+
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            # Siempre registrar el intento
+            cursor.execute(
+                """INSERT INTO attempts
+                   (user_id, item_id, is_correct, difficulty, topic, elo_after,
+                    prob_failure, expected_score, time_taken, confidence_score,
+                    error_type, rating_deviation, elo_valid)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (
+                    user_id,
+                    item_id,
+                    attempt_data["is_correct"],
+                    attempt_data.get("difficulty"),
+                    attempt_data.get("topic"),
+                    attempt_data["elo_after"],
+                    attempt_data.get("prob_failure"),
+                    attempt_data.get("expected_score"),
+                    attempt_data.get("time_taken"),
+                    attempt_data.get("confidence_score"),
+                    attempt_data.get("error_type"),
+                    attempt_data.get("rating_deviation"),
+                    elo_valid,
+                ),
+            )
+            # Solo actualizar ELO si el tiempo de respuesta es válido
+            if elo_valid:
+                cursor.execute(
+                    "UPDATE items SET difficulty = %s, rating_deviation = %s WHERE id = %s",
+                    (item_difficulty_new, item_rd_new, item_id),
+                )
+                self._update_current_elo(cursor, user_id)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+
+    def get_all_attempts_for_calibration(
+        self,
+        education_level: str = None,
+        exclude_test_users: bool = True,
+    ) -> list:
+        """Retorna intentos filtrados para calibración ML.
+
+        Filtra elo_valid=1 y opcionalmente is_test_user=0.
+        luisito-s y torieg (is_test_user=1) siempre excluidos en análisis.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            params = []
+            where = ["a.elo_valid = 1"]
+            if exclude_test_users:
+                where.append("COALESCE(u.is_test_user, 0) = 0")
+            if education_level:
+                where.append("u.education_level = %s")
+                params.append(education_level)
+            cursor.execute(
+                f"""SELECT a.id, a.user_id, a.item_id, a.is_correct,
+                           a.expected_score, a.elo_valid, a.time_taken,
+                           u.education_level
+                    FROM attempts a
+                    JOIN users u ON a.user_id = u.id
+                    WHERE {' AND '.join(where)}
+                    ORDER BY a.timestamp""",
+                params,
+            )
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_study_streak(self, user_id, course_id=None):
+        """Calcula la racha de días consecutivos de estudio del estudiante.
+
+        Si course_id se proporciona, solo cuenta los días con actividad en ese
+        curso específico (racha independiente por materia). Sin course_id,
+        cuenta cualquier actividad (racha global).
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            if course_id:
+                cursor.execute(
+                    """
+                    SELECT DISTINCT DATE(a.timestamp) AS d
+                    FROM attempts a
+                    JOIN items i ON i.id = a.item_id
+                    WHERE a.user_id = %s AND i.course_id = %s
+                    ORDER BY d DESC
+                """,
+                    (user_id, course_id),
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT DISTINCT DATE(timestamp) AS d FROM attempts WHERE user_id = %s
+                    UNION
+                    SELECT DISTINCT DATE(submitted_at) AS d FROM procedure_submissions WHERE student_id = %s
+                    ORDER BY d DESC
+                """,
+                    (user_id, user_id),
+                )
+            dates = [str(row["d"]) for row in cursor.fetchall()]
+        finally:
+            self.put_connection(conn)
+
+        if not dates:
+            return 0
+
+        from datetime import date, timedelta
+
+        today = date.today()
+        streak = 0
+        expected = today if dates[0] == str(today) else today - timedelta(days=1)
+        for d_str in dates:
+            if d_str == str(expected):
+                streak += 1
+                expected -= timedelta(days=1)
+            elif d_str < str(expected):
+                break
+        return streak
+
+    def get_activity_heatmap(self, user_id: int, days: int = 70) -> dict:
+        """Retorna {date: count} con el número de intentos por día (últimos N días)."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT DATE(timestamp) AS d, COUNT(*) AS cnt
+                FROM attempts
+                WHERE user_id = %s AND timestamp >= NOW() - INTERVAL '%s days'
+                GROUP BY d
+            """,
+                (user_id, days),
+            )
+            rows = cursor.fetchall()
+        finally:
+            self.put_connection(conn)
+        return {str(row["d"]): row["cnt"] for row in rows}
+
+    def get_group_ranking(self, group_id: int, course_id: str | None = None) -> list:
+        """Retorna el ranking ELO de los estudiantes de un grupo.
+
+        Si course_id se proporciona, calcula el ELO promedio solo para ese curso.
+        Retorna lista de {user_id, username, global_elo, total_attempts, rank_pos}.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            if course_id:
+                cursor.execute(
+                    """
+                    SELECT u.id, u.username,
+                           COALESCE(AVG(a.elo_after), 1000) AS elo,
+                           COUNT(a.id) AS attempts
+                    FROM users u
+                    LEFT JOIN attempts a ON a.user_id = u.id
+                    LEFT JOIN items i ON i.id = a.item_id AND i.course_id = %s
+                    WHERE u.group_id = %s AND u.role = 'student' AND u.active = 1
+                    GROUP BY u.id, u.username
+                    ORDER BY elo DESC
+                """,
+                    (course_id, group_id),
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT u.id, u.username,
+                           COALESCE(AVG(a.elo_after), 1000) AS elo,
+                           COUNT(a.id) AS attempts
+                    FROM users u
+                    LEFT JOIN attempts a ON a.user_id = u.id
+                    WHERE u.group_id = %s AND u.role = 'student' AND u.active = 1
+                    GROUP BY u.id, u.username
+                    ORDER BY elo DESC
+                """,
+                    (group_id,),
+                )
+            rows = cursor.fetchall()
+        finally:
+            self.put_connection(conn)
+        return [
+            {
+                "user_id": row["id"],
+                "username": row["username"],
+                "global_elo": round(float(row["elo"]), 1),
+                "total_attempts": row["attempts"],
+                "rank_pos": i + 1,
+            }
+            for i, row in enumerate(rows)
+        ]
+
+    def save_problem_report(self, user_id: int, description: str) -> None:
+        """Guarda un reporte de problema técnico enviado por un usuario."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "INSERT INTO problem_reports (user_id, description) VALUES (%s, %s)",
+                (user_id, description),
+            )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    def get_problem_reports(self, status: str = None) -> list:
+        """Devuelve reportes de problemas. Con status='pending' solo los pendientes."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            if status:
+                cursor.execute(
+                    """
+                    SELECT pr.id, pr.user_id, u.username, pr.description, pr.status, pr.created_at
+                    FROM problem_reports pr
+                    JOIN users u ON u.id = pr.user_id
+                    WHERE pr.status = %s
+                    ORDER BY pr.created_at DESC
+                """,
+                    (status,),
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT pr.id, pr.user_id, u.username, pr.description, pr.status, pr.created_at
+                    FROM problem_reports pr
+                    JOIN users u ON u.id = pr.user_id
+                    ORDER BY pr.created_at DESC
+                """
+                )
+            return [dict(r) for r in cursor.fetchall()]
+        finally:
+            self.put_connection(conn)
+
+    def mark_problem_resolved(self, report_id: int) -> None:
+        """Marca un reporte de problema como resuelto."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "UPDATE problem_reports SET status = 'resolved' WHERE id = %s", (report_id,)
+            )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    def get_audit_group_changes(self, limit: int = 100) -> list:
+        """Devuelve las reasignaciones de grupo auditadas, más recientes primero."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT a.id, a.student_id, s.username AS student_username,
+                       a.old_group_id, og.name AS old_group_name,
+                       a.new_group_id, ng.name AS new_group_name,
+                       a.admin_id, ad.username AS admin_username,
+                       a.timestamp
+                FROM audit_group_changes a
+                LEFT JOIN users s ON s.id = a.student_id
+                LEFT JOIN users ad ON ad.id = a.admin_id
+                LEFT JOIN groups og ON og.id = a.old_group_id
+                LEFT JOIN groups ng ON ng.id = a.new_group_id
+                ORDER BY a.timestamp DESC
+                LIMIT %s
+            """,
+                (limit,),
+            )
+            rows = []
+            for r in cursor.fetchall():
+                d = dict(r)
+                if d.get("timestamp") is not None:
+                    d["timestamp"] = str(d["timestamp"])
+                rows.append(d)
+            return rows
+        finally:
+            self.put_connection(conn)
+
+    # ── KatIA interactions ──────────────────────────────────────────────
+
+    def save_katia_interaction(
+        self,
+        user_id: int,
+        course_id: str,
+        item_id: str,
+        item_topic: str,
+        student_message: str,
+        katia_response: str = None,
+    ) -> None:
+        """Registra una interacción del estudiante con el chat socrático de KatIA."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "INSERT INTO katia_interactions (user_id, course_id, item_id, item_topic, "
+                "student_message, katia_response) VALUES (%s, %s, %s, %s, %s, %s)",
+                (user_id, course_id, item_id, item_topic, student_message, katia_response),
+            )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    def get_katia_interactions(self, user_id: int, limit: int = 200) -> list:
+        """Retorna las interacciones de un estudiante con KatIA."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT ki.id, ki.course_id, c.name AS course_name,
+                       ki.item_id, ki.item_topic, ki.student_message,
+                       ki.katia_response, ki.created_at
+                FROM katia_interactions ki
+                LEFT JOIN courses c ON c.id = ki.course_id
+                WHERE ki.user_id = %s
+                ORDER BY ki.created_at DESC
+                LIMIT %s
+            """,
+                (user_id, limit),
+            )
+            rows = cursor.fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            self.put_connection(conn)
+
+    def export_teacher_katia_interactions(self, teacher_id: int, group_id: int = None) -> list:
+        """Exporta interacciones de KatIA de los estudiantes del docente."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            _filter = ""
+            _params = [teacher_id]
+            if group_id:
+                _filter = "AND u.group_id = %s"
+                _params.append(group_id)
+            cursor.execute(
+                f"""
+                SELECT u.id AS student_id, u.username, g.name AS group_name,
+                       ki.course_id, c.name AS course_name,
+                       ki.item_topic, ki.student_message,
+                       ki.katia_response, ki.created_at
+                FROM katia_interactions ki
+                JOIN users u ON u.id = ki.user_id
+                JOIN groups g ON g.id = u.group_id
+                LEFT JOIN courses c ON c.id = ki.course_id
+                WHERE g.teacher_id = %s
+                  AND COALESCE(u.is_test_user, 0) = 0
+                  {_filter}
+                ORDER BY ki.created_at DESC
+            """,
+                _params,
+            )
+            rows = cursor.fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            self.put_connection(conn)
+
+    def get_weekly_ranking(self, group_id, limit=5):
+        """Top estudiantes del grupo por ELO promedio, con actividad en los últimos 7 días."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                WITH active_users AS (
+                    SELECT DISTINCT a.user_id
+                    FROM attempts a
+                    JOIN users u ON a.user_id = u.id
+                    WHERE u.group_id = %s AND u.role = 'student'
+                      AND a.timestamp >= NOW() - INTERVAL '7 days'
+                ),
+                latest_elo AS (
+                    SELECT a.user_id, a.item_id, a.elo_after,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY a.user_id, i.course_id
+                               ORDER BY a.timestamp DESC
+                           ) AS rn
+                    FROM attempts a
+                    JOIN items i ON a.item_id = i.id
+                    WHERE a.user_id IN (SELECT user_id FROM active_users)
+                ),
+                user_elo AS (
+                    SELECT le.user_id,
+                           ROUND(AVG(le.elo_after)::numeric, 0) AS global_elo
+                    FROM latest_elo le
+                    WHERE le.rn = 1
+                    GROUP BY le.user_id
+                ),
+                week_attempts AS (
+                    SELECT a.user_id, COUNT(*) AS attempts_this_week
+                    FROM attempts a
+                    WHERE a.user_id IN (SELECT user_id FROM active_users)
+                      AND a.timestamp >= NOW() - INTERVAL '7 days'
+                    GROUP BY a.user_id
+                )
+                SELECT ue.user_id, u.username, ue.global_elo, wa.attempts_this_week
+                FROM user_elo ue
+                JOIN users u ON ue.user_id = u.id
+                JOIN week_attempts wa ON ue.user_id = wa.user_id
+                ORDER BY ue.global_elo DESC
+                LIMIT %s
+            """,
+                (group_id, limit),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "user_id": row["user_id"],
+                    "username": row["username"],
+                    "global_elo": float(row["global_elo"]),
+                    "rank": idx + 1,
+                    "attempts_this_week": row["attempts_this_week"],
+                }
+                for idx, row in enumerate(rows)
+            ]
+        finally:
+            self.put_connection(conn)
+
+    def save_weekly_ranking(self, group_id):
+        """Guarda el top 5 actual en weekly_rankings. Idempotente por semana+grupo+user."""
+        from datetime import date, timedelta
+
+        today = date.today()
+        week_start = today - timedelta(days=today.weekday())  # lunes
+        week_end = week_start + timedelta(days=6)  # domingo
+        ranking = self.get_weekly_ranking(group_id, 5)
+        if not ranking:
+            return
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            for r in ranking:
+                cursor.execute(
+                    """
+                    INSERT INTO weekly_rankings
+                        (week_start, week_end, group_id, rank, user_id, username, global_elo, attempts_count)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (week_start, group_id, user_id) DO NOTHING
+                """,
+                    (
+                        str(week_start),
+                        str(week_end),
+                        group_id,
+                        r["rank"],
+                        r["user_id"],
+                        r["username"],
+                        r["global_elo"],
+                        r["attempts_this_week"],
+                    ),
+                )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    def get_ranking_history(self, group_id, weeks=4):
+        """Historial de rankings de las últimas N semanas."""
+        from datetime import date, timedelta
+
+        cutoff = date.today() - timedelta(weeks=weeks)
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT week_start, week_end, rank, username, global_elo, attempts_count
+                FROM weekly_rankings
+                WHERE group_id = %s AND week_start >= %s
+                ORDER BY week_start DESC, rank ASC
+            """,
+                (group_id, str(cutoff)),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "week_start": str(row["week_start"]),
+                    "week_end": str(row["week_end"]),
+                    "rank": row["rank"],
+                    "username": row["username"],
+                    "global_elo": float(row["global_elo"]),
+                    "attempts_count": row["attempts_count"],
+                }
+                for row in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    def get_global_ranking(self, limit=5, education_level=None, grade=None):
+        """Top estudiantes globales por ELO promedio, con actividad en los últimos 7 días."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            _level_filter = ""
+            _params = []
+            if education_level:
+                _level_filter += "AND u.education_level = %s"
+                _params.append(education_level)
+            if grade:
+                _level_filter += " AND u.grade = %s"
+                _params.append(grade)
+            _params.append(limit)
+            cursor.execute(
+                f"""
+                WITH active_users AS (
+                    SELECT DISTINCT a.user_id
+                    FROM attempts a
+                    JOIN users u ON a.user_id = u.id
+                    WHERE u.role = 'student'
+                      AND a.timestamp >= NOW() - INTERVAL '7 days'
+                      {_level_filter}
+                ),
+                latest_elo AS (
+                    SELECT a.user_id, a.elo_after,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY a.user_id, i.course_id
+                               ORDER BY a.timestamp DESC
+                           ) AS rn
+                    FROM attempts a
+                    JOIN items i ON a.item_id = i.id
+                    WHERE a.user_id IN (SELECT user_id FROM active_users)
+                ),
+                user_elo AS (
+                    SELECT le.user_id,
+                           ROUND(AVG(le.elo_after)::numeric, 0) AS global_elo
+                    FROM latest_elo le
+                    WHERE le.rn = 1
+                    GROUP BY le.user_id
+                ),
+                week_attempts AS (
+                    SELECT a.user_id, COUNT(*) AS attempts_this_week
+                    FROM attempts a
+                    WHERE a.user_id IN (SELECT user_id FROM active_users)
+                      AND a.timestamp >= NOW() - INTERVAL '7 days'
+                    GROUP BY a.user_id
+                )
+                SELECT ue.user_id, u.username, ue.global_elo, wa.attempts_this_week
+                FROM user_elo ue
+                JOIN users u ON ue.user_id = u.id
+                JOIN week_attempts wa ON ue.user_id = wa.user_id
+                ORDER BY ue.global_elo DESC
+                LIMIT %s
+            """,
+                tuple(_params),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "user_id": row["user_id"],
+                    "username": row["username"],
+                    "global_elo": float(row["global_elo"]),
+                    "rank": idx + 1,
+                    "attempts_this_week": row["attempts_this_week"],
+                }
+                for idx, row in enumerate(rows)
+            ]
+        finally:
+            self.put_connection(conn)
+
+    def get_course_ranking(self, course_id, limit=5):
+        """Top estudiantes en un curso específico por ELO promedio, últimos 7 días."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                WITH active_users AS (
+                    SELECT DISTINCT a.user_id
+                    FROM attempts a
+                    JOIN users u ON a.user_id = u.id
+                    JOIN items i ON a.item_id = i.id
+                    WHERE u.role = 'student'
+                      AND i.course_id = %s
+                      AND a.timestamp >= NOW() - INTERVAL '7 days'
+                ),
+                latest_elo AS (
+                    SELECT a.user_id, a.elo_after,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY a.user_id, i.topic
+                               ORDER BY a.timestamp DESC
+                           ) AS rn
+                    FROM attempts a
+                    JOIN items i ON a.item_id = i.id
+                    WHERE a.user_id IN (SELECT user_id FROM active_users)
+                      AND i.course_id = %s
+                ),
+                user_elo AS (
+                    SELECT le.user_id,
+                           ROUND(AVG(le.elo_after)::numeric, 0) AS course_elo
+                    FROM latest_elo le
+                    WHERE le.rn = 1
+                    GROUP BY le.user_id
+                ),
+                week_attempts AS (
+                    SELECT a.user_id, COUNT(*) AS attempts_this_week
+                    FROM attempts a
+                    JOIN items i ON a.item_id = i.id
+                    WHERE a.user_id IN (SELECT user_id FROM active_users)
+                      AND i.course_id = %s
+                      AND a.timestamp >= NOW() - INTERVAL '7 days'
+                    GROUP BY a.user_id
+                )
+                SELECT ue.user_id, u.username, ue.course_elo, wa.attempts_this_week
+                FROM user_elo ue
+                JOIN users u ON ue.user_id = u.id
+                JOIN week_attempts wa ON ue.user_id = wa.user_id
+                ORDER BY ue.course_elo DESC
+                LIMIT %s
+            """,
+                (course_id, course_id, course_id, limit),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "user_id": row["user_id"],
+                    "username": row["username"],
+                    "course_elo": float(row["course_elo"]),
+                    "rank": idx + 1,
+                    "attempts_this_week": row["attempts_this_week"],
+                }
+                for idx, row in enumerate(rows)
+            ]
+        finally:
+            self.put_connection(conn)
+
+    def get_student_rank(self, user_id, course_id=None, education_level=None, grade=None):
+        """Posición del estudiante en el ranking (global o por curso)."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            if course_id is not None:
+                # Ranking por curso (ignora education_level)
+                cursor.execute(
+                    """
+                    WITH active_users AS (
+                        SELECT DISTINCT a.user_id
+                        FROM attempts a
+                        JOIN users u ON a.user_id = u.id
+                        JOIN items i ON a.item_id = i.id
+                        WHERE u.role = 'student'
+                          AND i.course_id = %s
+                          AND a.timestamp >= NOW() - INTERVAL '7 days'
+                    ),
+                    latest_elo AS (
+                        SELECT a.user_id, a.elo_after,
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY a.user_id, i.topic
+                                   ORDER BY a.timestamp DESC
+                               ) AS rn
+                        FROM attempts a
+                        JOIN items i ON a.item_id = i.id
+                        WHERE a.user_id IN (SELECT user_id FROM active_users)
+                          AND i.course_id = %s
+                    ),
+                    user_elo AS (
+                        SELECT le.user_id,
+                               ROUND(AVG(le.elo_after)::numeric, 0) AS course_elo
+                        FROM latest_elo le
+                        WHERE le.rn = 1
+                        GROUP BY le.user_id
+                    ),
+                    ranked AS (
+                        SELECT user_id, course_elo AS global_elo,
+                               ROW_NUMBER() OVER (ORDER BY course_elo DESC) AS rank
+                        FROM user_elo
+                    )
+                    SELECT rank, (SELECT COUNT(*) FROM user_elo) AS total, global_elo
+                    FROM ranked WHERE user_id = %s
+                """,
+                    (course_id, course_id, user_id),
+                )
+            else:
+                # Ranking global, opcionalmente filtrado por nivel educativo y grado
+                _level_filter = ""
+                _params = []
+                if education_level:
+                    _level_filter += "AND u.education_level = %s"
+                    _params.append(education_level)
+                if grade:
+                    _level_filter += " AND u.grade = %s"
+                    _params.append(grade)
+                _params.append(user_id)
+                cursor.execute(
+                    f"""
+                    WITH active_users AS (
+                        SELECT DISTINCT a.user_id
+                        FROM attempts a
+                        JOIN users u ON a.user_id = u.id
+                        WHERE u.role = 'student'
+                          AND a.timestamp >= NOW() - INTERVAL '7 days'
+                          {_level_filter}
+                    ),
+                    latest_elo AS (
+                        SELECT a.user_id, a.elo_after,
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY a.user_id, i.course_id
+                                   ORDER BY a.timestamp DESC
+                               ) AS rn
+                        FROM attempts a
+                        JOIN items i ON a.item_id = i.id
+                        WHERE a.user_id IN (SELECT user_id FROM active_users)
+                    ),
+                    user_elo AS (
+                        SELECT le.user_id,
+                               ROUND(AVG(le.elo_after)::numeric, 0) AS global_elo
+                        FROM latest_elo le
+                        WHERE le.rn = 1
+                        GROUP BY le.user_id
+                    ),
+                    ranked AS (
+                        SELECT user_id, global_elo,
+                               ROW_NUMBER() OVER (ORDER BY global_elo DESC) AS rank
+                        FROM user_elo
+                    )
+                    SELECT rank, (SELECT COUNT(*) FROM user_elo) AS total, global_elo
+                    FROM ranked WHERE user_id = %s
+                """,
+                    tuple(_params),
+                )
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "rank": row["rank"],
+                    "total_students": row["total"],
+                    "global_elo": float(row["global_elo"]),
+                }
+            return None
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_total_attempts_count(self, user_id):
+        """Retorna el número total de intentos de un estudiante."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT COUNT(*) AS cnt FROM attempts WHERE user_id = %s", (user_id,))
+            count = cursor.fetchone()["cnt"]
+            return count
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_latest_attempts(self, user_id, limit=20):
+        """Retorna los últimos N intentos con el resultado real, esperado, ELO y timestamp."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT is_correct, expected_score, prob_failure, elo_after, timestamp
+                FROM attempts
+                WHERE user_id = %s
+                ORDER BY timestamp DESC
+                LIMIT %s
+            """,
+                (user_id, limit),
+            )
+            rows = cursor.fetchall()
+        finally:
+            self.put_connection(conn)
+
+        results = []
+        for row in rows:
+            is_correct = row["is_correct"]
+            expected = row["expected_score"]
+            prob_fail = row["prob_failure"]
+            elo_after = row["elo_after"]
+            timestamp = row["timestamp"]
+            actual = 1.0 if is_correct else 0.0
+            if expected is None and prob_fail is not None:
+                expected = 1.0 - prob_fail
+            elif expected is None:
+                expected = 0.5
+            results.append(
+                {
+                    "actual": actual,
+                    "expected": expected,
+                    "elo_after": elo_after,
+                    "timestamp": str(timestamp)[:10] if timestamp else None,
+                }
+            )
+        return results
+
+    @_timing
+    def get_user_history_elo(self, user_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT elo_after FROM attempts WHERE user_id = %s ORDER BY timestamp ASC",
+                (user_id,),
+            )
+            rows = cursor.fetchall()
+            return [r["elo_after"] for r in rows] if rows else [1000]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_latest_elo(self, user_id):
+        history = self.get_user_history_elo(user_id)
+        return history[-1]
+
+    @_timing
+    def get_attempts_for_ai(self, user_id, limit=20):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT topic, difficulty, is_correct, timestamp
+                FROM attempts
+                WHERE user_id = %s
+                ORDER BY timestamp DESC
+                LIMIT %s
+            """,
+                (user_id, limit),
+            )
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_answered_item_ids(self, user_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT DISTINCT item_id FROM attempts WHERE user_id = %s", (user_id,))
+            rows = cursor.fetchall()
+            return [r["item_id"] for r in rows]
+        finally:
+            self.put_connection(conn)
+
+    def get_topic_elo_map(self, user_id) -> dict:
+        """Devuelve {topic: {"elo": float, "rd": float}} de student_topic_elo
+        (incluye el ELO inicial del diagnóstico). Para el Mapa de contenido."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    "SELECT topic, current_elo, rd FROM student_topic_elo WHERE user_id = %s",
+                    (user_id,),
+                )
+                rows = cursor.fetchall()
+                return {r["topic"]: {"elo": r["current_elo"], "rd": r["rd"]} for r in rows}
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_latest_elo_by_topic(self, user_id):
+        """Devuelve {topic: (elo_actual, rd_actual)} incluyendo ajustes de procedimientos."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # 1. ELO base: solo el último intento por tópico (DISTINCT ON es O(log n) con índice)
+            cursor.execute(
+                """
+                SELECT DISTINCT ON (topic) topic, elo_after, rating_deviation
+                FROM attempts
+                WHERE user_id = %s
+                ORDER BY topic, timestamp DESC
+                """,
+                (user_id,),
+            )
+            elo_map = {}
+            for row in cursor.fetchall():
+                topic = row["topic"]
+                elo = row["elo_after"]
+                rd = row["rating_deviation"]
+                elo_map[topic] = (elo, rd if rd is not None else 350.0)
+
+            # 2. Sumar deltas ELO de procedimientos validados por el docente
+            cursor.execute(
+                """
+                SELECT i.topic, SUM(ps.elo_delta) AS total_delta
+                FROM procedure_submissions ps
+                JOIN items i ON ps.item_id = i.id
+                WHERE ps.student_id = %s
+                  AND ps.status = 'VALIDATED_BY_TEACHER'
+                  AND ps.elo_delta IS NOT NULL
+                GROUP BY i.topic
+            """,
+                (user_id,),
+            )
+            for row in cursor.fetchall():
+                topic = row["topic"]
+                total_delta = row["total_delta"]
+                if topic in elo_map:
+                    base_elo, rd = elo_map[topic]
+                    elo_map[topic] = (round(base_elo + total_delta, 2), rd)
+                else:
+                    elo_map[topic] = (round(1000.0 + total_delta, 2), 350.0)
+
+            return elo_map
+        finally:
+            self.put_connection(conn)
+
+    def _update_current_elo(self, cursor, user_id):
+        """Recalcula y persiste ELO por tópico y global tras cada respuesta/validación.
+
+        Actualiza:
+          1. student_topic_elo — fila por cada tópico (UPSERT)
+          2. users.current_elo — promedio global derivado
+
+        Se invoca dentro de transacciones existentes (save_attempt,
+        save_answer_transaction, validate_procedure_submission).
+        No abre ni cierra conexión — recibe el cursor de la transacción padre.
+        """
+        # 1. Upsert ELO por tópico en student_topic_elo
+        cursor.execute(
+            """
+            INSERT INTO student_topic_elo (user_id, topic, current_elo, rd, updated_at)
+            SELECT %s, topic, elo_after, COALESCE(rating_deviation, 350.0), CURRENT_TIMESTAMP
+            FROM (
+                SELECT DISTINCT ON (topic) topic, elo_after, rating_deviation
+                FROM attempts
+                WHERE user_id = %s
+                ORDER BY topic, timestamp DESC
+            ) latest
+            ON CONFLICT (user_id, topic) DO UPDATE
+                SET current_elo = EXCLUDED.current_elo,
+                    rd          = EXCLUDED.rd,
+                    updated_at  = CURRENT_TIMESTAMP
+            """,
+            (user_id, user_id),
+        )
+
+        # 2. Actualizar users.current_elo como promedio de student_topic_elo
+        cursor.execute(
+            """
+            UPDATE users SET current_elo = COALESCE((
+                SELECT ROUND(AVG(current_elo)::numeric, 2)
+                FROM student_topic_elo
+                WHERE user_id = %s
+            ), 1000.0)
+            WHERE id = %s
+            """,
+            (user_id, user_id),
+        )
+
+    def _backfill_current_elo(self):
+        """Rellena student_topic_elo y users.current_elo para usuarios existentes.
+
+        Se ejecuta una sola vez en init_db(). Idempotente: solo inserta filas
+        que no existan aún en student_topic_elo.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # 1. Poblar student_topic_elo desde attempts (UPSERT masivo)
+            cursor.execute(
+                """
+                INSERT INTO student_topic_elo (user_id, topic, current_elo, rd, updated_at)
+                SELECT user_id, topic, elo_after, COALESCE(rating_deviation, 350.0),
+                       CURRENT_TIMESTAMP
+                FROM (
+                    SELECT DISTINCT ON (user_id, topic)
+                           user_id, topic, elo_after, rating_deviation
+                    FROM attempts
+                    ORDER BY user_id, topic, timestamp DESC
+                ) latest
+                ON CONFLICT (user_id, topic) DO NOTHING
+                """
+            )
+            inserted = cursor.rowcount
+
+            # 2. Actualizar users.current_elo como promedio de student_topic_elo
+            cursor.execute(
+                """
+                UPDATE users u SET current_elo = sub.avg_elo
+                FROM (
+                    SELECT user_id, ROUND(AVG(current_elo)::numeric, 2) AS avg_elo
+                    FROM student_topic_elo
+                    GROUP BY user_id
+                ) sub
+                WHERE u.id = sub.user_id
+                  AND (u.current_elo IS NULL OR u.current_elo = 1000.0)
+                """
+            )
+            updated = cursor.rowcount
+            conn.commit()
+            if inserted > 0 or updated > 0:
+                logger.info(
+                    "_backfill_current_elo: %d filas topic_elo, %d usuarios actualizados",
+                    inserted,
+                    updated,
+                )
+        except Exception as e:
+            conn.rollback()
+            logger.warning("_backfill_current_elo falló: %s", e)
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_user_history_full(self, user_id):
+        """Devuelve historial completo para gráficas."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT timestamp, topic, elo_after, time_taken FROM attempts WHERE user_id = %s ORDER BY timestamp ASC",
+                (user_id,),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "timestamp": r["timestamp"],
+                    "topic": r["topic"],
+                    "elo": r["elo_after"],
+                    "time_taken": r["time_taken"],
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    # ─── Métodos para ADMIN ─────────────────────────────────────────────────────
+
+    @_timing
+    def get_pending_teachers(self):
+        """Retorna lista de teachers pendientes de aprobación."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT id, username, created_at FROM users WHERE role = 'teacher' AND approved = 0 ORDER BY created_at DESC"
+            )
+            rows = cursor.fetchall()
+            return [
+                {"id": r["id"], "username": r["username"], "created_at": r["created_at"]}
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_approved_teachers(self):
+        """Retorna lista de teachers aprobados y activos."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT id, username, created_at FROM users WHERE role = 'teacher' AND approved = 1 AND active = 1 ORDER BY username ASC"
+            )
+            rows = cursor.fetchall()
+            return [
+                {"id": r["id"], "username": r["username"], "created_at": r["created_at"]}
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def deactivate_user(self, user_id):
+        """Da de baja (desactiva) a un usuario por id."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("UPDATE users SET active = 0 WHERE id = %s", (user_id,))
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def reactivate_user(self, user_id):
+        """Reactiva un usuario dado de baja, conservando todo su progreso."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("UPDATE users SET active = 1 WHERE id = %s", (user_id,))
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def approve_teacher(self, user_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("UPDATE users SET approved = 1 WHERE id = %s", (user_id,))
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def reject_teacher(self, user_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("DELETE FROM users WHERE id = %s AND role = 'teacher'", (user_id,))
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    # ─── Métodos para TEACHER ────────────────────────────────────────────────────
+
+    @_timing
+    def get_all_students(self):
+        """Retorna lista de todos los estudiantes activos."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT id, username, created_at FROM users WHERE role = 'student' AND active = 1 ORDER BY username ASC"
+            )
+            rows = cursor.fetchall()
+            return [
+                {"id": r["id"], "username": r["username"], "created_at": r["created_at"]}
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_all_students_admin(self):
+        """Retorna TODOS los estudiantes (activos e inactivos) con su grupo para el panel admin."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT u.id, u.username, u.active, u.created_at, g.name as group_name
+                FROM users u
+                LEFT JOIN groups g ON u.group_id = g.id
+                WHERE u.role = 'student'
+                ORDER BY u.username ASC
+            """
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "username": r["username"],
+                    "active": r["active"],
+                    "created_at": r["created_at"],
+                    "group_name": r["group_name"],
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    # ─── Gestión de GRUPOS ────────────────────────────────────────────────────────
+
+    @_timing
+    def create_group(self, name, teacher_id, course_id=None):
+        """Crea un nuevo grupo para un profesor, opcionalmente vinculado a un curso.
+
+        Returns (True, msg, group_id) si fue creado, (False, msg, None) si hay error.
+        """
+        name_normalized = name.strip().lower()
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "INSERT INTO groups (name, teacher_id, course_id, name_normalized) VALUES (%s, %s, %s, %s) RETURNING id",
+                (name, teacher_id, course_id, name_normalized),
+            )
+            row = cursor.fetchone()
+            group_id = row["id"] if row else None
+            conn.commit()
+            return True, f"Grupo '{name}' creado exitosamente.", group_id
+        except psycopg2.IntegrityError:
+            conn.rollback()
+            return False, "Ya existe un grupo con ese nombre.", None
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_groups_by_teacher(self, teacher_id):
+        """Lista grupos de un profesor con el nombre y bloque del curso vinculado (JOIN)."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT g.id AS group_id, g.name, g.course_id, COALESCE(c.name, '—') AS course_name,
+                       g.created_at, COALESCE(c.block, 'Universidad') AS block, g.invite_code,
+                       (SELECT COUNT(*) FROM users u2
+                        WHERE u2.group_id = g.id AND u2.active = 1 AND u2.role = 'student'
+                          AND COALESCE(u2.is_test_user, 0) = 0) AS student_count
+                FROM groups g
+                LEFT JOIN courses c ON g.course_id = c.id
+                WHERE g.teacher_id = %s
+                ORDER BY g.name ASC
+            """,
+                (teacher_id,),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "id": r["group_id"],
+                    "group_id": r["group_id"],
+                    "name": r["name"],
+                    "course_id": r["course_id"],
+                    "course_name": r["course_name"],
+                    "created_at": str(r["created_at"])[:10],
+                    "block": r["block"],
+                    "invite_code": r["invite_code"],
+                    "student_count": int(r["student_count"]),
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    def get_teachers_with_groups_and_courses(self, education_level: str, grade: str = None) -> list:
+        """Devuelve lista de profesores con sus grupos y cursos para un nivel educativo."""
+        _LEVEL_TO_BLOCK = {
+            "universidad": "Universidad",
+            "colegio": "Colegio",
+            "concursos": "Concursos",
+            "semillero": "Semillero",
+        }
+        block = _LEVEL_TO_BLOCK.get((education_level or "universidad").lower(), "Universidad")
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            if grade and block == "Semillero":
+                cursor.execute(
+                    """
+                    SELECT g.id AS group_id, g.name AS group_name, g.course_id,
+                           c.name AS course_name, u.id AS teacher_id, u.username AS teacher_name,
+                           (SELECT COUNT(DISTINCT e.user_id) FROM enrollments e WHERE e.group_id = g.id) AS student_count
+                    FROM groups g
+                    JOIN users u ON g.teacher_id = u.id
+                    JOIN courses c ON g.course_id = c.id
+                    WHERE u.active = 1 AND u.approved = 1
+                      AND c.block = %s AND c.id LIKE %s
+                    ORDER BY u.username ASC, c.name ASC
+                """,
+                    (block, f"%semillero_{grade}"),
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT g.id AS group_id, g.name AS group_name, g.course_id,
+                           c.name AS course_name, u.id AS teacher_id, u.username AS teacher_name,
+                           (SELECT COUNT(DISTINCT e.user_id) FROM enrollments e WHERE e.group_id = g.id) AS student_count
+                    FROM groups g
+                    JOIN users u ON g.teacher_id = u.id
+                    JOIN courses c ON g.course_id = c.id
+                    WHERE u.active = 1 AND u.approved = 1
+                      AND c.block = %s
+                    ORDER BY u.username ASC, c.name ASC
+                """,
+                    (block,),
+                )
+            rows = cursor.fetchall()
+        finally:
+            self.put_connection(conn)
+        teachers: dict = {}
+        for r in rows:
+            tid = r["teacher_id"]
+            if tid not in teachers:
+                teachers[tid] = {"teacher_id": tid, "teacher_name": r["teacher_name"], "groups": []}
+            teachers[tid]["groups"].append(
+                {
+                    "group_id": r["group_id"],
+                    "group_name": r["group_name"],
+                    "course_id": r["course_id"],
+                    "course_name": r["course_name"],
+                    "student_count": r["student_count"] or 0,
+                }
+            )
+        return list(teachers.values())
+
+    def generate_group_invite_code(self, group_id: int) -> str:
+        """Genera o regenera el código de invitación de 6 chars para un grupo."""
+        import random, string
+
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            for _ in range(10):
+                code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                try:
+                    cursor.execute(
+                        "UPDATE groups SET invite_code = %s WHERE id = %s", (code, group_id)
+                    )
+                    conn.commit()
+                    return code
+                except psycopg2.IntegrityError:
+                    conn.rollback()
+            raise RuntimeError("No se pudo generar un código único. Intenta de nuevo.")
+        finally:
+            self.put_connection(conn)
+
+    def get_group_by_invite_code(self, code: str) -> dict | None:
+        """Busca un grupo por su código de invitación. Retorna dict o None."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT g.id, g.name, g.course_id, c.name AS course_name, u.username AS teacher_name,
+                       c.block
+                FROM groups g
+                JOIN courses c ON g.course_id = c.id
+                JOIN users u ON g.teacher_id = u.id
+                WHERE g.invite_code = %s AND u.active = 1 AND u.approved = 1
+            """,
+                (code.upper().strip(),),
+            )
+            r = cursor.fetchone()
+            if not r:
+                return None
+            return {
+                "group_id": r["id"],
+                "group_name": r["name"],
+                "course_id": r["course_id"],
+                "course_name": r["course_name"],
+                "teacher_name": r["teacher_name"],
+                "block": r["block"],
+            }
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_all_groups(self):
+        """Lista todos los grupos disponibles (para el registro de estudiantes)."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT g.id, g.name, u.username as teacher_name
+                FROM groups g
+                JOIN users u ON g.teacher_id = u.id
+                ORDER BY g.name ASC
+            """
+            )
+            rows = cursor.fetchall()
+            return [
+                {"id": r["id"], "name": r["name"], "teacher_name": r["teacher_name"]} for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def delete_group(self, group_id, admin_id):
+        """Elimina un grupo (solo admin). Desvincula estudiantes y matrículas del grupo."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Validar que el ejecutor sea admin
+            cursor.execute("SELECT role FROM users WHERE id = %s AND active = 1", (admin_id,))
+            res = cursor.fetchone()
+            if not res or res["role"] != "admin":
+                return False, "Error de seguridad: Solo un administrador puede eliminar grupos."
+
+            # Verificar que el grupo existe
+            cursor.execute("SELECT name FROM groups WHERE id = %s", (group_id,))
+            grp = cursor.fetchone()
+            if not grp:
+                return False, "El grupo no existe."
+
+            group_name = grp["name"]
+
+            # Desvincular estudiantes del grupo (conservar sus datos)
+            cursor.execute("UPDATE users SET group_id = NULL WHERE group_id = %s", (group_id,))
+
+            # Desvincular matrículas del grupo
+            cursor.execute(
+                "UPDATE enrollments SET group_id = NULL WHERE group_id = %s", (group_id,)
+            )
+
+            # Eliminar el grupo
+            cursor.execute("DELETE FROM groups WHERE id = %s", (group_id,))
+
+            conn.commit()
+            return True, f"Grupo '{group_name}' eliminado. Los estudiantes fueron desvinculados."
+        except Exception as e:
+            conn.rollback()
+            return False, f"Error al eliminar grupo: {e}"
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_students_by_teacher(self, teacher_id):
+        """Retorna estudiantes vinculados al profesor vía grupo primario O matrículas."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT u.id, u.username, u.created_at, g.name AS group_name, g.id AS group_id,
+                       g.course_id, COALESCE(c.name, '—') AS course_name,
+                       COALESCE(c.block, '—') AS course_block
+                FROM users u
+                JOIN groups g ON u.group_id = g.id
+                LEFT JOIN courses c ON g.course_id = c.id
+                WHERE g.teacher_id = %s AND u.active = 1
+
+                UNION
+
+                SELECT u.id, u.username, u.created_at, g.name AS group_name, g.id AS group_id,
+                       g.course_id, COALESCE(c.name, '—') AS course_name,
+                       COALESCE(c.block, '—') AS course_block
+                FROM enrollments e
+                JOIN users u ON e.user_id = u.id
+                JOIN groups g ON e.group_id = g.id
+                LEFT JOIN courses c ON g.course_id = c.id
+                WHERE g.teacher_id = %s AND u.active = 1
+
+                ORDER BY username ASC
+            """,
+                (teacher_id, teacher_id),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "username": r["username"],
+                    "created_at": r["created_at"],
+                    "group_name": r["group_name"],
+                    "group_id": r["group_id"],
+                    "course_id": r["course_id"],
+                    "course_name": r["course_name"],
+                    "course_block": r["course_block"],
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_teacher_dashboard_stats(self, teacher_id):
+        """Retorna estadísticas consolidadas por estudiante para el dashboard docente.
+
+        Un estudiante aparece UNA sola vez, sin importar cuántos cursos
+        tenga matriculados. Se usa su grupo primario (users.group_id).
+        Incluye ELO actual, intentos totales, acierto promedio y última actividad.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                WITH teacher_student_ids AS (
+                    SELECT DISTINCT u.id AS user_id
+                    FROM users u
+                    JOIN groups g ON u.group_id = g.id
+                    WHERE g.teacher_id = %s AND u.active = 1 AND u.role = 'student'
+                      AND COALESCE(u.is_test_user, 0) = 0
+
+                    UNION
+
+                    SELECT DISTINCT e.user_id
+                    FROM enrollments e
+                    JOIN groups g ON e.group_id = g.id
+                    JOIN users u ON e.user_id = u.id
+                    WHERE g.teacher_id = %s AND u.active = 1 AND u.role = 'student'
+                      AND COALESCE(u.is_test_user, 0) = 0
+                )
+                SELECT u.id AS user_id, u.username, u.education_level,
+                       u.group_id, COALESCE(g.name, 'Sin grupo') AS group_name,
+                       COALESCE(
+                           (SELECT AVG(ste.current_elo) FROM student_topic_elo ste WHERE ste.user_id = u.id),
+                           u.current_elo, 1000.0
+                       ) AS global_elo,
+                       COUNT(a.id) AS total_attempts,
+                       CASE WHEN COUNT(a.id) > 0
+                            THEN SUM(CASE WHEN a.is_correct THEN 1.0 ELSE 0.0 END) / COUNT(a.id)
+                            ELSE 0.0 END AS accuracy,
+                       MAX(a.timestamp) AS last_activity
+                FROM teacher_student_ids ts
+                JOIN users u ON u.id = ts.user_id
+                LEFT JOIN groups g ON u.group_id = g.id
+                LEFT JOIN attempts a ON a.user_id = ts.user_id
+                GROUP BY u.id, u.username, u.education_level, u.group_id, g.name
+                ORDER BY u.username ASC
+            """,
+                (teacher_id, teacher_id),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "user_id": r["user_id"],
+                    "username": r["username"],
+                    "education_level": r["education_level"],
+                    "group_id": r["group_id"],
+                    "group_name": r["group_name"],
+                    "global_elo": float(r["global_elo"]),
+                    "total_attempts": int(r["total_attempts"]),
+                    "accuracy": float(r["accuracy"]),
+                    "last_activity": str(r["last_activity"])[:10] if r["last_activity"] else None,
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_students_by_group(self, group_id, teacher_id):
+        """Retorna estudiantes de un grupo específico, validando que sea del profesor."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT u.id, u.username, u.created_at
+                FROM users u
+                JOIN groups g ON u.group_id = g.id
+                WHERE u.group_id = %s AND g.teacher_id = %s AND u.active = 1
+                ORDER BY u.username ASC
+            """,
+                (group_id, teacher_id),
+            )
+            rows = cursor.fetchall()
+            return [
+                {"id": r["id"], "username": r["username"], "created_at": r["created_at"]}
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_teacher_metrics(self, teacher_id):
+        """Métricas de uso del grupo del docente: tiempo promedio, abandono, temas, actividad diaria."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cte = """
+                WITH teacher_students AS (
+                    SELECT DISTINCT u.id AS user_id
+                    FROM users u
+                    JOIN groups g ON u.group_id = g.id
+                    WHERE g.teacher_id = %s AND u.active = 1 AND u.role = 'student'
+                      AND COALESCE(u.is_test_user, 0) = 0
+                    UNION
+                    SELECT DISTINCT e.user_id
+                    FROM enrollments e
+                    JOIN groups g ON e.group_id = g.id
+                    JOIN users u ON e.user_id = u.id
+                    WHERE g.teacher_id = %s AND u.active = 1 AND u.role = 'student'
+                      AND COALESCE(u.is_test_user, 0) = 0
+                )
+            """
+            cursor.execute(
+                cte
+                + """
+                SELECT
+                    COUNT(*) AS total_attempts,
+                    AVG(CASE WHEN a.time_taken BETWEEN 3 AND 600 THEN a.time_taken END) AS avg_time,
+                    SUM(CASE WHEN a.time_taken IS NOT NULL
+                              AND (a.time_taken < 3 OR a.time_taken > 600) THEN 1.0 ELSE 0.0 END)
+                        / NULLIF(COUNT(*), 0) AS abandonment_rate
+                FROM attempts a
+                JOIN teacher_students ts ON a.user_id = ts.user_id
+            """,
+                (teacher_id, teacher_id),
+            )
+            row = cursor.fetchone()
+            totals = {
+                "total_attempts": int(row["total_attempts"] or 0),
+                "avg_time_seconds": round(float(row["avg_time"] or 0), 1),
+                "abandonment_rate": round(float(row["abandonment_rate"] or 0), 4),
+            }
+
+            cursor.execute(
+                cte
+                + """
+                SELECT a.topic,
+                       COUNT(*) AS attempts,
+                       SUM(CASE WHEN a.is_correct THEN 1.0 ELSE 0.0 END) / COUNT(*) AS accuracy,
+                       AVG(CASE WHEN a.time_taken BETWEEN 3 AND 600 THEN a.time_taken END) AS avg_time
+                FROM attempts a
+                JOIN teacher_students ts ON a.user_id = ts.user_id
+                WHERE a.topic IS NOT NULL AND a.topic != ''
+                GROUP BY a.topic
+                ORDER BY attempts DESC
+                LIMIT 10
+            """,
+                (teacher_id, teacher_id),
+            )
+            topic_stats = [
+                {
+                    "topic": r["topic"],
+                    "attempts": int(r["attempts"]),
+                    "accuracy": round(float(r["accuracy"] or 0), 3),
+                    "avg_time": round(float(r["avg_time"] or 0), 1),
+                }
+                for r in cursor.fetchall()
+            ]
+
+            cursor.execute(
+                cte
+                + """
+                SELECT DATE(a.timestamp) AS date, COUNT(*) AS count
+                FROM attempts a
+                JOIN teacher_students ts ON a.user_id = ts.user_id
+                WHERE a.timestamp >= NOW() - INTERVAL '30 days'
+                GROUP BY date
+                ORDER BY date ASC
+            """,
+                (teacher_id, teacher_id),
+            )
+            daily_attempts = [
+                {"date": str(r["date"]), "count": int(r["count"])} for r in cursor.fetchall()
+            ]
+
+            cursor.execute(
+                cte
+                + """
+                SELECT EXTRACT(HOUR FROM a.timestamp)::INTEGER AS hour, COUNT(*) AS count
+                FROM attempts a
+                JOIN teacher_students ts ON a.user_id = ts.user_id
+                GROUP BY hour
+                ORDER BY hour ASC
+            """,
+                (teacher_id, teacher_id),
+            )
+            hourly = {r["hour"]: int(r["count"]) for r in cursor.fetchall()}
+            hourly_distribution = [{"hour": h, "count": hourly.get(h, 0)} for h in range(24)]
+
+            return {
+                **totals,
+                "topic_stats": topic_stats,
+                "daily_attempts": daily_attempts,
+                "hourly_distribution": hourly_distribution,
+            }
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_student_attempts_detail(self, student_id):
+        """Historial detallado de intentos de un estudiante (para el teacher)."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT id, topic, difficulty, is_correct, elo_after, rating_deviation,
+                       prob_failure, timestamp, time_taken
+                FROM attempts
+                WHERE user_id = %s
+                ORDER BY timestamp ASC
+            """,
+                (student_id,),
+            )
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            self.put_connection(conn)
+
+    def export_teacher_student_data(self, teacher_id, group_id=None):
+        """Exporta datos de intentos de los estudiantes del profesor para análisis externo.
+
+        Cada intento aparece UNA sola vez. Incluye columna 'cursos_matriculados'
+        con la lista de cursos del estudiante (separados por coma).
+        Si group_id se proporciona, filtra solo ese grupo.
+        """
+        import json
+
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            _gf1 = "AND g.id = %s" if group_id else ""
+            _gf2 = "AND g2.id = %s" if group_id else ""
+            _params = [teacher_id]
+            if group_id:
+                _params.append(group_id)
+            _params.append(teacher_id)
+            if group_id:
+                _params.append(group_id)
+
+            cursor.execute(
+                f"""
+                WITH teacher_student_ids AS (
+                    SELECT DISTINCT u.id AS user_id
+                    FROM users u
+                    JOIN groups g ON u.group_id = g.id
+                    WHERE g.teacher_id = %s AND u.active = 1 AND u.role = 'student'
+                      AND COALESCE(u.is_test_user, 0) = 0
+                      {_gf1}
+
+                    UNION
+
+                    SELECT DISTINCT e.user_id
+                    FROM enrollments e
+                    JOIN groups g ON e.group_id = g.id
+                    JOIN users u ON e.user_id = u.id
+                    WHERE g.teacher_id = %s AND u.active = 1 AND u.role = 'student'
+                      AND COALESCE(u.is_test_user, 0) = 0
+                      {_gf2}
+                )
+                SELECT
+                    u.id AS student_id,
+                    u.username,
+                    u.education_level,
+                    u.grade,
+                    COALESCE(pg.name, 'Sin grupo') AS group_name,
+                    c.name AS course_name,
+                    c.block AS course_block,
+                    a.id AS attempt_id,
+                    a.item_id,
+                    i.topic,
+                    i.content AS item_content,
+                    a.difficulty AS item_difficulty,
+                    a.is_correct,
+                    a.elo_after,
+                    a.rating_deviation AS attempt_rd,
+                    a.prob_failure,
+                    a.expected_score,
+                    a.time_taken,
+                    a.confidence_score,
+                    a.error_type,
+                    a.timestamp AS attempt_timestamp,
+                    i.tags AS item_tags,
+                    COALESCE(
+                        (SELECT STRING_AGG(DISTINCT c2.name, ', ')
+                         FROM enrollments e2
+                         LEFT JOIN courses c2 ON e2.course_id = c2.id
+                         WHERE e2.user_id = u.id),
+                        ''
+                    ) AS cursos_matriculados
+                FROM teacher_student_ids ts
+                JOIN users u ON u.id = ts.user_id
+                LEFT JOIN groups pg ON u.group_id = pg.id
+                JOIN attempts a ON a.user_id = ts.user_id
+                JOIN items i ON a.item_id = i.id
+                LEFT JOIN courses c ON i.course_id = c.id
+                ORDER BY u.username ASC, a.timestamp ASC
+            """,
+                tuple(_params),
+            )
+            rows = cursor.fetchall()
+            result = [dict(row) for row in rows]
+            for row in result:
+                try:
+                    tags = json.loads(row.pop("item_tags") or "[]")
+                except Exception:
+                    tags = []
+                row["item_area"] = next(
+                    (
+                        t.split(":", 1)[1].rstrip("]").strip()
+                        for t in tags
+                        if t.startswith("[General:")
+                    ),
+                    "Sin registro",
+                )
+                row["item_enfoque"] = next(
+                    (
+                        t.split(":", 1)[1].rstrip("]").strip()
+                        for t in tags
+                        if t.startswith("[Enfoque:")
+                    ),
+                    "Sin registro",
+                )
+                row["item_componente"] = next(
+                    (
+                        t.split(":", 1)[1].rstrip("]").strip()
+                        for t in tags
+                        if t.startswith("[Específica:")
+                    ),
+                    "Sin registro",
+                )
+            return result
+        finally:
+            self.put_connection(conn)
+
+    def export_teacher_enrollments(self, teacher_id, group_id=None):
+        """Exporta matrículas de los estudiantes del profesor."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            _gf = "AND g.id = %s" if group_id else ""
+            _params = [teacher_id]
+            if group_id:
+                _params.append(group_id)
+            cursor.execute(
+                f"""
+                SELECT
+                    u.id AS student_id,
+                    u.username,
+                    u.education_level,
+                    u.grade,
+                    g.name AS group_name,
+                    c.id AS course_id,
+                    c.name AS course_name,
+                    c.block AS course_block,
+                    e.enrolled_at
+                FROM enrollments e
+                JOIN users u ON e.user_id = u.id
+                JOIN groups g ON e.group_id = g.id
+                LEFT JOIN courses c ON e.course_id = c.id
+                WHERE u.active = 1
+                  AND COALESCE(u.is_test_user, 0) = 0
+                  AND g.teacher_id = %s
+                  {_gf}
+                ORDER BY u.username ASC, c.name ASC
+            """,
+                tuple(_params),
+            )
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            self.put_connection(conn)
+
+    def export_teacher_procedures(self, teacher_id, group_id=None):
+        """Exporta datos de procedimientos de los estudiantes del profesor."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            _gf = "AND g.id = %s" if group_id else ""
+            _params = [teacher_id]
+            if group_id:
+                _params.append(group_id)
+            cursor.execute(
+                f"""
+                SELECT
+                    u.id AS student_id,
+                    u.username,
+                    g.name AS group_name,
+                    ps.item_id,
+                    ps.item_content,
+                    ps.status,
+                    ps.ai_proposed_score,
+                    ps.teacher_score,
+                    ps.final_score,
+                    ps.elo_delta,
+                    ps.submitted_at,
+                    ps.reviewed_at
+                FROM procedure_submissions ps
+                JOIN users u ON ps.student_id = u.id
+                LEFT JOIN groups g ON u.group_id = g.id
+                WHERE u.active = 1
+                  AND COALESCE(u.is_test_user, 0) = 0
+                  AND g.teacher_id = %s
+                  {_gf}
+                ORDER BY u.username ASC, ps.submitted_at ASC
+            """,
+                tuple(_params),
+            )
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            self.put_connection(conn)
+
+    # ─── Gestión de SEGURIDAD (Admin) ───────────────────────────────────────────
+
+    @_timing
+    def change_student_group(self, student_id, new_group_id, admin_id, allow_null=False):
+        """Reasigna a un estudiante a un nuevo grupo con validaciones y auditoría."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # 1. Validar que el ejecutor sea ADMIN
+            cursor.execute("SELECT role FROM users WHERE id = %s AND active = 1", (admin_id,))
+            res = cursor.fetchone()
+            if not res or res["role"] != "admin":
+                return (
+                    False,
+                    "Error de seguridad: Solo un administrador puede realizar esta acción.",
+                )
+
+            # 2. Validar que el objetivo sea ESTUDIANTE y obtener su grupo actual
+            cursor.execute(
+                "SELECT role, group_id FROM users WHERE id = %s AND active = 1", (student_id,)
+            )
+            res = cursor.fetchone()
+            if not res:
+                return False, "Error: El estudiante no existe o está inactivo."
+
+            target_role = res["role"]
+            old_group_id = res["group_id"]
+            if target_role != "student":
+                return False, f"Error: No se puede cambiar el grupo de un {target_role}."
+
+            # 3. Validar redundancia
+            if old_group_id == new_group_id:
+                return False, "Información: El estudiante ya pertenece al grupo seleccionado."
+
+            # 4. Validar existencia del nuevo grupo
+            if new_group_id is not None:
+                cursor.execute("SELECT id FROM groups WHERE id = %s", (new_group_id,))
+                if not cursor.fetchone():
+                    return False, "Error: El grupo destino no existe."
+            elif not allow_null:
+                return False, "Error: No se permite dejar al estudiante sin grupo."
+
+            # 5. Ejecutar cambio y auditoría en una transacción
+            cursor.execute(
+                "UPDATE users SET group_id = %s WHERE id = %s", (new_group_id, student_id)
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO audit_group_changes (student_id, old_group_id, new_group_id, admin_id)
+                VALUES (%s, %s, %s, %s)
+            """,
+                (student_id, old_group_id, new_group_id, admin_id),
+            )
+
+            conn.commit()
+            return True, "Reasignación completada y auditada correctamente."
+
+        except Exception as e:
+            conn.rollback()
+            return False, f"Error crítico en la base de datos: {str(e)}"
+        finally:
+            self.put_connection(conn)
+
+    # ─── Gestión de CURSOS y MATRÍCULAS ─────────────────────────────────────────
+
+    @_timing
+    def sync_items_from_bank_folder(self, bank_dir="items/bank"):
+        """Escanea items/bank/*.json, registra cada archivo como curso y sincroniza
+        sus ítems sin sobreescribir ratings ELO ya calculados.
+
+        Optimización: máximo 2 SELECTs + 2 INSERTs en total.
+        Carga IDs existentes en un set, filtra localmente y hace
+        un solo executemany() para courses y otro para items.
+        """
+        import json
+        import glob as _glob
+
+        if not os.path.isdir(bank_dir):
+            return
+
+        json_files = sorted(_glob.glob(os.path.join(bank_dir, "*.json")))
+        # También escanear el subdirectorio semillero/
+        json_files += sorted(_glob.glob(os.path.join(bank_dir, "semillero", "*.json")))
+        if not json_files:
+            return
+
+        # Cargar todos los JSONs en memoria
+        courses_data = []
+        for filepath in json_files:
+            course_id = os.path.splitext(os.path.basename(filepath))[0]
+            _fname = os.path.basename(filepath)
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    items_list = json.load(f)
+            except UnicodeDecodeError as e:
+                logger.error(
+                    "Error de encoding en '%s': %s. "
+                    "Asegúrate de que el archivo sea UTF-8 sin BOM. "
+                    "Ejecuta: python scripts/validate_bank.py",
+                    _fname,
+                    e,
+                )
+                continue
+            except json.JSONDecodeError as e:
+                logger.error(
+                    "JSON inválido en '%s': %s. " "Verifica la sintaxis con un linter JSON.",
+                    _fname,
+                    e,
+                )
+                continue
+            except FileNotFoundError:
+                logger.warning("Archivo no encontrado: '%s'. Ignorando.", filepath)
+                continue
+            if items_list:
+                courses_data.append((course_id, items_list))
+
+        if not courses_data:
+            return
+
+        conn = self.get_connection()
+        locked = False
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT pg_try_advisory_lock(12348)")
+            locked = cursor.fetchone()["pg_try_advisory_lock"]
+            if not locked:
+                return
+            try:
+
+                # 1. Obtener todos los IDs existentes en una sola query
+                cursor.execute("SELECT id FROM items")
+                existing_item_ids = {row["id"] for row in cursor.fetchall()}
+
+                cursor.execute("SELECT id FROM courses")
+                existing_course_ids = {row["id"] for row in cursor.fetchall()}
+
+                # 2. Construir listas de courses/items nuevos y de UPDATEs para existentes
+                new_courses_params = []
+                new_items_params = []
+                # Para ítems ya existentes: sincronizar content/options/correct_option/
+                # topic/course_id/image_url/tags desde el JSON del banco. NO se toca
+                # difficulty ni rating_deviation (preservan la calibración por uso).
+                # Antes solo se actualizaba image_url (si era NULL) y tags — eso
+                # dejaba content/options viejos en prod tras correcciones del banco
+                # (paridad rota con SQLite). Ver bug #14 del QA de mayo 2026.
+                update_static_params = []
+
+                for course_id, items_list in courses_data:
+                    course_name = self._COURSE_NAME_MAP.get(course_id) or items_list[0].get(
+                        "topic", course_id
+                    )
+                    block = self._COURSE_BLOCK_MAP.get(course_id, "Universidad")
+
+                    if course_id not in existing_course_ids:
+                        new_courses_params.append(
+                            (course_id, course_name, block, f"Curso de {course_name}")
+                        )
+
+                    for item in items_list:
+                        img = item.get("image_url") or item.get("image_path")
+                        tags_json = json.dumps(item.get("tags") or [])
+                        options_json = json.dumps(item["options"])
+                        item_block = item.get("block", "")
+                        if item["id"] not in existing_item_ids:
+                            new_items_params.append(
+                                (
+                                    item["id"],
+                                    item["topic"],
+                                    item["content"],
+                                    options_json,
+                                    item["correct_option"],
+                                    item["difficulty"],
+                                    course_id,
+                                    img,
+                                    tags_json,
+                                    item_block,
+                                )
+                            )
+                        else:
+                            # Ítem ya existe → re-sincronizar metadatos estáticos.
+                            update_static_params.append(
+                                (
+                                    item["content"],
+                                    options_json,
+                                    item["correct_option"],
+                                    item["topic"],
+                                    course_id,
+                                    img,
+                                    tags_json,
+                                    item_block,
+                                    item["id"],
+                                )
+                            )
+
+                # 3. Si no hay nada que hacer, salir
+                if not new_courses_params and not new_items_params and not update_static_params:
+                    return  # finally blocks devuelven conexión y liberan lock
+
+                # 4. Insertar/actualizar
+                if new_courses_params:
+                    cursor.executemany(
+                        "INSERT INTO courses (id, name, block, description) "
+                        "VALUES (%s, %s, %s, %s) ON CONFLICT (id) DO NOTHING",
+                        new_courses_params,
+                    )
+
+                if new_items_params:
+                    cursor.executemany(
+                        """
+                        INSERT INTO items
+                            (id, topic, content, options, correct_option, difficulty, rating_deviation, course_id, image_url, tags, block)
+                        VALUES (%s, %s, %s, %s, %s, %s, 350.0, %s, %s, %s, %s)
+                        ON CONFLICT (id) DO NOTHING
+                    """,
+                        new_items_params,
+                    )
+
+                if update_static_params:
+                    cursor.executemany(
+                        """
+                        UPDATE items SET
+                            content = %s,
+                            options = %s,
+                            correct_option = %s,
+                            topic = %s,
+                            course_id = %s,
+                            image_url = %s,
+                            tags = %s,
+                            block = %s
+                        WHERE id = %s
+                        """,
+                        update_static_params,
+                    )
+
+                conn.commit()
+            except Exception:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                raise
+        finally:
+            if locked:
+                try:
+                    cursor.execute("SELECT pg_advisory_unlock(12348)")
+                    conn.commit()
+                except Exception:
+                    pass
+            self.put_connection(conn)
+
+    def _seed_test_students(self):
+        """Crea estudiantes de prueba permanentes (inline PostgreSQL version)."""
+        from src.domain.entities import (
+            LEVEL_COLEGIO,
+            LEVEL_UNIVERSIDAD,
+            LEVEL_SEMILLERO,
+            LEVEL_TO_BLOCK,
+        )
+
+        _TEST_PASSWORD = "test1234"
+        _TEST_STUDENTS = [
+            # (username, education_level, grade)
+            ("estudiante_colegio_1", LEVEL_COLEGIO, None),
+            ("estudiante_colegio_2", LEVEL_COLEGIO, None),
+            ("estudiante_colegio_3", LEVEL_COLEGIO, None),
+            ("estudiante_universidad_1", LEVEL_UNIVERSIDAD, None),
+            ("estudiante_universidad_2", LEVEL_UNIVERSIDAD, None),
+            ("estudiante_semillero_1", LEVEL_SEMILLERO, "9"),
+            ("estudiante_semillero_2", LEVEL_SEMILLERO, "11"),
+        ]
+
+        conn = self.get_connection()
+        locked = False
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT pg_try_advisory_lock(12349)")
+            locked = cursor.fetchone()["pg_try_advisory_lock"]
+            if not locked:
+                return
+            try:
+
+                # ── Salida rápida: si todos ya existen, no hay nada que hacer ────
+                placeholders = ",".join(["%s"] * len(_TEST_STUDENTS))
+                cursor.execute(
+                    "SELECT username FROM users WHERE username IN ({})".format(placeholders),
+                    [s[0] for s in _TEST_STUDENTS],
+                )
+                existing = {row["username"] for row in cursor.fetchall()}
+                students_to_create = [(u, l, g) for u, l, g in _TEST_STUDENTS if u not in existing]
+
+                if not students_to_create:
+                    return  # Todos existen — finally blocks liberan lock y conexión
+
+                # Solo computar hash si hay estudiantes nuevos
+                password_hash = self.hashing.hash_password(_TEST_PASSWORD)
+
+                # Necesitamos un profesor para crear grupos; usar profesor1
+                cursor.execute("SELECT id FROM users WHERE username = 'profesor1'")
+                row = cursor.fetchone()
+                if not row:
+                    return  # Sin profesor demo no podemos crear grupos
+                profesor_id = row["id"]
+
+                # Grupos de prueba por nivel
+                _level_groups = {
+                    LEVEL_COLEGIO: ("Grupo Prueba - Colegio", None),
+                    LEVEL_UNIVERSIDAD: ("Grupo Prueba - Universidad", None),
+                    LEVEL_SEMILLERO: ("Grupo Prueba - Semillero", None),
+                }
+                for level, (g_name, _) in list(_level_groups.items()):
+                    g_norm = g_name.strip().lower()
+                    cursor.execute(
+                        "SELECT id FROM groups WHERE name_normalized = %s AND teacher_id = %s",
+                        (g_norm, profesor_id),
+                    )
+                    row = cursor.fetchone()
+                    if not row:
+                        # Para semillero: buscar cualquier curso de algún grado
+                        if level == LEVEL_SEMILLERO:
+                            cursor.execute(
+                                "SELECT id FROM courses WHERE block LIKE 'Semillero %' ORDER BY name ASC LIMIT 1",
+                            )
+                        else:
+                            block = LEVEL_TO_BLOCK[level]
+                            cursor.execute(
+                                "SELECT id FROM courses WHERE block = %s ORDER BY name ASC LIMIT 1",
+                                (block,),
+                            )
+                        first_course = cursor.fetchone()
+                        course_id = first_course["id"] if first_course else None
+                        cursor.execute(
+                            "INSERT INTO groups (name, teacher_id, course_id, name_normalized) VALUES (%s, %s, %s, %s) RETURNING id",
+                            (g_name, profesor_id, course_id, g_norm),
+                        )
+                        conn.commit()
+                        new_row = cursor.fetchone()
+                        _level_groups[level] = (g_name, new_row["id"])
+                    else:
+                        _level_groups[level] = (g_name, row["id"])
+
+                # Crear SOLO estudiantes que no existen
+                for username, edu_level, student_grade in students_to_create:
+                    group_id = _level_groups[edu_level][1]
+                    _grade = student_grade if edu_level == LEVEL_SEMILLERO else None
+                    cursor.execute(
+                        "INSERT INTO users (username, password_hash, role, approved, group_id, "
+                        "rating_deviation, education_level, is_test_user, grade) "
+                        "VALUES (%s, %s, 'student', 1, %s, 350.0, %s, 1, %s)",
+                        (username, password_hash, group_id, edu_level, _grade),
+                    )
+                conn.commit()
+
+                # Matricular estudiantes nuevos en TODOS los cursos de su nivel/grado
+                for username, edu_level, _grade in students_to_create:
+                    cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+                    student_id = cursor.fetchone()["id"]
+                    group_id = _level_groups[edu_level][1]
+
+                    # Para semillero: filtrar por bloque específico del grado
+                    if edu_level == LEVEL_SEMILLERO and _grade:
+                        block = f"Semillero {_grade}°"
+                    else:
+                        block = LEVEL_TO_BLOCK[edu_level]
+
+                    cursor.execute(
+                        "SELECT id FROM courses WHERE block = %s",
+                        (block,),
+                    )
+                    courses = cursor.fetchall()
+                    for course_row in courses:
+                        cursor.execute(
+                            "INSERT INTO enrollments (user_id, course_id, group_id) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
+                            (student_id, course_row["id"], group_id),
+                        )
+
+                conn.commit()
+            except Exception:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                raise
+        finally:
+            if locked:
+                try:
+                    cursor.execute("SELECT pg_advisory_unlock(12349)")
+                    conn.commit()
+                except Exception:
+                    pass
+            self.put_connection(conn)
+
+    @_timing
+    def get_available_courses_by_level(self, level: str, grade=None):
+        """Retorna los cursos disponibles filtrados ESTRICTAMENTE por nivel educativo.
+
+        Para semillero, usar grade ('6'–'11') para filtrar por bloque específico de grado.
+        """
+        from src.domain.entities import LEVEL_TO_BLOCK, LEVEL_UNIVERSIDAD
+
+        if level.lower() == "semillero" and grade:
+            _block = f"Semillero {grade}°"
+        else:
+            _block = LEVEL_TO_BLOCK.get(level.lower(), LEVEL_TO_BLOCK[LEVEL_UNIVERSIDAD])
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT id, name, block, description FROM courses WHERE block = %s ORDER BY name ASC",
+                (_block,),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "name": r["name"],
+                    "block": r["block"],
+                    "description": r["description"],
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_courses(self, block=None):
+        """Devuelve todos los cursos, opcionalmente filtrados por bloque."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            if block:
+                cursor.execute(
+                    "SELECT id, name, block, description FROM courses WHERE block = %s ORDER BY name ASC",
+                    (block,),
+                )
+            else:
+                cursor.execute(
+                    "SELECT id, name, block, description FROM courses ORDER BY block ASC, name ASC"
+                )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "name": r["name"],
+                    "block": r["block"],
+                    "description": r["description"],
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_available_groups_for_course(self, course_id):
+        """Retorna los grupos activos disponibles para un curso.
+
+        Busca grupos por bloque del curso (no por course_id exacto) para que
+        un único grupo de bloque aparezca en todos los cursos de ese bloque.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT DISTINCT g.id, g.name, u.username AS teacher_name
+                FROM groups g
+                JOIN users u ON g.teacher_id = u.id
+                WHERE g.course_id IN (
+                    SELECT id FROM courses WHERE block = (
+                        SELECT block FROM courses WHERE id = %s
+                    )
+                )
+                AND u.active = 1 AND u.approved = 1
+                ORDER BY g.name ASC
+            """,
+                (course_id,),
+            )
+            rows = cursor.fetchall()
+            return [
+                {"id": r["id"], "name": r["name"], "teacher_name": r["teacher_name"]} for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def enroll_user(self, user_id, course_id, group_id=None):
+        """Matricula a un usuario en un curso. Idempotente."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "INSERT INTO enrollments (user_id, course_id, group_id) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
+                (user_id, course_id, group_id),
+            )
+            if group_id is not None:
+                cursor.execute(
+                    "UPDATE enrollments SET group_id = %s WHERE user_id = %s AND course_id = %s",
+                    (group_id, user_id, course_id),
+                )
+                cursor.execute("UPDATE users SET group_id = %s WHERE id = %s", (group_id, user_id))
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def unenroll_user(self, user_id, course_id):
+        """Elimina la matrícula de un usuario en un curso."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "DELETE FROM enrollments WHERE user_id = %s AND course_id = %s",
+                (user_id, course_id),
+            )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_user_enrollments(self, user_id):
+        """Devuelve los cursos en los que está matriculado el usuario."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT c.id, c.name, c.block, c.description,
+                       e.group_id, COALESCE(g.name, '') AS group_name
+                FROM enrollments e
+                JOIN courses c ON e.course_id = c.id
+                LEFT JOIN groups g ON e.group_id = g.id
+                WHERE e.user_id = %s
+                ORDER BY c.name ASC
+            """,
+                (user_id,),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "name": r["name"],
+                    "block": r["block"],
+                    "description": r["description"],
+                    "group_id": r["group_id"],
+                    "group_name": r["group_name"],
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_enrolled_topics(self, user_id):
+        """Retorna el conjunto de tópicos relevantes para el filtrado de la tabla ELO."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            # Fuente 1: cursos matriculados → tópicos de sus ítems
+            cursor.execute(
+                """
+                SELECT DISTINCT i.topic
+                FROM enrollments e
+                JOIN items i ON i.course_id = e.course_id
+                WHERE e.user_id = %s AND i.topic IS NOT NULL
+            """,
+                (user_id,),
+            )
+            topics = {row["topic"] for row in cursor.fetchall()}
+            # Fuente 2: tópicos de ítems con procedimientos enviados
+            cursor.execute(
+                """
+                SELECT DISTINCT i.topic
+                FROM procedure_submissions ps
+                JOIN items i ON ps.item_id = i.id
+                WHERE ps.student_id = %s AND i.topic IS NOT NULL
+            """,
+                (user_id,),
+            )
+            topics |= {row["topic"] for row in cursor.fetchall()}
+            return topics
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def set_education_level(self, user_id, level):
+        """Guarda el nivel educativo del usuario."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("UPDATE users SET education_level = %s WHERE id = %s", (level, user_id))
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_education_level(self, user_id):
+        """Retorna el education_level del usuario, o None si no existe."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT education_level FROM users WHERE id = %s", (user_id,))
+            row = cursor.fetchone()
+            return row["education_level"] if row else None
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def set_grade(self, user_id, grade):
+        """Guarda el grado escolar del usuario (solo válido para nivel semillero)."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("UPDATE users SET grade = %s WHERE id = %s", (grade, user_id))
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_grade(self, user_id):
+        """Retorna el grado del usuario, o None si no aplica."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT grade FROM users WHERE id = %s", (user_id,))
+            row = cursor.fetchone()
+            return row["grade"] if row else None
+        finally:
+            self.put_connection(conn)
+
+    # ─── Gestión de ÍTEMS (ELO Dinámico) ────────────────────────────────────────
+
+    @_timing
+    def sync_items_from_json(self, items_list):
+        """Sincroniza el banco de preguntas JSON con la DB. No sobreescribe ratings actuales."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            import json
+
+            for item in items_list:
+                cursor.execute("SELECT id FROM items WHERE id = %s", (item["id"],))
+                if not cursor.fetchone():
+                    cursor.execute(
+                        """
+                        INSERT INTO items (id, topic, content, options, correct_option, difficulty, rating_deviation)
+                        VALUES (%s, %s, %s, %s, %s, %s, 350.0)
+                    """,
+                        (
+                            item["id"],
+                            item["topic"],
+                            item["content"],
+                            json.dumps(item["options"]),
+                            item["correct_option"],
+                            item["difficulty"],
+                        ),
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        UPDATE items
+                        SET content = %s, options = %s, correct_option = %s, topic = %s
+                        WHERE id = %s
+                    """,
+                        (
+                            item["content"],
+                            json.dumps(item["options"]),
+                            item["correct_option"],
+                            item["topic"],
+                            item["id"],
+                        ),
+                    )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_items_from_db(self, topic=None, course_id=None, block=None):
+        """Obtiene ítems desde la base de datos."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            import json
+
+            if course_id and block:
+                cursor.execute(
+                    "SELECT id, topic, content, options, correct_option, difficulty, rating_deviation, image_url, tags FROM items WHERE course_id = %s AND block = %s",
+                    (course_id, block),
+                )
+            elif course_id:
+                cursor.execute(
+                    "SELECT id, topic, content, options, correct_option, difficulty, rating_deviation, image_url, tags FROM items WHERE course_id = %s",
+                    (course_id,),
+                )
+            elif topic and topic != "Todos":
+                cursor.execute(
+                    "SELECT id, topic, content, options, correct_option, difficulty, rating_deviation, image_url, tags FROM items WHERE topic = %s",
+                    (topic,),
+                )
+            else:
+                cursor.execute(
+                    "SELECT id, topic, content, options, correct_option, difficulty, rating_deviation, image_url, tags FROM items"
+                )
+
+            rows = cursor.fetchall()
+
+            items = []
+            for r in rows:
+                items.append(
+                    {
+                        "id": r["id"],
+                        "topic": r["topic"],
+                        "content": r["content"],
+                        "options": json.loads(r["options"]),
+                        "correct_option": r["correct_option"],
+                        "difficulty": r["difficulty"],
+                        "rating_deviation": r["rating_deviation"],
+                        "image_url": r["image_url"],
+                        "tags": json.loads(r["tags"]) if r["tags"] else [],
+                    }
+                )
+            return items
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_course_blocks(self, course_id: str) -> list[dict]:
+        """Retorna los bloques temáticos de un curso con su conteo de ítems."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT block, COUNT(*) as item_count FROM items WHERE course_id = %s AND block != '' GROUP BY block ORDER BY block ASC",
+                (course_id,),
+            )
+            return [{"block": r["block"], "item_count": r["item_count"]} for r in cursor.fetchall()]
+        finally:
+            self.put_connection(conn)
+
+    # ── PvP ──────────────────────────────────────────────────────────────────
+
+    def create_pvp_match(self, course_id: str, p1: int, p2: int, item_ids: list[str]) -> int:
+        import json
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "INSERT INTO pvp_matches (course_id, player1_id, player2_id, item_ids) VALUES (%s,%s,%s,%s) RETURNING id",
+                (course_id, p1, p2, json.dumps(item_ids)),
+            )
+            match_id = cursor.fetchone()["id"]
+            conn.commit()
+            return match_id
+        finally:
+            self.put_connection(conn)
+
+    def save_pvp_answer(self, match_id: int, user_id: int, item_id: str, is_correct: bool) -> None:
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO pvp_answers (match_id, user_id, item_id, is_correct) VALUES (%s,%s,%s,%s)",
+                (match_id, user_id, item_id, int(is_correct)),
+            )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    def finish_pvp_match(
+        self, match_id: int, winner_id: int | None,
+        score_p1: int, score_p2: int,
+        elo_delta_p1: float, elo_delta_p2: float,
+        p1_id: int, p2_id: int,
+    ) -> None:
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """UPDATE pvp_matches SET status='finished', winner_id=%s, score_p1=%s, score_p2=%s,
+                   elo_delta_p1=%s, elo_delta_p2=%s, finished_at=NOW() WHERE id=%s""",
+                (winner_id, score_p1, score_p2, elo_delta_p1, elo_delta_p2, match_id),
+            )
+            cursor.execute(
+                "UPDATE users SET current_elo = GREATEST(0, current_elo + %s) WHERE id = %s",
+                (elo_delta_p1, p1_id),
+            )
+            cursor.execute(
+                "UPDATE users SET current_elo = GREATEST(0, current_elo + %s) WHERE id = %s",
+                (elo_delta_p2, p2_id),
+            )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    def get_pvp_history(self, user_id: int, limit: int = 20) -> list[dict]:
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT m.id, m.course_id, m.winner_id, m.score_p1, m.score_p2,
+                       m.elo_delta_p1, m.elo_delta_p2, m.finished_at,
+                       m.player1_id, m.player2_id,
+                       u1.username as p1_name, u2.username as p2_name
+                FROM pvp_matches m
+                JOIN users u1 ON u1.id = m.player1_id
+                JOIN users u2 ON u2.id = m.player2_id
+                WHERE (m.player1_id = %s OR m.player2_id = %s) AND m.status = 'finished'
+                ORDER BY m.finished_at DESC LIMIT %s
+                """,
+                (user_id, user_id, limit),
+            )
+            results = []
+            for r in cursor.fetchall():
+                is_p1 = r["player1_id"] == user_id
+                results.append({
+                    "match_id": r["id"],
+                    "course_id": r["course_id"],
+                    "won": r["winner_id"] == user_id,
+                    "draw": r["winner_id"] is None,
+                    "my_score": r["score_p1"] if is_p1 else r["score_p2"],
+                    "opp_score": r["score_p2"] if is_p1 else r["score_p1"],
+                    "elo_delta": r["elo_delta_p1"] if is_p1 else r["elo_delta_p2"],
+                    "opponent": r["p2_name"] if is_p1 else r["p1_name"],
+                    "finished_at": str(r["finished_at"])[:16] if r["finished_at"] else None,
+                })
+            return results
+        finally:
+            self.put_connection(conn)
+
+    def get_item_by_id(self, item_id: str) -> dict | None:
+        """Retorna el ítem completo (incluido correct_option) por su ID."""
+        import json
+
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT id, topic, content, options, correct_option, difficulty, rating_deviation, image_url, tags, course_id "
+                "FROM items WHERE id = %s",
+                (item_id,),
+            )
+            r = cursor.fetchone()
+            if not r:
+                return None
+            return {
+                "id": r["id"],
+                "topic": r["topic"],
+                "content": r["content"],
+                "options": (
+                    r["options"] if isinstance(r["options"], list) else json.loads(r["options"])
+                ),
+                "correct_option": r["correct_option"],
+                "difficulty": float(r["difficulty"]),
+                "rating_deviation": (
+                    float(r["rating_deviation"]) if r["rating_deviation"] else 350.0
+                ),
+                "image_url": r.get("image_url"),
+                "tags": (
+                    r["tags"]
+                    if isinstance(r["tags"], list)
+                    else (json.loads(r["tags"]) if r["tags"] else [])
+                ),
+                "course_id": r.get("course_id"),
+            }
+        finally:
+            self.put_connection(conn)
+
+    # ── Achievements / Logros ─────────────────────────────────────────────────
+
+    def get_achievements(self, user_id: int) -> list[dict]:
+        """Retorna todos los logros desbloqueados por el usuario."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT badge_id, earned_at FROM achievements WHERE user_id = %s ORDER BY earned_at",
+                (user_id,),
+            )
+            rows = cursor.fetchall()
+            return [
+                {"badge_id": r["badge_id"], "earned_at": str(r["earned_at"])[:19]} for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    def award_achievement(self, user_id: int, badge_id: str) -> bool:
+        """
+        Otorga un logro al usuario si no lo tiene ya.
+        Retorna True si fue otorgado por primera vez, False si ya lo tenía.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO achievements (user_id, badge_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (user_id, badge_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def update_item_rating(self, item_id, student_rating, actual_score, k_item=32.0):
+        """Actualiza la dificultad (rating) del ítem de forma simétrica."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            cursor.execute(
+                "SELECT difficulty, rating_deviation FROM items WHERE id = %s", (item_id,)
+            )
+            res = cursor.fetchone()
+            if not res:
+                return
+
+            current_diff = res["difficulty"]
+            current_rd = res["rating_deviation"]
+
+            # Lógica ELO inversa para el ítem
+            item_score = 1.0 - actual_score
+
+            p_student_wins = expected_score(student_rating, current_diff)
+            p_item_wins = 1.0 - p_student_wins
+
+            delta = k_item * (item_score - p_item_wins)
+            new_diff = current_diff + delta
+
+            cursor.execute("UPDATE items SET difficulty = %s WHERE id = %s", (new_diff, item_id))
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def create_session(self, user_id):
+        import secrets
+        from datetime import datetime, timedelta, timezone
+
+        token = secrets.token_hex(32)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "INSERT INTO sessions (token, user_id, expires_at) VALUES (%s, %s, %s)",
+                (token, user_id, expires_at.isoformat()),
+            )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+        return token
+
+    @_timing
+    def validate_session(self, token):
+        from datetime import datetime, timezone
+
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT user_id, expires_at FROM sessions WHERE token = %s", (token,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            user_id = row["user_id"]
+            expires_at = row["expires_at"]
+            # Handle both string and datetime objects
+            if isinstance(expires_at, str):
+                exp_dt = datetime.fromisoformat(expires_at)
+            else:
+                exp_dt = expires_at
+            # Ensure timezone-aware comparison
+            if exp_dt.tzinfo is None:
+                from datetime import timezone as tz
+
+                exp_dt = exp_dt.replace(tzinfo=tz.utc)
+            if exp_dt < datetime.now(timezone.utc):
+                cursor.execute("DELETE FROM sessions WHERE token = %s", (token,))
+                conn.commit()
+                return None
+            cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+            return cursor.fetchone()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def delete_session(self, token):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("DELETE FROM sessions WHERE token = %s", (token,))
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    # ── Procedimientos para revisión del docente ──────────────────────────────
+
+    @_timing
+    def check_file_hash_duplicate(self, item_id, student_id, file_hash):
+        """Verifica si el hash SHA-256 de un archivo ya fue registrado por OTRO estudiante
+        para la misma pregunta."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT 1 FROM procedure_submissions
+                WHERE item_id = %s AND file_hash = %s AND student_id != %s
+                LIMIT 1
+            """,
+                (item_id, file_hash, student_id),
+            )
+            found = cursor.fetchone() is not None
+            return found
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def save_procedure_submission(
+        self, student_id, item_id, item_content, image_data, mime_type="image/jpeg", file_hash=None
+    ):
+        """Guarda o reemplaza el procedimiento enviado por el estudiante.
+
+        Si Supabase Storage está disponible, sube el archivo al bucket
+        'procedimientos' y almacena la URL.  image_data se guarda como NULL
+        en la BD para nuevos registros (ahorra ~200 KB de BYTEA por fila).
+        Fallback: disco local + BYTEA si Storage no está disponible.
+        """
+        import time as _time
+
+        print(
+            f"[SAVE_PROC] Recibido: student_id={student_id}, item_id={item_id}, "
+            f"image_data={'bytes:'+str(len(image_data)) if image_data else 'None'}, mime_type={mime_type}"
+        )
+        ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}.get(mime_type, "jpg")
+
+        # ── Intentar subir a Supabase Storage ────────────────────────────
+        storage_path = f"{student_id}/{item_id}/{file_hash or int(_time.time())}.{ext}"
+        if self._storage.available:
+            print(f"[STORAGE] Subiendo archivo a Supabase Storage...")
+        else:
+            print("[STORAGE] WARNING: SUPABASE_URL/KEY no definidas, usando BYTEA fallback")
+        storage_url = self._storage.upload_file(
+            "procedimientos",
+            storage_path,
+            image_data,
+            mime_type,
+        )
+        print(f"[SAVE_PROC] storage_url resultado={storage_url}")
+
+        # ── BYTEA backup + disco local fallback ────────────────────────
+        img_path = None
+        bytea_value = None
+        if image_data:
+            # Always keep BYTEA as backup regardless of storage_url
+            bytea_value = psycopg2.Binary(image_data)
+        if not storage_url:
+            if image_data:
+                os.makedirs(os.path.join("data", "uploads", "procedures"), exist_ok=True)
+                img_filename = f"{student_id}_{item_id}_{int(_time.time())}.{ext}"
+                img_path = os.path.join("data", "uploads", "procedures", img_filename)
+                with open(img_path, "wb") as _f:
+                    _f.write(image_data)
+            else:
+                print(
+                    "[SAVE_PROC] ERROR: storage_url=None AND image_data=None, no hay datos para guardar"
+                )
+
+        print(
+            f"[SAVE_PROC] Guardando en DB: storage_url={storage_url}, "
+            f"image_data={'bytes:'+str(len(image_data)) if image_data else 'None'}"
+        )
+
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT id FROM procedure_submissions WHERE student_id=%s AND item_id=%s",
+                (student_id, item_id),
+            )
+            existing = cursor.fetchone()
+            if existing:
+                cursor.execute(
+                    """
+                    UPDATE procedure_submissions
+                    SET image_data=%s, mime_type=%s, procedure_image_path=%s, file_hash=%s,
+                        storage_url=%s,
+                        status=CASE
+                            WHEN ai_proposed_score IS NOT NULL THEN 'PENDING_TEACHER_VALIDATION'
+                            ELSE 'pending'
+                        END,
+                        teacher_feedback=NULL,
+                        feedback_image=NULL, feedback_image_path=NULL,
+                        procedure_score=NULL, teacher_score=NULL, final_score=NULL,
+                        submitted_at=CURRENT_TIMESTAMP, reviewed_at=NULL
+                    WHERE student_id=%s AND item_id=%s
+                """,
+                    (bytea_value, mime_type, img_path, file_hash, storage_url, student_id, item_id),
+                )
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO procedure_submissions
+                        (student_id, item_id, item_content, image_data, mime_type,
+                         procedure_image_path, file_hash, storage_url)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                    (
+                        student_id,
+                        item_id,
+                        item_content,
+                        bytea_value,
+                        mime_type,
+                        img_path,
+                        file_hash,
+                        storage_url,
+                    ),
+                )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def save_ai_proposed_score(
+        self, student_id: int, item_id: str, ai_score: float, ai_feedback: str = None
+    ):
+        """Guarda la puntuación propuesta por la IA y actualiza el status."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                UPDATE procedure_submissions
+                SET ai_proposed_score = %s,
+                    ai_feedback = %s,
+                    status = 'PENDING_TEACHER_VALIDATION'
+                WHERE student_id = %s AND item_id = %s
+            """,
+                (ai_score, ai_feedback, student_id, item_id),
+            )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_student_submission(self, student_id, item_id):
+        """Retorna la entrega del estudiante para una pregunta, o None."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT id, status, teacher_feedback, feedback_image,
+                       feedback_mime_type, submitted_at, reviewed_at,
+                       procedure_score, feedback_image_path,
+                       ai_proposed_score, teacher_score, final_score,
+                       storage_url
+                FROM procedure_submissions
+                WHERE student_id=%s AND item_id=%s
+            """,
+                (student_id, item_id),
+            )
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+            return None
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_reviewed_submission_ids(self, student_id):
+        """Retorna los IDs de entregas que ya tienen retroalimentación."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT id FROM procedure_submissions
+                WHERE student_id = %s AND reviewed_at IS NOT NULL
+            """,
+                (student_id,),
+            )
+            ids = {row["id"] for row in cursor.fetchall()}
+            return ids
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_student_feedback_history(self, student_id):
+        """Historial completo de entregas del estudiante para el Centro de Feedback."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT ps.id, ps.item_id,
+                       SUBSTR(ps.item_content, 1, 80) AS item_short,
+                       ps.ai_proposed_score, ps.ai_feedback,
+                       ps.final_score, ps.teacher_score,
+                       ps.procedure_score,
+                       ps.teacher_feedback,
+                       ps.status, ps.submitted_at, ps.reviewed_at,
+                       ps.procedure_image_path, ps.feedback_image_path,
+                       ps.storage_url
+                FROM procedure_submissions ps
+                WHERE ps.student_id = %s
+                ORDER BY ps.submitted_at DESC
+            """,
+                (student_id,),
+            )
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            self.put_connection(conn)
+
+    @_retry_on_deadlock()
+    @_timing
+    def get_pending_submissions_count(self, teacher_id, group_id=None):
+        """Cuenta las entregas pendientes de revisión del docente.
+        Si se pasa group_id, restringe al grupo indicado.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            if group_id:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) AS cnt FROM procedure_submissions ps
+                    JOIN users u ON ps.student_id = u.id
+                    WHERE u.group_id = %s
+                      AND ps.status IN ('pending', 'PENDING_TEACHER_VALIDATION')
+                """,
+                    (group_id,),
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) AS cnt FROM procedure_submissions ps
+                    JOIN users u ON ps.student_id = u.id
+                    JOIN groups g ON u.group_id = g.id
+                    WHERE g.teacher_id = %s
+                      AND ps.status IN ('pending', 'PENDING_TEACHER_VALIDATION')
+                """,
+                    (teacher_id,),
+                )
+            count = cursor.fetchone()["cnt"]
+            return count
+        finally:
+            self.put_connection(conn)
+
+    @_retry_on_deadlock()
+    @_timing
+    def get_pending_submissions_for_teacher(self, teacher_id, group_id=None):
+        """Retorna las entregas pendientes del docente.
+        Si se pasa group_id, restringe al grupo indicado.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            if group_id:
+                cursor.execute(
+                    """
+                    SELECT ps.id, ps.student_id, u.username AS student_name,
+                           ps.item_id, ps.item_content, ps.mime_type,
+                           ps.submitted_at, ps.procedure_image_path,
+                           ps.status, ps.ai_proposed_score, ps.ai_feedback,
+                           ps.storage_url,
+                           CASE WHEN ps.storage_url IS NULL THEN ps.image_data
+                                ELSE NULL END AS image_data
+                    FROM procedure_submissions ps
+                    JOIN users u ON ps.student_id = u.id
+                    WHERE u.group_id = %s
+                      AND ps.status IN ('pending', 'PENDING_TEACHER_VALIDATION')
+                    ORDER BY ps.submitted_at DESC
+                """,
+                    (group_id,),
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT ps.id, ps.student_id, u.username AS student_name,
+                           ps.item_id, ps.item_content, ps.mime_type,
+                           ps.submitted_at, ps.procedure_image_path,
+                           ps.status, ps.ai_proposed_score, ps.ai_feedback,
+                           ps.storage_url,
+                           CASE WHEN ps.storage_url IS NULL THEN ps.image_data
+                                ELSE NULL END AS image_data
+                    FROM procedure_submissions ps
+                    JOIN users u ON ps.student_id = u.id
+                    JOIN groups g ON u.group_id = g.id
+                    WHERE g.teacher_id = %s
+                      AND ps.status IN ('pending', 'PENDING_TEACHER_VALIDATION')
+                    ORDER BY ps.submitted_at DESC
+                """,
+                    (teacher_id,),
+                )
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def get_student_elo_summary(self, student_id):
+        """ELO actual por tópico, ELO global, total de intentos y precisión reciente."""
+        elo_by_topic = self.get_latest_elo_by_topic(student_id)
+        global_elo = (
+            sum(e for e, _ in elo_by_topic.values()) / len(elo_by_topic) if elo_by_topic else 1000.0
+        )
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT COUNT(*) AS cnt FROM attempts WHERE user_id = %s", (student_id,))
+            total = cursor.fetchone()["cnt"]
+            cursor.execute(
+                "SELECT is_correct FROM attempts WHERE user_id = %s ORDER BY timestamp DESC LIMIT 10",
+                (student_id,),
+            )
+            recent = cursor.fetchall()
+        finally:
+            self.put_connection(conn)
+        recent_acc = sum(1 for r in recent if r["is_correct"]) / len(recent) if recent else 0.0
+        return {
+            "elo_by_topic": elo_by_topic,
+            "global_elo": round(global_elo, 1),
+            "attempts_count": total,
+            "recent_accuracy": recent_acc,
+        }
+
+    @_timing
+    def validate_procedure_submission(
+        self, submission_id: int, teacher_score: float, feedback: str = ""
+    ):
+        """Valida la calificación de un procedimiento y establece la nota final oficial."""
+        elo_delta = round((teacher_score - 50.0) * 0.2, 4)
+
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                UPDATE procedure_submissions
+                SET teacher_score    = %s,
+                    final_score      = %s,
+                    teacher_feedback = %s,
+                    elo_delta        = %s,
+                    status           = 'VALIDATED_BY_TEACHER',
+                    reviewed_at      = CURRENT_TIMESTAMP
+                WHERE id = %s
+                RETURNING student_id
+            """,
+                (teacher_score, teacher_score, feedback or None, elo_delta, submission_id),
+            )
+            row = cursor.fetchone()
+            if row:
+                self._update_current_elo(cursor, row["student_id"])
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    @_timing
+    def save_teacher_feedback(
+        self,
+        submission_id,
+        feedback_text,
+        feedback_image=None,
+        feedback_mime_type=None,
+        procedure_score=None,
+    ):
+        """Guarda la retroalimentación del docente y marca la entrega como revisada."""
+        feedback_image_path = None
+        if feedback_image:
+            import time as _time
+
+            ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}.get(
+                feedback_mime_type, "jpg"
+            )
+            os.makedirs(os.path.join("data", "uploads", "feedback"), exist_ok=True)
+            fb_filename = f"feedback_{submission_id}_{int(_time.time())}.{ext}"
+            feedback_image_path = os.path.join("data", "uploads", "feedback", fb_filename)
+            with open(feedback_image_path, "wb") as _f:
+                _f.write(feedback_image)
+
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                UPDATE procedure_submissions
+                SET teacher_feedback=%s, feedback_image=%s, feedback_mime_type=%s,
+                    procedure_score=%s, feedback_image_path=%s,
+                    status='reviewed', reviewed_at=CURRENT_TIMESTAMP
+                WHERE id=%s
+            """,
+                (
+                    feedback_text,
+                    psycopg2.Binary(feedback_image) if feedback_image else None,
+                    feedback_mime_type,
+                    procedure_score,
+                    feedback_image_path,
+                    submission_id,
+                ),
+            )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    def save_exam_session(
+        self,
+        user_id: int,
+        course_id: str,
+        course_name: str,
+        n_questions: int,
+        correct_count: int,
+        score_pct: float,
+        global_elo_after: float,
+        template_id: int | None = None,
+        responses: list[dict] | None = None,
+    ) -> int:
+        """Persiste la sesión y, si se pasan, las respuestas por pregunta en
+        exam_responses (análisis del docente). `responses`: list de dicts
+        {item_id, topic, is_correct}."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """INSERT INTO exam_sessions
+                       (user_id, course_id, course_name, n_questions, correct_count, score_pct,
+                        global_elo_after, exam_template_id)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                       RETURNING id""",
+                    (
+                        user_id,
+                        course_id,
+                        course_name,
+                        n_questions,
+                        correct_count,
+                        score_pct,
+                        global_elo_after,
+                        template_id,
+                    ),
+                )
+                row = cursor.fetchone()
+                session_id = row["id"]
+                if responses:
+                    cursor.executemany(
+                        """INSERT INTO exam_responses
+                           (session_id, template_id, user_id, item_id, topic, is_correct)
+                           VALUES (%s, %s, %s, %s, %s, %s)""",
+                        [
+                            (
+                                session_id,
+                                template_id,
+                                user_id,
+                                r["item_id"],
+                                r.get("topic"),
+                                1 if r.get("is_correct") else 0,
+                            )
+                            for r in responses
+                        ],
+                    )
+                conn.commit()
+                return session_id
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+
+    def get_diagnostic(self, user_id: int, course_id: str) -> dict | None:
+        """Devuelve el diagnóstico de un estudiante en una materia, o None."""
+        import json as _json
+
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """SELECT initial_elo, score_pct, result_json,
+                              to_char(completed_at, 'YYYY-MM-DD HH24:MI') AS completed_at
+                       FROM diagnostics WHERE user_id = %s AND course_id = %s""",
+                    (user_id, course_id),
+                )
+                row = cursor.fetchone()
+        finally:
+            self.put_connection(conn)
+        if not row:
+            return None
+        return {
+            "initial_elo": row["initial_elo"],
+            "score_pct": row["score_pct"],
+            "result": _json.loads(row["result_json"] or "{}"),
+            "completed_at": row["completed_at"],
+        }
+
+    def get_completed_diagnostic_course_ids(self, user_id: int) -> list:
+        """course_ids con diagnóstico completado por el estudiante."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("SELECT course_id FROM diagnostics WHERE user_id = %s", (user_id,))
+                return [r["course_id"] for r in cursor.fetchall()]
+        finally:
+            self.put_connection(conn)
+
+    def save_diagnostic(
+        self, user_id: int, course_id: str, initial_elo: float, score_pct: float, result_json: str
+    ) -> None:
+        """Persiste (upsert) el diagnóstico completado de una materia."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """INSERT INTO diagnostics
+                       (user_id, course_id, initial_elo, score_pct, result_json, completed_at)
+                       VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                       ON CONFLICT (user_id, course_id) DO UPDATE SET
+                           initial_elo = EXCLUDED.initial_elo,
+                           score_pct = EXCLUDED.score_pct,
+                           result_json = EXCLUDED.result_json,
+                           completed_at = CURRENT_TIMESTAMP""",
+                    (user_id, course_id, initial_elo, score_pct, result_json),
+                )
+                conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+
+    def get_lesson_progress(self, user_id: int, course_id: str, node_id: str) -> dict:
+        """Progreso de un nodo no evaluativo; nunca consulta ni modifica ELO."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """SELECT state, objectives_viewed, math_convention_viewed,
+                              viewed_at, completed_at
+                       FROM lesson_progress
+                       WHERE user_id = %s AND course_id = %s AND node_id = %s""",
+                    (user_id, course_id, node_id),
+                )
+                row = cursor.fetchone()
+        finally:
+            self.put_connection(conn)
+        if not row:
+            return {
+                "state": "available",
+                "objectives_viewed": False,
+                "math_convention_viewed": False,
+                "viewed_at": None,
+                "completed_at": None,
+            }
+        return {
+            "state": row["state"],
+            "objectives_viewed": bool(row["objectives_viewed"]),
+            "math_convention_viewed": bool(row["math_convention_viewed"]),
+            "viewed_at": str(row["viewed_at"]) if row["viewed_at"] else None,
+            "completed_at": str(row["completed_at"]) if row["completed_at"] else None,
+        }
+
+    def record_lesson_event(
+        self, user_id: int, course_id: str, node_id: str, event: str
+    ) -> dict:
+        """Registra un hito curricular idempotente sin afectar ELO."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """INSERT INTO lesson_progress
+                       (user_id, course_id, node_id, state, objectives_viewed,
+                        math_convention_viewed, viewed_at, completed_at, updated_at)
+                       VALUES (
+                           %s, %s, %s,
+                           CASE WHEN %s = 'node_completed' THEN 'completed' ELSE 'viewed' END,
+                           CASE WHEN %s = 'objectives_viewed' THEN 1 ELSE 0 END,
+                           CASE WHEN %s = 'math_convention_viewed' THEN 1 ELSE 0 END,
+                           CURRENT_TIMESTAMP,
+                           CASE WHEN %s = 'node_completed' THEN CURRENT_TIMESTAMP ELSE NULL END,
+                           CURRENT_TIMESTAMP
+                       )
+                       ON CONFLICT (user_id, course_id, node_id) DO UPDATE SET
+                           state = CASE WHEN EXCLUDED.state = 'completed' THEN 'completed'
+                                        ELSE lesson_progress.state END,
+                           objectives_viewed = GREATEST(lesson_progress.objectives_viewed,
+                                                       EXCLUDED.objectives_viewed),
+                           math_convention_viewed = GREATEST(
+                               lesson_progress.math_convention_viewed,
+                               EXCLUDED.math_convention_viewed),
+                           viewed_at = COALESCE(lesson_progress.viewed_at, EXCLUDED.viewed_at),
+                           completed_at = COALESCE(
+                               lesson_progress.completed_at, EXCLUDED.completed_at),
+                           updated_at = CURRENT_TIMESTAMP""",
+                    (user_id, course_id, node_id, event, event, event, event),
+                )
+                conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+        return self.get_lesson_progress(user_id, course_id, node_id)
+
+    def get_lesson_interactions(self, user_id: int, course_id: str, node_id: str) -> dict:
+        """Selecciones estructuradas del nodo, indexadas por interacción."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """SELECT interaction_id, selected_option, is_expected, misconception_tag
+                       FROM lesson_interactions
+                       WHERE user_id = %s AND course_id = %s AND node_id = %s""",
+                    (user_id, course_id, node_id),
+                )
+                rows = cursor.fetchall()
+                return {
+                    row["interaction_id"]: {
+                        "interaction_id": row["interaction_id"],
+                        "selected_option": row["selected_option"],
+                        "is_expected": (
+                            None if row["is_expected"] is None else bool(row["is_expected"])
+                        ),
+                        "misconception_tag": row["misconception_tag"],
+                    }
+                    for row in rows
+                }
+        finally:
+            self.put_connection(conn)
+
+    def save_lesson_interaction(
+        self,
+        user_id: int,
+        course_id: str,
+        node_id: str,
+        interaction_id: str,
+        selected_option: str,
+        is_expected: bool | None,
+        misconception_tag: str | None,
+    ) -> None:
+        """Guarda una opción cerrada; nunca recibe contenido de texto libre."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """INSERT INTO lesson_interactions
+                       (user_id, course_id, node_id, interaction_id, selected_option,
+                        is_expected, misconception_tag, answered_at)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                       ON CONFLICT(user_id, course_id, node_id, interaction_id) DO UPDATE SET
+                           selected_option = EXCLUDED.selected_option,
+                           is_expected = EXCLUDED.is_expected,
+                           misconception_tag = EXCLUDED.misconception_tag,
+                           answered_at = CURRENT_TIMESTAMP""",
+                    (
+                        user_id,
+                        course_id,
+                        node_id,
+                        interaction_id,
+                        selected_option,
+                        None if is_expected is None else int(is_expected),
+                        misconception_tag,
+                    ),
+                )
+            conn.commit()
+        finally:
+            self.put_connection(conn)
+
+    def set_topic_elo_baseline(
+        self, user_id: int, topic: str, elo: float, rd: float = 350.0
+    ) -> None:
+        """Fija directamente el ELO inicial de un tópico (diagnóstico)."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """INSERT INTO student_topic_elo
+                       (user_id, topic, current_elo, rd, updated_at)
+                       VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                       ON CONFLICT (user_id, topic) DO UPDATE SET
+                           current_elo = EXCLUDED.current_elo,
+                           rd = EXCLUDED.rd,
+                           updated_at = CURRENT_TIMESTAMP""",
+                    (user_id, topic, round(elo, 2), rd),
+                )
+                cursor.execute(
+                    """UPDATE users SET current_elo = COALESCE(
+                           (SELECT ROUND(AVG(current_elo)::numeric, 2)
+                            FROM student_topic_elo WHERE user_id = %s), 1000.0)
+                       WHERE id = %s""",
+                    (user_id, user_id),
+                )
+                conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+
+    def get_exam_template_results(self, template_id: int) -> dict:
+        """Análisis agregado de resultados de una plantilla (ver SQLite)."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """SELECT COUNT(*) AS n_sessions,
+                              COUNT(DISTINCT user_id) AS n_students,
+                              COALESCE(AVG(score_pct), 0) AS avg_score
+                       FROM exam_sessions WHERE exam_template_id = %s""",
+                    (template_id,),
+                )
+                s = cursor.fetchone()
+                summary = {
+                    "n_sessions": s["n_sessions"] or 0,
+                    "n_students": s["n_students"] or 0,
+                    "avg_score": round(float(s["avg_score"] or 0), 1),
+                }
+                cursor.execute(
+                    """SELECT er.item_id,
+                              COALESCE(i.content, er.item_id) AS content,
+                              er.topic,
+                              COUNT(*) AS total,
+                              SUM(er.is_correct) AS correct
+                       FROM exam_responses er
+                       LEFT JOIN items i ON i.id = er.item_id
+                       WHERE er.template_id = %s
+                       GROUP BY er.item_id, i.content, er.topic
+                       ORDER BY total DESC""",
+                    (template_id,),
+                )
+                questions = []
+                for r in cursor.fetchall():
+                    total = r["total"] or 0
+                    correct = r["correct"] or 0
+                    questions.append(
+                        {
+                            "item_id": r["item_id"],
+                            "content": r["content"],
+                            "topic": r["topic"],
+                            "total": total,
+                            "correct": correct,
+                            "accuracy": round(correct / total * 100, 1) if total else 0.0,
+                        }
+                    )
+                cursor.execute(
+                    """SELECT COALESCE(topic, 'Sin tópico') AS topic,
+                              COUNT(*) AS total, SUM(is_correct) AS correct
+                       FROM exam_responses WHERE template_id = %s
+                       GROUP BY topic ORDER BY total DESC""",
+                    (template_id,),
+                )
+                topics = []
+                for r in cursor.fetchall():
+                    total = r["total"] or 0
+                    correct = r["correct"] or 0
+                    topics.append(
+                        {
+                            "topic": r["topic"],
+                            "total": total,
+                            "correct": correct,
+                            "accuracy": round(correct / total * 100, 1) if total else 0.0,
+                        }
+                    )
+        finally:
+            self.put_connection(conn)
+
+        ranked = [q for q in questions if q["total"] > 0]
+        best = max(ranked, key=lambda q: q["accuracy"], default=None)
+        worst = min(ranked, key=lambda q: q["accuracy"], default=None)
+        reinforce = min(topics, key=lambda t: t["accuracy"], default=None) if topics else None
+        return {
+            **summary,
+            "questions": questions,
+            "topics": topics,
+            "best_question": best,
+            "worst_question": worst,
+            "reinforce_topic": reinforce,
+        }
+
+    def get_exam_history(self, user_id: int, limit: int = 20) -> list[dict]:
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """SELECT id, course_id, course_name, n_questions, correct_count,
+                              score_pct, global_elo_after,
+                              to_char(created_at, 'YYYY-MM-DD HH24:MI') AS created_at
+                       FROM exam_sessions
+                       WHERE user_id = %s
+                       ORDER BY created_at DESC
+                       LIMIT %s""",
+                    (user_id, limit),
+                )
+                rows = cursor.fetchall()
+                return [dict(r) for r in rows]
+        finally:
+            self.put_connection(conn)
+
+    # ── Sprint C: plantillas de examen del docente ────────────────────────────
+
+    def create_exam_template(
+        self,
+        teacher_id: int,
+        course_id: str,
+        title: str,
+        time_limit_min: int,
+        item_ids: list[str],
+    ) -> int:
+        import json
+
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """INSERT INTO exam_templates
+                       (teacher_id, course_id, title, time_limit_min, item_ids)
+                       VALUES (%s, %s, %s, %s, %s)
+                       RETURNING id""",
+                    (teacher_id, course_id, title, time_limit_min, json.dumps(item_ids)),
+                )
+                row = cursor.fetchone()
+                conn.commit()
+                return row["id"]
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+
+    def get_exam_template(self, template_id: int) -> dict | None:
+        import json
+
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """SELECT id, teacher_id, course_id, title, time_limit_min, item_ids,
+                              archived,
+                              to_char(created_at, 'YYYY-MM-DD HH24:MI') AS created_at
+                       FROM exam_templates WHERE id = %s""",
+                    (template_id,),
+                )
+                r = cursor.fetchone()
+                if not r:
+                    return None
+                d = dict(r)
+                d["item_ids"] = json.loads(d["item_ids"]) if d.get("item_ids") else []
+                d["archived"] = bool(d.get("archived"))
+                return d
+        finally:
+            self.put_connection(conn)
+
+    def list_exam_templates(
+        self,
+        course_id: str | None = None,
+        teacher_id: int | None = None,
+        include_archived: bool = False,
+    ) -> list[dict]:
+        import json
+
+        clauses = []
+        params: list = []
+        if course_id is not None:
+            clauses.append("course_id = %s")
+            params.append(course_id)
+        if teacher_id is not None:
+            clauses.append("teacher_id = %s")
+            params.append(teacher_id)
+        if not include_archived:
+            clauses.append("archived = FALSE")
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    f"""SELECT id, teacher_id, course_id, title, time_limit_min, item_ids,
+                               archived,
+                               to_char(created_at, 'YYYY-MM-DD HH24:MI') AS created_at
+                        FROM exam_templates {where}
+                        ORDER BY created_at DESC""",
+                    tuple(params),
+                )
+                rows = cursor.fetchall()
+                result = []
+                for r in rows:
+                    d = dict(r)
+                    d["item_ids"] = json.loads(d["item_ids"]) if d.get("item_ids") else []
+                    d["archived"] = bool(d.get("archived"))
+                    result.append(d)
+                return result
+        finally:
+            self.put_connection(conn)
+
+    def update_exam_template(
+        self,
+        template_id: int,
+        title: str | None = None,
+        time_limit_min: int | None = None,
+        item_ids: list[str] | None = None,
+    ) -> bool:
+        import json
+
+        sets = []
+        params: list = []
+        if title is not None:
+            sets.append("title = %s")
+            params.append(title)
+        if time_limit_min is not None:
+            sets.append("time_limit_min = %s")
+            params.append(time_limit_min)
+        if item_ids is not None:
+            sets.append("item_ids = %s")
+            params.append(json.dumps(item_ids))
+        if not sets:
+            return False
+        params.append(template_id)
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    f"UPDATE exam_templates SET {', '.join(sets)} WHERE id = %s",
+                    tuple(params),
+                )
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+
+    def archive_exam_template(self, template_id: int) -> bool:
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE exam_templates SET archived = TRUE WHERE id = %s",
+                    (template_id,),
+                )
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+
+    # ── Asignación de plantillas a grupos + ventana de tiempo ────────────────
+
+    def create_exam_assignment(
+        self,
+        template_id: int,
+        group_id: int,
+        starts_at: str | None = None,
+        ends_at: str | None = None,
+    ) -> int:
+        """Asigna una plantilla a un grupo con una ventana opcional.
+
+        starts_at / ends_at son ISO datetime strings (UTC). NULL = sin restricción.
+        Si ya existe (template_id, group_id), actualiza las fechas.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                INSERT INTO exam_assignments (template_id, group_id, starts_at, ends_at)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (template_id, group_id) DO UPDATE
+                  SET starts_at = EXCLUDED.starts_at,
+                      ends_at = EXCLUDED.ends_at
+                RETURNING id
+                """,
+                (template_id, group_id, starts_at, ends_at),
+            )
+            row = cursor.fetchone()
+            conn.commit()
+            return int(row["id"])
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+
+    def delete_exam_assignment(self, assignment_id: int) -> bool:
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "DELETE FROM exam_assignments WHERE id = %s",
+                    (assignment_id,),
+                )
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+
+    def list_assignments_for_template(self, template_id: int) -> list[dict]:
+        """Lista asignaciones de una plantilla con nombre del grupo (join)."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT ea.id, ea.template_id, ea.group_id, g.name AS group_name,
+                       ea.starts_at, ea.ends_at, ea.created_at
+                FROM exam_assignments ea
+                JOIN groups g ON g.id = ea.group_id
+                WHERE ea.template_id = %s
+                ORDER BY ea.created_at DESC
+                """,
+                (template_id,),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "template_id": r["template_id"],
+                    "group_id": r["group_id"],
+                    "group_name": r["group_name"],
+                    "starts_at": str(r["starts_at"]) if r["starts_at"] else None,
+                    "ends_at": str(r["ends_at"]) if r["ends_at"] else None,
+                    "created_at": str(r["created_at"]),
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    def list_active_templates_for_student(
+        self,
+        user_id: int,
+        course_id: str,
+    ) -> list[dict]:
+        """Plantillas activas visibles a un estudiante en un curso.
+
+        Lógica de visibilidad:
+        - Plantilla NO archivada y del curso indicado
+        - Y: no tiene assignments (legacy/abierta) → visible a todos los inscritos
+        -    O: tiene un assignment al grupo del estudiante con ventana activa
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT et.id, et.title, et.course_id, et.item_ids,
+                       et.time_limit_min, et.created_at,
+                       MAX(ea.ends_at) AS window_ends_at
+                FROM exam_templates et
+                LEFT JOIN exam_assignments ea
+                    ON ea.template_id = et.id
+                   AND ea.group_id = (SELECT group_id FROM users WHERE id = %s)
+                   AND (ea.starts_at IS NULL OR ea.starts_at <= NOW())
+                   AND (ea.ends_at IS NULL OR ea.ends_at >= NOW())
+                WHERE et.archived = FALSE
+                  AND et.course_id = %s
+                  AND (
+                    NOT EXISTS (SELECT 1 FROM exam_assignments
+                                WHERE template_id = et.id)
+                    OR ea.id IS NOT NULL
+                  )
+                GROUP BY et.id
+                ORDER BY et.created_at DESC
+                """,
+                (user_id, course_id),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "title": r["title"],
+                    "course_id": r["course_id"],
+                    "item_ids": json.loads(r["item_ids"]) if r["item_ids"] else [],
+                    "time_limit_min": r["time_limit_min"],
+                    "created_at": str(r["created_at"]),
+                    "window_ends_at": (str(r["window_ends_at"]) if r["window_ends_at"] else None),
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)
+
+    def list_pending_exams_for_student(self, user_id: int) -> list[dict]:
+        """Resumen de todas las plantillas pendientes (todos los cursos inscritos)
+        para mostrar el badge de notificación en el sidebar."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                """
+                SELECT et.id, et.title, et.course_id, c.name AS course_name,
+                       et.time_limit_min
+                FROM exam_templates et
+                JOIN enrollments en
+                    ON en.course_id = et.course_id AND en.user_id = %s
+                JOIN courses c ON c.id = et.course_id
+                LEFT JOIN exam_assignments ea
+                    ON ea.template_id = et.id
+                   AND ea.group_id = (SELECT group_id FROM users WHERE id = %s)
+                   AND (ea.starts_at IS NULL OR ea.starts_at <= NOW())
+                   AND (ea.ends_at IS NULL OR ea.ends_at >= NOW())
+                WHERE et.archived = FALSE
+                  AND (
+                    NOT EXISTS (SELECT 1 FROM exam_assignments
+                                WHERE template_id = et.id)
+                    OR ea.id IS NOT NULL
+                  )
+                ORDER BY et.created_at DESC
+                """,
+                (user_id, user_id),
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "template_id": r["id"],
+                    "title": r["title"],
+                    "course_id": r["course_id"],
+                    "course_name": r["course_name"],
+                    "time_limit_min": r["time_limit_min"],
+                }
+                for r in rows
+            ]
+        finally:
+            self.put_connection(conn)

@@ -1,0 +1,67 @@
+/* Nodo B07 — extras visuales (el resto reutiliza Lesson.css). */
+
+.irrationals-page .q03-prompt {
+  margin-top: 18px;
+}
+
+/* recta decorativa para ubicar √2 entre 1 y 2 */
+.irrationals-page .number-line-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 4px;
+  font-family: var(--font-display, "Poppins", sans-serif);
+}
+.irrationals-page .number-line-strip i {
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent-2, #2dd4bf);
+  opacity: 0.55;
+}
+.irrationals-page .number-line-strip span {
+  font-weight: 700;
+  color: var(--dim, #94a3b8);
+  font-size: 14px;
+}
+.irrationals-page .number-line-strip b {
+  padding: 4px 10px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent, #8b5cf6) 22%, transparent);
+  color: var(--accent-soft, #a78bfa);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+/* B07 mini-reto: rejilla racional / irracional */
+.irr-grid { margin-top: 8px; }
+.irr-grid > h2 { margin: 0 0 12px; font-size: clamp(18px, 2.4vw, 22px); }
+.irr-grid-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.irr-grid-row {
+  display: grid;
+  grid-template-columns: 80px auto 1fr;
+  gap: 14px;
+  align-items: center;
+}
+.irr-grid-num { font-size: clamp(20px, 4vw, 26px); }
+.irr-grid-choice { display: flex; gap: 8px; }
+.irr-grid-choice button {
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--canvas);
+  color: var(--text);
+  cursor: pointer;
+  font: 600 14px/1 var(--font-body);
+}
+.irr-grid-choice button.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--canvas));
+}
+.irr-grid-choice button:disabled { cursor: default; }
+.irr-grid-feedback { margin: 0; font-size: 13px; line-height: 1.5; }
+.irr-grid-feedback.ok { color: var(--success, #22C55E); }
+.irr-grid-feedback.review { color: var(--warning, #F59E0B); }
+@media (max-width: 560px) {
+  .irr-grid-row { grid-template-columns: 1fr; gap: 8px; }
+}
