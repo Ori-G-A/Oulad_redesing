@@ -183,6 +183,7 @@ export function RationalsLesson({ lesson, courseId, onBack, onFinish, finishing 
             { math: String.raw`\frac{1}{4}`, caption: t("prealgebra.n1.b06.story.katiaFractionB") },
           ]}
           question={t("prealgebra.n1.b06.story.katiaQuestion")}
+          imageSrc="/prealgebra/generated/n1-agora/b06-racionales-v4.png"
         />
 
         <section className="set-story" aria-label={t("prealgebra.n1.b06.story.label")}>

@@ -8,7 +8,12 @@ import "./PracticeItem.css";
 export type AnswerMap = Record<string, string>;
 export type FeedbackMap = Record<string, string>;
 
-export function restoredAnswers(responses: Record<string, { is_expected: boolean; selected_option: string }>): AnswerMap {
+type RestoredResponse = {
+  is_expected: boolean | null;
+  selected_option: string;
+};
+
+export function restoredAnswers(responses: Record<string, RestoredResponse>): AnswerMap {
   return Object.fromEntries(
     Object.entries(responses)
       .filter(([, response]) => response.is_expected)
@@ -44,7 +49,7 @@ export function PracticeItem({
       {item.story && <p className="level-item-story-text">{item.story}</p>}
       {item.image_slot && (
         <div className="level-item-image-slot" role="img" aria-label="Imagen de la situación">
-          <span>Imagen aquí</span>
+          {item.image ? <img src={item.image} alt="" loading="lazy" /> : <span>Imagen aquí</span>}
           {item.support_objects && item.support_objects.length > 0 && (
             <ul className="level-item-support-objects">
               {item.support_objects.map((object) => (

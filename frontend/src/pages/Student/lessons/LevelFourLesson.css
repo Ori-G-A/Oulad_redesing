@@ -231,7 +231,7 @@
   text-transform: uppercase;
 }
 
-/* ponytail: .n4-practice-item/.n4-item-*/.n4-options/.n4-option-btn ahora
+/* ponytail: .n4-practice-item, .n4-item, .n4-options y .n4-option-btn ahora
    viven en PracticeItem.css (.level-practice-item/...), compartidos por
    los 3 hubs + la práctica mixta de N4 */
 

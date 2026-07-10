@@ -179,6 +179,7 @@ export function RealsLesson({ lesson, courseId, onBack, onFinish, finishing }: P
           title={t("prealgebra.n1.b08.story.katiaTitle")}
           body={t("prealgebra.n1.b08.story.katiaBody")}
           question={t("prealgebra.n1.b08.story.katiaQuestion")}
+          imageSrc="/prealgebra/generated/n1-agora/b08-reales-v4.png"
         />
 
         <section className="set-story" aria-label={t("prealgebra.n1.b08.story.label")}>

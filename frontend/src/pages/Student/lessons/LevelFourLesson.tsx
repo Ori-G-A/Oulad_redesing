@@ -85,7 +85,7 @@ function LevelFourHub({ lesson, courseId, onBack, onFinish, finishing }: Props) 
         </header>
 
         <div className="level-presentation-media" role="img" aria-label="Imagen de KatIA aquí">
-          <span>Imagen de KatIA aquí</span>
+          <img src="/prealgebra/generated/n4-puerto/c00-hub-puerto-katia-canon-v10.png" alt="" loading="lazy" />
         </div>
 
         {content?.scene_text && <p className="n4-scene-text">{content.scene_text}</p>}
@@ -218,6 +218,7 @@ function LevelFourConcept({ lesson, courseId, onBack, finishing }: Omit<Props, "
             title={content.katia.title}
             body={content.katia.body}
             question={content.katia.question}
+            imageSrc={content.katia.imageSrc}
           />
         )}
 
@@ -244,7 +245,11 @@ function LevelFourConcept({ lesson, courseId, onBack, finishing }: Omit<Props, "
               <h3>{example.title ?? example.statement}</h3>
               {example.image_slot && (
                 <div className="n2-image-slot" role="img" aria-label="Espacio para imagen del ejemplo">
-                  <span>Imagen aquí</span>
+                  {example.image ? (
+                    <img src={example.image} alt="" loading="lazy" />
+                  ) : (
+                    <span>Imagen aquí</span>
+                  )}
                 </div>
               )}
               <p>{example.statement}</p>

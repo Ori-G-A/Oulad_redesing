@@ -134,6 +134,7 @@ export interface N4PracticeItem {
   valid_options?: string[];
   story?: string;
   image_slot?: boolean;
+  image?: string;
   support_objects?: string[];
 }
 
@@ -247,6 +248,7 @@ export interface LessonDetail {
       title?: string;
       latex?: string;
       image_slot?: boolean;
+      image?: string;
       trap?: boolean;
     }>;
     situations?: Array<{ id: string; prompt: string; expr: string; answer: string; set_label?: string }>;

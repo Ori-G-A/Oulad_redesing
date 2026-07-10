@@ -8,7 +8,6 @@
 
 .rigorous-heading {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, .5fr);
   gap: clamp(24px, 6vw, 64px);
   align-items: center;
 }
@@ -22,8 +21,6 @@
   max-width: 56ch; margin: 18px 0 0; color: var(--dim);
   font-size: clamp(16px, 2vw, 19px); line-height: 1.6;
 }
-.rigorous-katia { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; align-items: start; }
-.rigorous-katia img { width: 64px; height: 64px; object-fit: contain; }
 
 .rigorous-instruction {
   display: grid; gap: 10px;

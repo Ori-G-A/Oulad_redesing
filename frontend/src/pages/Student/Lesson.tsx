@@ -24,6 +24,7 @@ import { ClosingDiagnosticLesson } from "./lessons/ClosingDiagnosticLesson";
 import { LevelTwoLesson } from "./lessons/LevelTwoLesson";
 import { LevelThreeLesson } from "./lessons/LevelThreeLesson";
 import { LevelFourLesson } from "./lessons/LevelFourLesson";
+import { KatiaStorySlot } from "./lessons/KatiaStorySlot";
 import "./Lesson.css";
 
 const B01_ID = "PREALG-N1-B01-BIENVENIDA";
@@ -343,14 +344,14 @@ export function Lesson() {
             </p>
             {!isAdvanced && <p className="lesson-body">{t("prealgebra.n1.b01.body")}</p>}
           </div>
-          <div className="lesson-katia" aria-label={t("prealgebra.n1.b01.katiaAlt")}>
-            <img src="/katia/katIA.png" alt="" aria-hidden="true" />
-            <div className="lesson-dialogue">
-              <b>KatIA</b>
-              <p>{t("prealgebra.n1.b01.katiaMessage")}</p>
-            </div>
-          </div>
         </section>
+
+        <KatiaStorySlot
+          eyebrow="KatIA"
+          body={t("prealgebra.n1.b01.katiaMessage")}
+          imageSrc="/prealgebra/generated/n1-agora/b01-bienvenida-v4.png"
+          imageAlt={t("prealgebra.n1.b01.katiaAlt")}
+        />
 
         <div className="lesson-disclosures">
           <section className={`lesson-panel ${objectivesOpen ? "open" : ""}`}>
@@ -438,7 +439,7 @@ function TriggerQuestionLesson({ lesson, courseId, onBack, onFinish, finishing }
   const [feedback, setFeedback] = useState<Record<string, string>>({
     ...(storedQ1 ? { [Q01]: storedQ1.selected_option === "yes" ? "counting_is_not_enough" : "need_new_numbers" } : {}),
     ...(storedQ2 ? {
-      [Q02]: storedQ2.selected_option === "pizza"
+      [Q02]: storedQ2.selected_option === "bread"
         ? "sharing_needs_fractions"
         : `${storedQ2.selected_option}_needs_integers`,
     } : {}),
@@ -459,10 +460,10 @@ function TriggerQuestionLesson({ lesson, courseId, onBack, onFinish, finishing }
     },
   });
 
-  const situations = ["temperature", "pizza", "debt"] as const;
+  const situations = ["advance", "bread", "debt"] as const;
   const challengeCorrect =
-    challenge.temperature === "integers" &&
-    challenge.pizza === "rationals" &&
+    challenge.advance === "integers" &&
+    challenge.bread === "rationals" &&
     challenge.debt === "integers";
 
   return (
@@ -479,6 +480,15 @@ function TriggerQuestionLesson({ lesson, courseId, onBack, onFinish, finishing }
           <p>{t(`prealgebra.n1.b02.intro.${lesson.presentation}`)}</p>
         </header>
 
+        <KatiaStorySlot
+          eyebrow={t("prealgebra.n1.b02.story.katiaEyebrow")}
+          title={t("prealgebra.n1.b02.story.katiaTitle")}
+          body={t("prealgebra.n1.b02.story.katiaBody")}
+          question={t("prealgebra.n1.b02.story.katiaQuestion")}
+          imageSrc="/prealgebra/generated/n1-agora/b02-pregunta-detonadora-v4.png"
+          imageAlt={t("prealgebra.n1.b02.story.katiaImageAlt")}
+        />
+
         <section className="situation-grid" aria-label={t("prealgebra.n1.b02.situationsLabel")}>
           {situations.map((key) => (
             <article className={`situation-card situation-${key}`} key={key}>
@@ -486,11 +496,11 @@ function TriggerQuestionLesson({ lesson, courseId, onBack, onFinish, finishing }
               <h2>{t(`prealgebra.n1.b02.situations.${key}.title`)}</h2>
               <div className="situation-math" aria-label={t(`prealgebra.n1.b02.situations.${key}.aria`)}>
                 <MathFormula math={
-                  key === "temperature"
-                    ? String.raw`3^{\circ}-5^{\circ}=?`
-                    : key === "pizza"
-                      ? String.raw`1\div3=?`
-                      : String.raw`5{.}000-2{.}000=?`
+                  key === "advance"
+                    ? String.raw`0-3=?`
+                    : key === "bread"
+                      ? String.raw`1\div4=?`
+                      : String.raw`5-2=?`
                 } />
               </div>
               <p>{t(`prealgebra.n1.b02.situations.${key}.body`)}</p>

@@ -67,7 +67,7 @@ def test_trigger_question_is_safe_and_uses_closed_interactions():
 
 def test_trigger_question_feedback_is_evaluated_in_domain():
     misconception = evaluate_interaction(TRIGGER_NODE_ID, "PREALG-N1-B02-Q01", "yes")
-    intuition = evaluate_interaction(TRIGGER_NODE_ID, "PREALG-N1-B02-Q02", "pizza")
+    intuition = evaluate_interaction(TRIGGER_NODE_ID, "PREALG-N1-B02-Q02", "bread")
 
     assert misconception["is_expected"] is False
     assert misconception["misconception_tag"] == "cree_que_todo_numero_sirve_para_contar"

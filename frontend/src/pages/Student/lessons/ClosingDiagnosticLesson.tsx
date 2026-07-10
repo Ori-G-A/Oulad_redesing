@@ -35,6 +35,10 @@ export function ClosingDiagnosticLesson({ lesson, courseId, onBack, onFinish, fi
           <h1 id="lesson-title">{t("prealgebra.n1.b13.title")}</h1>
         </header>
 
+        <div className="level-presentation-media" role="img" aria-label={t("prealgebra.n1.b13.title")}>
+          <img src="/prealgebra/generated/n1-agora/b13-diagnostico-v4.png" alt="" loading="lazy" />
+        </div>
+
         {isLoading || !data ? (
           <p className="closing-loading">{t("prealgebra.loading")}</p>
         ) : (

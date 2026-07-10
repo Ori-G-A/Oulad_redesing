@@ -117,7 +117,7 @@ _LESSONS = {
                 "interaction_id": "PREALG-N1-B02-Q02",
                 "type": "single_select",
                 "prompt_key": "prealgebra.n1.b02.q02.prompt",
-                "option_keys": ["temperature", "pizza", "debt"],
+                "option_keys": ["advance", "bread", "debt"],
             },
         ],
     },
@@ -667,12 +667,12 @@ _INTERACTION_RULES = {
     },
     "PREALG-N1-B02-Q02": {
         "node_id": TRIGGER_NODE_ID,
-        "valid_options": {"temperature", "pizza", "debt"},
+        "valid_options": {"advance", "bread", "debt"},
         "expected": None,
         "misconception_by_option": {},
         "feedback_by_option": {
-            "temperature": "temperature_needs_integers",
-            "pizza": "sharing_needs_fractions",
+            "advance": "advance_needs_integers",
+            "bread": "sharing_needs_fractions",
             "debt": "debt_needs_integers",
         },
     },
@@ -1357,6 +1357,7 @@ _N2_HUB_CONTENT = {
                     "segunda con 4 más, la tercera con 4 más. ¿Cuántos ladrillos apiló en total?"
                 ),
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e00-ice1-ladrillos-v4.png",
                 "expr": "3\\times 4",
                 "answer": "12",
             },
@@ -1368,6 +1369,7 @@ _N2_HUB_CONTENT = {
                     "ayudante ya tiene amontonadas 15 tejas sueltas en un solo montón."
                 ),
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e00-ice2-tejas-v4.png",
                 "support_objects": [
                     "3 pilas de 5 tejas cada una",
                     "1 montón suelto de 15 tejas",
@@ -1397,6 +1399,7 @@ _N2_HUB_CONTENT = {
                     "comerciantes y ocupan 14. ¿Cuántos puestos quedan vacíos?"
                 ),
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e00-ice3-puestos-v4.png",
                 "expr": "20-14",
                 "answer": "6",
             },
@@ -1421,20 +1424,21 @@ _N2_OPERATION_CONTENT = {
     N2_SUM_NODE_ID: {
         "kind": "operation_building", "operation": "addition",
         "title": "Suma: la máquina de juntar", "character": "KatIA",
-        "intro": "En el ágora, KatIA reúne cantidades y observa cuándo el resultado permanece en el mismo conjunto.",
+        "intro": "En el mercado, KatIA reúne mercancías y observa cuándo el resultado permanece en el mismo conjunto.",
         "story_contract": {
             "type": "unified_set_extension",
             "practice_position": "after_definition_plus_examples",
             "is_integrated": True,
         },
         "katia": {
-            "eyebrow": "KatIA abre el edificio de la suma",
-            "title": "Juntar ofrendas en el ágora",
+            "imageSrc": "/prealgebra/generated/n2-mercado/e01-suma-katia-v4.png",
+            "eyebrow": "KatIA abre el puesto de la suma",
+            "title": "Juntar mercancía sobre el mostrador",
             "body": (
-                "KatIA ordena ánforas, aceitunas y dracmas en una mesa de piedra. "
-                "Al reunir cantidades, algunas familias numéricas conservan su tipo, "
-                "pero otras pueden cambiar de familia aunque los dos números iniciales "
-                "parezcan venir del mismo lugar."
+                "KatIA ordena rollos de tela y monedas de plata sobre el mostrador "
+                "de su puesto. Al reunir cantidades, algunas familias numéricas "
+                "conservan su tipo, pero otras pueden cambiar de familia aunque los "
+                "dos números iniciales parezcan venir del mismo lugar."
             ),
             "question": "¿Juntar dos cantidades siempre da una cantidad del mismo tipo?",
         },
@@ -1442,8 +1446,8 @@ _N2_OPERATION_CONTENT = {
             "eyebrow": "Descubrimiento guiado",
             "title": "Juntar puede conservar o cambiar el conjunto",
             "body": (
-                "3 aceitunas más 5 aceitunas siguen siendo 8 aceitunas: natural. "
-                "Una deuda de 3 dracmas más 5 dracmas a favor da 2: entero. "
+                "3 higos más 5 higos siguen siendo 8 higos: natural. "
+                "Una deuda de 3 monedas más 5 monedas a favor da 2: entero. "
                 "Las fracciones también se suman dentro de los racionales. Pero "
                 "√2 + (−√2) usa dos irracionales y termina en 0, que es racional. "
                 "Por eso no basta mirar los sumandos: hay que mirar el resultado."
@@ -1459,23 +1463,25 @@ _N2_OPERATION_CONTENT = {
         "worked_examples": [
             {
                 "eyebrow": "Ejemplo 1 · Naturales",
-                "title": "Aceitunas reunidas",
-                "statement": "3 aceitunas de una cesta y 5 de otra.",
+                "title": "Higos reunidos",
+                "statement": "3 higos de una cesta y 5 de otra.",
                 "latex": r"3+5=8",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e01-higos-reunidos-v4.png",
                 "steps": [
-                    "Primer sumando: 3 aceitunas.",
-                    "Segundo sumando: 5 aceitunas.",
-                    "Se juntan todas sin quitar ninguna: 3 + 5.",
+                    "Primer sumando: 3 higos.",
+                    "Segundo sumando: 5 higos.",
+                    "Se juntan todos sin quitar ninguno: 3 + 5.",
                     "El total es 8, que sigue siendo natural.",
                 ],
             },
             {
                 "eyebrow": "Ejemplo 2 · Enteros",
                 "title": "Deuda y pago",
-                "statement": "KatIA registra una deuda de 3 dracmas y luego entran 5 dracmas.",
+                "statement": "KatIA registra una deuda de 3 monedas y luego entran 5 monedas.",
                 "latex": r"-3+5=2",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e01-deuda-pago-v4.png",
                 "steps": [
                     "La deuda se representa como −3.",
                     "El ingreso se representa como +5.",
@@ -1485,8 +1491,8 @@ _N2_OPERATION_CONTENT = {
             },
             {
                 "eyebrow": "Ejemplo 3 · Racionales",
-                "title": "Dos medidas de aceite",
-                "statement": "Media ánfora y un tercio de ánfora se vierten juntas.",
+                "title": "Dos piezas de tela",
+                "statement": "Media pieza de tela y un tercio de pieza de tela se cortan y se juntan.",
                 "latex": r"\dfrac{1}{2}+\dfrac{1}{3}=\dfrac{3}{6}+\dfrac{2}{6}=\dfrac{5}{6}",
                 "steps": [
                     "Ambos sumandos son fracciones de enteros.",
@@ -1558,9 +1564,9 @@ _N2_OPERATION_CONTENT = {
             ],
         },
         "situations": [
-            {"id": "S1", "set_label": "Naturales", "prompt": "7 higos y 6 higos. ¿Cuántos hay en total?", "expr": r"7+6", "answer": "13"},
-            {"id": "S2", "set_label": "Enteros", "prompt": "Una deuda de 8 dracmas y un pago de 5 dracmas. ¿Cuál es el saldo?", "expr": r"-8+5", "answer": "-3"},
-            {"id": "S3", "set_label": "Racionales", "prompt": "Suma 1/4 de ánfora y 1/4 de ánfora. Responde en decimal.", "expr": r"\dfrac{1}{4}+\dfrac{1}{4}", "answer": "0,5"},
+            {"id": "S1", "set_label": "Naturales", "prompt": "7 rollos de tela y 6 rollos de tela. ¿Cuántos hay en total?", "expr": r"7+6", "answer": "13"},
+            {"id": "S2", "set_label": "Enteros", "prompt": "Una deuda de 8 monedas y un pago de 5 monedas. ¿Cuál es el saldo?", "expr": r"-8+5", "answer": "-3"},
+            {"id": "S3", "set_label": "Racionales", "prompt": "Suma 1/4 de pieza de tela y 1/4 de pieza de tela. Responde en decimal.", "expr": r"\dfrac{1}{4}+\dfrac{1}{4}", "answer": "0,5"},
             {"id": "S4", "set_label": "Irracionales → racional", "prompt": "Suma √3 y −√3. ¿Qué número resulta?", "expr": r"\sqrt{3}+(-\sqrt{3})", "answer": "0"},
         ],
         "feedback": {"correct": "Correcto. Sumar es juntar cantidades y contar el total.",
@@ -1577,20 +1583,21 @@ _N2_OPERATION_CONTENT = {
     N2_SUBTRACTION_NODE_ID: {
         "kind": "operation_building", "operation": "subtraction",
         "title": "Resta: la máquina de quitar o comparar", "character": "KatIA",
-        "intro": "En el mercado griego, KatIA muestra cómo quitar, comparar y bajar de cero obliga a ampliar conjuntos.",
+        "intro": "En el mercado, KatIA muestra cómo quitar, comparar y bajar de cero obliga a ampliar conjuntos.",
         "story_contract": {
             "type": "unified_set_extension",
             "practice_position": "after_definition_plus_examples",
             "is_integrated": True,
         },
         "katia": {
-            "eyebrow": "KatIA abre el edificio de la resta",
+            "imageSrc": "/prealgebra/generated/n2-mercado/e02-resta-katia-v4.png",
+            "eyebrow": "KatIA abre el puesto de la resta",
             "title": "Cuando quitar puede cruzar el cero",
             "body": (
-                "KatIA cuenta dracmas en una mesa del ágora. Quitar pocas monedas "
-                "parece natural; quitar más de las que hay revela otra zona de la "
-                "escalera: los enteros. La resta enseña que comparar y quitar no "
-                "siempre dejan el resultado en la familia inicial."
+                "KatIA cuenta dracmas sobre el mostrador de su puesto. Quitar pocas "
+                "monedas parece natural; quitar más de las que hay revela otra zona "
+                "de la escalera: los enteros. La resta enseña que comparar y quitar "
+                "no siempre dejan el resultado en la familia inicial."
             ),
             "question": "¿Restar dos naturales siempre da un natural?",
         },
@@ -1598,11 +1605,12 @@ _N2_OPERATION_CONTENT = {
             "eyebrow": "Descubrimiento guiado",
             "title": "Restar muestra lo que falta",
             "body": (
-                "Si hay 8 aceitunas y se entregan 3, quedan 5. Pero si KatIA tiene "
-                "3 dracmas y debe pagar 5, la cuenta no se detiene: 3 − 5 = −2. "
-                "La resta puede representar faltantes, deudas o posiciones bajo "
-                "cero. En racionales sigue funcionando con fracciones, mientras "
-                "que dos irracionales pueden restarse y terminar en un racional."
+                "Si hay 8 piezas de cerámica y se venden 3, quedan 5. Pero si "
+                "KatIA tiene 3 dracmas y debe pagar 5, la cuenta no se detiene: "
+                "3 − 5 = −2. La resta puede representar faltantes, deudas o "
+                "posiciones bajo cero. En racionales sigue funcionando con "
+                "fracciones, mientras que dos irracionales pueden restarse y "
+                "terminar en un racional."
             ),
         },
         "definition": (
@@ -1616,14 +1624,15 @@ _N2_OPERATION_CONTENT = {
             {
                 "eyebrow": "Ejemplo 1 · Naturales",
                 "title": "Quitar sin cruzar cero",
-                "statement": "8 aceitunas en una mesa; KatIA entrega 3.",
+                "statement": "8 piezas de cerámica en el puesto; KatIA vende 3.",
                 "latex": r"8-3=5",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e02-ceramica-vendida-v4.png",
                 "steps": [
-                    "Cantidad inicial: 8 aceitunas.",
-                    "Cantidad que se quita: 3 aceitunas.",
+                    "Cantidad inicial: 8 piezas de cerámica.",
+                    "Cantidad que se quita: 3 piezas de cerámica.",
                     "Calculamos 8 − 3.",
-                    "Quedan 5 aceitunas, un número natural.",
+                    "Quedan 5 piezas de cerámica, un número natural.",
                 ],
             },
             {
@@ -1632,6 +1641,7 @@ _N2_OPERATION_CONTENT = {
                 "statement": "KatIA tiene 3 dracmas y debe pagar 5.",
                 "latex": r"3-5=-2",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e02-dracmas-deuda-v4.png",
                 "steps": [
                     "Partimos de 3 dracmas disponibles.",
                     "La obligación es pagar 5 dracmas.",
@@ -1642,7 +1652,7 @@ _N2_OPERATION_CONTENT = {
             {
                 "eyebrow": "Ejemplo 3 · Racionales",
                 "title": "Diferencia entre fracciones",
-                "statement": "De media ánfora se usa un tercio.",
+                "statement": "De media bolsa de especias se usa un tercio.",
                 "latex": r"\dfrac{1}{2}-\dfrac{1}{3}=\dfrac{3}{6}-\dfrac{2}{6}=\dfrac{1}{6}",
                 "steps": [
                     "Ambas cantidades son racionales.",
@@ -1714,9 +1724,9 @@ _N2_OPERATION_CONTENT = {
             ],
         },
         "situations": [
-            {"id": "S1", "set_label": "Naturales", "prompt": "9 aceitunas menos 4 aceitunas. ¿Cuántas quedan?", "expr": r"9-4", "answer": "5"},
+            {"id": "S1", "set_label": "Naturales", "prompt": "9 piezas de cerámica menos 4 piezas de cerámica. ¿Cuántas quedan?", "expr": r"9-4", "answer": "5"},
             {"id": "S2", "set_label": "Enteros", "prompt": "4 dracmas menos una deuda de 7 dracmas. ¿Qué saldo queda?", "expr": r"4-7", "answer": "-3"},
-            {"id": "S3", "set_label": "Racionales", "prompt": "Resta 1/2 menos 1/4. Responde en decimal.", "expr": r"\dfrac{1}{2}-\dfrac{1}{4}", "answer": "0,25"},
+            {"id": "S3", "set_label": "Racionales", "prompt": "Resta 1/2 menos 1/4 de bolsa de especias. Responde en decimal.", "expr": r"\dfrac{1}{2}-\dfrac{1}{4}", "answer": "0,25"},
             {"id": "S4", "set_label": "Irracionales → racional", "prompt": "Resta √5 menos √5. ¿Qué número resulta?", "expr": r"\sqrt{5}-\sqrt{5}", "answer": "0"},
         ],
         "feedback": {"correct": "Correcto. Restar es quitar o comparar.",
@@ -1733,17 +1743,18 @@ _N2_OPERATION_CONTENT = {
     N2_MULTIPLICATION_NODE_ID: {
         "kind": "operation_building", "operation": "multiplication",
         "title": "Multiplicación: la máquina de agrupar", "character": "KatIA",
-        "intro": "En el ágora, KatIA agrupa cantidades iguales y prueba qué conjuntos resisten la multiplicación.",
+        "intro": "En el mercado, KatIA agrupa cantidades iguales y prueba qué conjuntos resisten la multiplicación.",
         "story_contract": {
             "type": "unified_set_extension",
             "practice_position": "after_definition_plus_examples",
             "is_integrated": True,
         },
         "katia": {
-            "eyebrow": "KatIA abre el edificio de la multiplicación",
-            "title": "Grupos iguales bajo las columnas",
+            "imageSrc": "/prealgebra/generated/n2-mercado/e03-multiplicacion-katia-v4.png",
+            "eyebrow": "KatIA abre el puesto de la multiplicación",
+            "title": "Grupos iguales sobre el mostrador",
             "body": (
-                "KatIA organiza filas de ánforas junto a las columnas del ágora. "
+                "KatIA organiza filas de tinajas de cerámica junto a su puesto. "
                 "Multiplicar puede verse como repetir grupos iguales, pero también "
                 "como escalar una cantidad. Al subir por la escalera numérica, la "
                 "pregunta cambia: ¿el resultado permanece en el mismo conjunto?"
@@ -1754,7 +1765,7 @@ _N2_OPERATION_CONTENT = {
             "eyebrow": "Descubrimiento guiado",
             "title": "Agrupar conserva casi todo, menos 𝕀",
             "body": (
-                "3 grupos de 4 ánforas dan 12 ánforas: natural. Una deuda repetida "
+                "3 grupos de 4 tinajas dan 12 tinajas: natural. Una deuda repetida "
                 "4 veces da un entero negativo. Las fracciones se multiplican entre "
                 "sí y siguen siendo racionales. Pero √2 · √2 = 2: dos irracionales "
                 "pueden producir un racional. Esa caída muestra que 𝕀 no es cerrado."
@@ -1770,13 +1781,14 @@ _N2_OPERATION_CONTENT = {
         "worked_examples": [
             {
                 "eyebrow": "Ejemplo 1 · Naturales",
-                "title": "Filas de ánforas",
-                "statement": "3 filas con 4 ánforas cada una.",
+                "title": "Filas de tinajas",
+                "statement": "3 filas con 4 tinajas cada una.",
                 "latex": r"3\times4=12",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e03-filas-tinajas-v4.png",
                 "steps": [
                     "Hay 3 grupos iguales.",
-                    "Cada grupo tiene 4 ánforas.",
+                    "Cada grupo tiene 4 tinajas.",
                     "Multiplicar resume la suma 4 + 4 + 4.",
                     "El producto es 12, que sigue siendo natural.",
                 ],
@@ -1787,6 +1799,7 @@ _N2_OPERATION_CONTENT = {
                 "statement": "Una deuda de 3 dracmas se repite 4 veces.",
                 "latex": r"(-3)\times4=-12",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e03-deuda-repetida-v4.png",
                 "steps": [
                     "Cada deuda se representa como −3.",
                     "La deuda ocurre 4 veces.",
@@ -1869,7 +1882,7 @@ _N2_OPERATION_CONTENT = {
             ],
         },
         "situations": [
-            {"id": "S1", "set_label": "Naturales", "prompt": "6 filas con 7 ánforas cada una. ¿Cuántas ánforas hay?", "expr": r"6\times7", "answer": "42"},
+            {"id": "S1", "set_label": "Naturales", "prompt": "6 filas con 7 tinajas cada una. ¿Cuántas tinajas hay?", "expr": r"6\times7", "answer": "42"},
             {"id": "S2", "set_label": "Enteros", "prompt": "Una deuda de 5 dracmas se repite 4 veces. ¿Cuál es el total?", "expr": r"(-5)\times4", "answer": "-20"},
             {"id": "S3", "set_label": "Racionales", "prompt": "Multiplica 1/2 por 1/2. Responde en decimal.", "expr": r"\dfrac{1}{2}\times\dfrac{1}{2}", "answer": "0,25"},
             {"id": "S4", "set_label": "Irracionales → racional", "prompt": "Multiplica √3 por √3. ¿Qué número resulta?", "expr": r"\sqrt{3}\times\sqrt{3}", "answer": "3"},
@@ -1883,19 +1896,20 @@ _N2_OPERATION_CONTENT = {
     N2_DIVISION_NODE_ID: {
         "kind": "operation_building", "operation": "division",
         "title": "División: la máquina de repartir", "character": "KatIA",
-        "intro": "En el ágora, KatIA reparte provisiones en partes iguales entre sus discípulos.",
+        "intro": "En el mercado, KatIA reparte provisiones en partes iguales entre sus aprendices.",
         "story_contract": {
             "type": "unified_set_extension",
             "practice_position": "after_definition_plus_examples",
             "is_integrated": True,
         },
         "katia": {
-            "eyebrow": "KatIA abre el edificio de la división",
-            "title": "Repartir en partes iguales en el ágora",
+            "imageSrc": "/prealgebra/generated/n2-mercado/e04-division-katia-v4.png",
+            "eyebrow": "KatIA abre el puesto de la división",
+            "title": "Repartir en partes iguales en el mercado",
             "body": (
-                "En el ágora, KatIA reparte una cesta de aceitunas en partes iguales "
-                "entre sus discípulos. Dividir es eso: repartir —o agrupar— una "
-                "cantidad en grupos del mismo tamaño."
+                "En su puesto del mercado, KatIA reparte una cesta de aceitunas en "
+                "partes iguales entre sus aprendices. Dividir es eso: repartir "
+                "—o agrupar— una cantidad en grupos del mismo tamaño."
             ),
             "question": "¿Toda división entre dos naturales da otro número natural?",
         },
@@ -1903,7 +1917,7 @@ _N2_OPERATION_CONTENT = {
             "eyebrow": "Descubrimiento guiado",
             "title": "A veces el reparto no es exacto",
             "body": (
-                "12 aceitunas entre 4 discípulos dan 3 a cada uno: el reparto es "
+                "12 aceitunas entre 4 aprendices dan 3 a cada uno: el reparto es "
                 "exacto. 27 higos entre 6 dan 4 y sobran 3: aparece un residuo. "
                 "Pero 5 medidas de aceite entre 2 ánforas no caben en un entero, y "
                 "aun así cada ánfora recibe la mitad de la que sobra: 5 ÷ 2 = 2,5. "
@@ -1921,23 +1935,25 @@ _N2_OPERATION_CONTENT = {
             {
                 "eyebrow": "Ejemplo 1 · Naturales",
                 "title": "Reparto exacto",
-                "statement": "12 aceitunas entre 4 discípulos.",
+                "statement": "12 aceitunas entre 4 aprendices.",
                 "latex": r"12 \div 4 = 3",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e04-reparto-exacto-v4.png",
                 "steps": [
-                    "Dividendo: 12 aceitunas. Divisor: 4 discípulos.",
+                    "Dividendo: 12 aceitunas. Divisor: 4 aprendices.",
                     "Buscamos cuántas recibe cada uno en partes iguales.",
-                    "12 ÷ 4 = 3: cada discípulo recibe 3 aceitunas y no sobra nada.",
+                    "12 ÷ 4 = 3: cada aprendiz recibe 3 aceitunas y no sobra nada.",
                 ],
             },
             {
                 "eyebrow": "Ejemplo 2 · Naturales",
                 "title": "Reparto con residuo",
-                "statement": "27 higos entre 6 discípulos.",
+                "statement": "27 higos entre 6 aprendices.",
                 "latex": r"27 = 6 \cdot 4 + 3",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e04-reparto-residuo-v4.png",
                 "steps": [
-                    "Dividendo: 27 higos. Divisor: 6 discípulos.",
+                    "Dividendo: 27 higos. Divisor: 6 aprendices.",
                     "El múltiplo de 6 más cercano sin pasarse es 6 × 4 = 24.",
                     "Sobran 27 − 24 = 3 higos: ese es el residuo.",
                     "Cociente 4 y residuo 3, es decir 27 = 6 × 4 + 3.",
@@ -2019,12 +2035,12 @@ _N2_OPERATION_CONTENT = {
             ],
         },
         "situations": [
-            {"id": "S1", "set_label": "Naturales", "prompt": "18 aceitunas entre 3 discípulos. ¿Cuántas recibe cada uno?", "expr": r"18 \div 3", "answer": "6"},
-            {"id": "S2", "set_label": "Naturales", "prompt": "20 higos entre 5 discípulos. ¿Cuántos recibe cada uno?", "expr": r"20 \div 5", "answer": "4"},
-            {"id": "S3", "set_label": "Naturales · residuo", "prompt": "22 higos entre 6 discípulos. ¿Cuál es el cociente (lo que recibe cada uno)?", "expr": r"22 \div 6", "answer": "3"},
+            {"id": "S1", "set_label": "Naturales", "prompt": "18 aceitunas entre 3 aprendices. ¿Cuántas recibe cada uno?", "expr": r"18 \div 3", "answer": "6"},
+            {"id": "S2", "set_label": "Naturales", "prompt": "20 higos entre 5 aprendices. ¿Cuántos recibe cada uno?", "expr": r"20 \div 5", "answer": "4"},
+            {"id": "S3", "set_label": "Naturales · residuo", "prompt": "22 higos entre 6 aprendices. ¿Cuál es el cociente (lo que recibe cada uno)?", "expr": r"22 \div 6", "answer": "3"},
             {"id": "S4", "set_label": "Enteros", "prompt": "Una deuda de 20 dracmas se reparte en 5 pagos iguales. ¿Cuánto es cada pago? (en negativo)", "expr": r"-20 \div 5", "answer": "-4"},
             {"id": "S5", "set_label": "Racionales", "prompt": "9 medidas de aceite entre 2 ánforas. ¿Cuánto recibe cada una? (decimal)", "expr": r"9 \div 2", "answer": "4,5"},
-            {"id": "S6", "set_label": "Racionales", "prompt": "7 panes entre 4 discípulos. ¿Cuánto recibe cada uno? (decimal)", "expr": r"7 \div 4", "answer": "1,75"},
+            {"id": "S6", "set_label": "Racionales", "prompt": "7 panes entre 4 aprendices. ¿Cuánto recibe cada uno? (decimal)", "expr": r"7 \div 4", "answer": "1,75"},
             {"id": "S7", "set_label": "Racionales · fracciones", "prompt": "¿Cuántas porciones de 1/4 caben en 1/2 ánfora? (entero)", "expr": r"\dfrac{1}{2} \div \dfrac{1}{4}", "answer": "2"},
             {"id": "S8", "set_label": "Irracionales → racional", "prompt": "Divide √18 entre √2. ¿Qué número entero resulta?", "expr": r"\sqrt{18} \div \sqrt{2}", "answer": "3"},
         ],
@@ -2038,20 +2054,21 @@ _N2_OPERATION_CONTENT = {
     N2_EXPONENTIATION_NODE_ID: {
         "kind": "operation_building", "operation": "exponentiation",
         "title": "Potenciación: la máquina de crecer", "character": "KatIA",
-        "intro": "En el ágora, KatIA eleva bases y cambia exponentes para ver cuándo el resultado abandona el conjunto inicial.",
+        "intro": "En el mercado, KatIA eleva bases y cambia exponentes para ver cuándo el resultado abandona el conjunto inicial.",
         "story_contract": {
             "type": "unified_set_extension",
             "practice_position": "after_definition_plus_examples",
             "is_integrated": True,
         },
         "katia": {
-            "eyebrow": "KatIA abre el edificio de la potenciación",
-            "title": "La torre de exponentes",
+            "imageSrc": "/prealgebra/generated/n2-mercado/e05-potenciacion-katia-v4.png",
+            "eyebrow": "KatIA abre el puesto de la potenciación",
+            "title": "La torre de sacos de grano",
             "body": (
-                "KatIA apila tablillas junto a una columna griega: cada nivel "
-                "multiplica la base otra vez. Pero cuando el exponente baja de "
-                "cero o se vuelve fraccionario, la torre deja de comportarse como "
-                "un simple conteo natural."
+                "KatIA apila sacos de grano junto a su puesto: cada nivel "
+                "duplica lo que había en el nivel anterior. Pero cuando el "
+                "exponente baja de cero o se vuelve fraccionario, la torre deja "
+                "de comportarse como un simple conteo natural."
             ),
             "question": "Si subimos el exponente por debajo de cero o entre enteros, ¿el resultado sigue siendo natural?",
         },
@@ -2076,9 +2093,10 @@ _N2_OPERATION_CONTENT = {
             {
                 "eyebrow": "Ejemplo 1 · Exponente natural",
                 "title": "Crecimiento por niveles",
-                "statement": "Una pila duplica su tamaño durante 3 niveles.",
+                "statement": "Una pila de sacos de grano duplica su tamaño durante 3 niveles.",
                 "latex": r"2^{3}=2\cdot2\cdot2=8",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e05-crecimiento-niveles-v4.png",
                 "steps": [
                     "La base es 2.",
                     "El exponente 3 indica tres factores iguales.",
@@ -2092,6 +2110,7 @@ _N2_OPERATION_CONTENT = {
                 "statement": "KatIA eleva 2 a −2.",
                 "latex": r"2^{-2}=\dfrac{1}{2^{2}}=\dfrac{1}{4}=0{,}25",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e05-exponente-negativo-v4.png",
                 "steps": [
                     "Un exponente negativo no vuelve negativa la base.",
                     "Indica recíproco: 2^(-2) = 1/2².",
@@ -2189,20 +2208,22 @@ _N2_OPERATION_CONTENT = {
     N2_RADICATION_NODE_ID: {
         "kind": "operation_building", "operation": "radication",
         "title": "Radicación: la máquina de encontrar raíces", "character": "KatIA",
-        "intro": "En el último edificio, KatIA busca raíces y muestra cómo nacen irracionales y complejos.",
+        "intro": "En el último puesto, KatIA busca raíces y muestra cómo nacen irracionales y complejos.",
         "story_contract": {
             "type": "unified_set_extension",
             "practice_position": "after_definition_plus_examples",
             "is_integrated": True,
         },
         "katia": {
-            "eyebrow": "KatIA abre el edificio de la radicación",
+            "imageSrc": "/prealgebra/generated/n2-mercado/e06-radicacion-katia-v4.png",
+            "eyebrow": "KatIA abre el puesto de la radicación",
             "title": "Buscar el lado oculto",
             "body": (
-                "KatIA dibuja cuadrados en el suelo del ágora. Si conoce el área, "
-                "busca el lado; si conoce el volumen, busca la arista. Algunas raíces "
-                "vuelven a números conocidos, pero otras obligan a aceptar nuevos "
-                "puntos de la recta y, con negativos, el plano complejo."
+                "KatIA embaldosa el suelo de su puesto con losas cuadradas. Si "
+                "conoce el área, busca el lado; si conoce el volumen, busca la "
+                "arista. Algunas raíces vuelven a números conocidos, pero otras "
+                "obligan a aceptar nuevos puntos de la recta y, con negativos, el "
+                "plano complejo."
             ),
             "question": "¿Toda raíz de un número entero es otro entero?",
         },
@@ -2227,9 +2248,10 @@ _N2_OPERATION_CONTENT = {
             {
                 "eyebrow": "Ejemplo 1 · Naturales",
                 "title": "Cuadrado perfecto",
-                "statement": "Un patio cuadrado tiene área 16.",
+                "statement": "Un puesto cuadrado del mercado tiene área 16.",
                 "latex": r"\sqrt{16}=4",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e06-cuadrado-perfecto-v4.png",
                 "steps": [
                     "Buscamos el lado del cuadrado.",
                     "Preguntamos qué número al cuadrado da 16.",
@@ -2243,6 +2265,7 @@ _N2_OPERATION_CONTENT = {
                 "statement": "KatIA calcula la raíz cuadrada de 2.",
                 "latex": r"\sqrt{2}\notin\mathbb{Z}",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n2-mercado/e06-raiz-no-entera-v4.png",
                 "steps": [
                     "2 no es un cuadrado perfecto.",
                     "No existe entero cuyo cuadrado sea 2.",
@@ -2277,7 +2300,7 @@ _N2_OPERATION_CONTENT = {
             {
                 "eyebrow": "Ejemplo 5 · Reales",
                 "title": "Raíz real aproximada",
-                "statement": "Un patio cuadrado tiene área 20.",
+                "statement": "Un puesto cuadrado del mercado tiene área 20.",
                 "latex": r"\sqrt{20}\approx4{,}4721",
                 "steps": [
                     "20 no es cuadrado perfecto.",
@@ -2325,7 +2348,7 @@ _N2_OPERATION_CONTENT = {
             ],
         },
         "situations": [
-            {"id": "S1", "set_label": "Naturales", "prompt": "Un patio cuadrado tiene área 25. ¿Cuánto mide cada lado?", "expr": r"\sqrt{25}", "answer": "5"},
+            {"id": "S1", "set_label": "Naturales", "prompt": "Una losa cuadrada de mármol tiene área 25. ¿Cuánto mide cada lado?", "expr": r"\sqrt{25}", "answer": "5"},
             {"id": "S2", "set_label": "Naturales", "prompt": "Si 3² = 9, ¿cuánto es √9?", "expr": r"\sqrt{9}", "answer": "3"},
             {"id": "S3", "set_label": "Enteros", "prompt": "La raíz cúbica de −27 es un entero. ¿Cuál?", "expr": r"\sqrt[3]{-27}", "answer": "-3"},
             {"id": "S4", "set_label": "Racionales", "prompt": "Calcula √0,25. Responde en decimal.", "expr": r"\sqrt{0{,}25}", "answer": "0,5"},
@@ -2485,6 +2508,7 @@ _N3_HUB_CONTENT = {
                     "izquierdo. ¿Cuántos kg marca la balanza en total?"
                 ),
                 "image_slot": True,
+                "image": "/prealgebra/generated/n3-fabrica/m00-ice1-balanza-bloques-v4.png",
                 "expr": "3\\times 4",
                 "answer": "12",
             },
@@ -2497,6 +2521,7 @@ _N3_HUB_CONTENT = {
                     "primero el de 3 kg y luego el de 5 kg."
                 ),
                 "image_slot": True,
+                "image": "/prealgebra/generated/n3-fabrica/m00-ice2-balanzas-orden-v4.png",
                 "support_objects": [
                     "2 balanzas de laboratorio idénticas",
                     "un engranaje de 5 kg y uno de 3 kg por balanza",
@@ -2526,6 +2551,7 @@ _N3_HUB_CONTENT = {
                     "pieza, que pesa exactamente 9 kg, ¿cuánto marca la balanza?"
                 ),
                 "image_slot": True,
+                "image": "/prealgebra/generated/n3-fabrica/m00-ice3-retirar-pieza-v4.png",
                 "expr": "9-9",
                 "answer": "0",
             },
@@ -2572,6 +2598,7 @@ _N3_MACHINE_CONTENT = {
             "is_integrated": True,
         },
         "katia": {
+            "imageSrc": "/prealgebra/generated/n3-fabrica/m01-conmutativa-katia-canon-v10.png",
             "eyebrow": "KatIA · La Prensa de Intercambio",
             "title": "¿Importa el orden?",
             "body": (
@@ -2599,6 +2626,7 @@ _N3_MACHINE_CONTENT = {
                 "statement": "En el banco de ensamblaje, aun con una pieza de peso negativo en la báscula, el orden de la suma no cambia el total.",
                 "latex": "-3+8=5=8+(-3)",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n3-fabrica/m01-suma-conmuta-negativos-v4.png",
                 "steps": ["−3 + 8 = 5.", "8 + (−3) = 5.", "Mismo resultado con enteros: la suma conmuta."],
                 "solution": "−3 + 8 = 5 y 8 + (−3) = 5",
             },
@@ -2712,6 +2740,7 @@ _N3_MACHINE_CONTENT = {
             "is_integrated": True,
         },
         "katia": {
+            "imageSrc": "/prealgebra/generated/n3-fabrica/m02-asociativa-katia-canon-v10.png",
             "eyebrow": "KatIA · El Horno de Fundición",
             "title": "¿Importa a quién agrupo primero?",
             "body": (
@@ -2741,6 +2770,7 @@ _N3_MACHINE_CONTENT = {
                 "statement": "En el horno, con un lingote de peso negativo en el trío, reagrupar la fundición no cambia el total.",
                 "latex": "(-2+5)+3=6=-2+(5+3)",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n3-fabrica/m02-suma-asocia-negativos-v4.png",
                 "steps": ["(−2 + 5) + 3 = 3 + 3 = 6.", "−2 + (5 + 3) = −2 + 8 = 6.", "Mismo total con enteros: la suma asocia."],
                 "solution": "(−2 + 5) + 3 = 6 y −2 + (5 + 3) = 6",
             },
@@ -2841,6 +2871,7 @@ _N3_MACHINE_CONTENT = {
             "is_integrated": True,
         },
         "katia": {
+            "imageSrc": "/prealgebra/generated/n3-fabrica/m03-distributiva-katia-canon-v10.png",
             "eyebrow": "KatIA · La Cinta Repartidora",
             "title": "Repartir el factor",
             "body": (
@@ -2870,6 +2901,7 @@ _N3_MACHINE_CONTENT = {
                 "statement": "En la cinta repartidora, un factor negativo se reparte a cada bahía conservando los signos.",
                 "latex": "-2\\times(3+5)=-16=-2\\times 3+(-2)\\times 5",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n3-fabrica/m03-distribuye-factor-negativo-v4.png",
                 "steps": ["−2 × (3 + 5) = −2 × 8 = −16.", "−2 × 3 + (−2) × 5 = −6 + (−10) = −16.", "Igual con enteros negativos."],
                 "solution": "−2 × (3 + 5) = −16 y −2 × 3 + (−2) × 5 = −16",
             },
@@ -2962,6 +2994,7 @@ _N3_MACHINE_CONTENT = {
             "is_integrated": True,
         },
         "katia": {
+            "imageSrc": "/prealgebra/generated/n3-fabrica/m04-elemento-neutro-katia-canon-v10.png",
             "eyebrow": "KatIA · El Calibre Cero",
             "title": "El número que deja todo igual",
             "body": (
@@ -2989,6 +3022,7 @@ _N3_MACHINE_CONTENT = {
                 "statement": "En el calibre, sumar 0 gramos de ajuste a una pieza con peso negativo no la cambia, por ningún lado.",
                 "latex": "-7+0=-7=0+(-7)",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n3-fabrica/m04-cero-deja-negativo-v4.png",
                 "steps": ["−7 + 0 = −7.", "0 + (−7) = −7.", "El 0 es neutro de la suma también con enteros."],
                 "solution": "−7 + 0 = −7 y 0 + (−7) = −7",
             },
@@ -3089,6 +3123,7 @@ _N3_MACHINE_CONTENT = {
             "is_integrated": True,
         },
         "katia": {
+            "imageSrc": "/prealgebra/generated/n3-fabrica/m05-inversos-katia-canon-v10.png",
             "eyebrow": "KatIA · La Prensa de Contrapesos",
             "title": "La máquina de deshacer",
             "body": (
@@ -3119,6 +3154,7 @@ _N3_MACHINE_CONTENT = {
                 "statement": "En la prensa, el opuesto de 6 kg de presión es −6 kg porque juntos devuelven la báscula al neutro 0.",
                 "latex": "6+(-6)=0",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n3-fabrica/m05-opuesto-descargar-prensa-v4.png",
                 "steps": [
                     "Neutro de la suma: 0.",
                     "Busco el número que sumado a 6 da 0.",
@@ -3132,6 +3168,7 @@ _N3_MACHINE_CONTENT = {
                 "statement": "El recíproco de 4 vueltas de la máquina es 1/4 porque su producto es el neutro 1.",
                 "latex": "4\\cdot\\dfrac{1}{4}=1",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n3-fabrica/m05-reciproco-recomponer-plancha-v4.png",
                 "steps": [
                     "Neutro de la multiplicación: 1.",
                     "Busco el número que multiplicado por 4 da 1.",
@@ -3430,6 +3467,7 @@ _N4_HUB_CONTENT = {
                     "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12."
                 ),
                 "image_slot": True,
+                "image": "/prealgebra/generated/n4-puerto/c00-ice1-naranjas-reparto-v4.png",
                 "valid_options": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
                 "expected": ["1", "2", "3", "4", "6", "12"],
                 "trap_options": [],
@@ -3450,6 +3488,7 @@ _N4_HUB_CONTENT = {
                     "partir parejo."
                 ),
                 "image_slot": True,
+                "image": "/prealgebra/generated/n4-puerto/c00-ice2-postes-primos-v4.png",
                 "support_objects": [
                     "5 postes de madera con tablillas numeradas 2, 3, 5, 7, 11",
                     "una cuerda de medir intentando marcar tramos iguales en cada poste",
@@ -3479,6 +3518,7 @@ _N4_HUB_CONTENT = {
                     "4, 8, 12, 16, 20... Siguiendo el patrón, ¿cuántos rollos de tela trae la 6ª carreta?"
                 ),
                 "image_slot": True,
+                "image": "/prealgebra/generated/n4-puerto/c00-ice3-carretas-tela-v4.png",
                 "expr": "4\\times 6",
                 "answer": "24",
             },
@@ -3512,6 +3552,7 @@ _N4_CONCEPT_CONTENT = {
             "is_integrated": True,
         },
         "katia": {
+            "imageSrc": "/prealgebra/generated/n4-puerto/c01-divisibilidad-katia-canon-v10.png",
             "eyebrow": "KatIA abre el muelle de la divisibilidad",
             "title": "Repartir la carga sin que sobre nada",
             "body": (
@@ -3546,6 +3587,7 @@ _N4_CONCEPT_CONTENT = {
                 "statement": "36 canicas se reparten en partes iguales entre 4 amigos.",
                 "latex": r"36 \div 4 = 9",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n4-puerto/c01-canicas-amigos-v4.png",
                 "steps": [
                     "36 ÷ 4 = 9.",
                     "No sobra ninguna canica.",
@@ -3559,6 +3601,7 @@ _N4_CONCEPT_CONTENT = {
                 "statement": "23 entradas de feria se reparten en partes iguales entre 5 amigos.",
                 "latex": r"23 \div 5 = 4 \ \text{residuo } 3",
                 "image_slot": True,
+                "image": "/prealgebra/generated/n4-puerto/c01-entradas-feria-v4.png",
                 "steps": [
                     "23 ÷ 5 = 4 con residuo 3.",
                     "Cada amigo recibe 4 entradas y sobran 3.",
@@ -3717,6 +3760,7 @@ _N4_CONCEPT_CONTENT = {
             "is_integrated": True,
         },
         "katia": {
+            "imageSrc": "/prealgebra/generated/n4-puerto/c02-multiplos-katia-canon-v10.png",
             "eyebrow": "KatIA en la ruta hacia Rodas",
             "title": "Los números que se repiten",
             "body": (
@@ -3744,6 +3788,7 @@ _N4_CONCEPT_CONTENT = {
              "statement": "Un corredor avanza 4 km cada hora. ¿Qué distancia lleva recorrida tras 2, 3, 4, 6 y 9 horas?",
              "latex": r"4\times2,\ 4\times3,\ 4\times4,\ 4\times6,\ 4\times9",
              "image_slot": True,
+             "image": "/prealgebra/generated/n4-puerto/c02-corredor-completo-v4.png",
              "steps": [
                  "Tras 2 horas: 4×2 = 8 km.",
                  "Tras 3 horas: 4×3 = 12 km.",
@@ -3843,6 +3888,7 @@ _N4_CONCEPT_CONTENT = {
             "is_integrated": True,
         },
         "katia": {
+            "imageSrc": "/prealgebra/generated/n4-puerto/c03-primos-katia-canon-v10.png",
             "eyebrow": "KatIA en la ruta hacia Delos",
             "title": "Polis con una sola ruta",
             "body": (
@@ -3869,10 +3915,14 @@ _N4_CONCEPT_CONTENT = {
             {"eyebrow": "Ejemplo 1", "title": "Contar divisores",
              "statement": "El 11 tiene divisores 1 y 11 únicamente.",
              "latex": r"\text{divisores}(11)=\{1,11\}",
+             "image_slot": True,
+             "image": "/prealgebra/generated/n4-puerto/c03-contar-divisores-v4.png",
              "steps": ["11 solo se divide exacto entre 1 y 11.", "Tiene 2 divisores: es primo."], "solution": "11 es primo"},
             {"eyebrow": "Ejemplo 2", "title": "Un compuesto con más vecinos",
              "statement": "El 18 tiene más de dos divisores: no es primo.",
              "latex": r"\text{divisores}(18)=\{1,2,3,6,9,18\}",
+             "image_slot": True,
+             "image": "/prealgebra/generated/n4-puerto/c03-compuesto-vecinos-v4.png",
              "steps": ["1, 2, 3, 6, 9 y 18 dividen exacto a 18.", "Son 6 divisores, no 2.", "18 es compuesto."],
              "solution": "18 es compuesto"},
             {"eyebrow": "Trampa común", "title": "El 1 no es primo",
@@ -3961,6 +4011,7 @@ _N4_CONCEPT_CONTENT = {
             "is_integrated": True,
         },
         "katia": {
+            "imageSrc": "/prealgebra/generated/n4-puerto/c04-factorizacion-katia-canon-v10.png",
             "eyebrow": "KatIA en la ruta hacia Mileto",
             "title": "Desmontar la carga del barco",
             "body": (
@@ -3981,10 +4032,14 @@ _N4_CONCEPT_CONTENT = {
             {"eyebrow": "Ejemplo 1", "title": "División sucesiva",
              "statement": "Descompón 84 dividiendo entre primos hasta llegar a 1.",
              "latex": r"84=2\times2\times3\times7",
+             "image_slot": True,
+             "image": "/prealgebra/generated/n4-puerto/c04-division-sucesiva-v4.png",
              "steps": ["84÷2=42.", "42÷2=21.", "21÷3=7.", "7÷7=1.", "84 = 2² × 3 × 7."], "solution": "84 = 2² × 3 × 7"},
             {"eyebrow": "Ejemplo 2", "title": "Una cadena más larga",
              "statement": "Descompón 72 dividiendo entre primos hasta llegar a 1.",
              "latex": r"72=2\times2\times2\times3\times3",
+             "image_slot": True,
+             "image": "/prealgebra/generated/n4-puerto/c04-cadena-larga-v4.png",
              "steps": ["72÷2=36.", "36÷2=18.", "18÷2=9.", "9÷3=3.", "3÷3=1.", "72 = 2³ × 3²."], "solution": "72 = 2³ × 3²"},
             {"eyebrow": "Trampa común", "title": "No cualquier producto sirve",
              "statement": "36 = 6 × 6 es una descomposición, pero 6 no es primo: hay que seguir factorizando.",
@@ -4060,6 +4115,7 @@ _N4_CONCEPT_CONTENT = {
             "is_integrated": True,
         },
         "katia": {
+            "imageSrc": "/prealgebra/generated/n4-puerto/c05-mcd-katia-canon-v10.png",
             "eyebrow": "KatIA en la ruta hacia Atenas",
             "title": "El contenedor más grande posible",
             "body": (
@@ -4084,6 +4140,8 @@ _N4_CONCEPT_CONTENT = {
             {"eyebrow": "Ejemplo 1 · Factorización prima", "title": "MCD por factores comunes",
              "statement": "Halla el MCD de 225 y 180 descomponiendo ambos a la vez.",
              "latex": r"225=3^2\times5^2 \quad 180=2^2\times3^2\times5",
+             "image_slot": True,
+             "image": "/prealgebra/generated/n4-puerto/c05-mcd-factores-comunes-v4.png",
              "steps": ["Factores comunes: 3² y 5.", "MCD = 3×3×5 = 45."], "solution": "MCD(225,180)=45"},
             {"eyebrow": "Trampa común", "title": "MCD no es el producto de los números",
              "statement": "El MCD de 24 y 36 no es 24×36; hay que buscar el mayor divisor COMÚN, no multiplicar.",
@@ -4190,6 +4248,7 @@ _N4_CONCEPT_CONTENT = {
             "is_integrated": True,
         },
         "katia": {
+            "imageSrc": "/prealgebra/generated/n4-puerto/c06-mcm-katia-canon-v10.png",
             "eyebrow": "KatIA en la ruta hacia Esparta",
             "title": "Cuándo vuelven a coincidir dos barcos",
             "body": (
@@ -4213,6 +4272,8 @@ _N4_CONCEPT_CONTENT = {
             {"eyebrow": "Ejemplo 1 · Factorización prima", "title": "MCM por factores",
              "statement": "Halla el MCM de 20 y 30.",
              "latex": r"20=2^2\times5 \quad 30=2\times3\times5",
+             "image_slot": True,
+             "image": "/prealgebra/generated/n4-puerto/c06-mcm-factores-v4.png",
              "steps": ["Factores con mayor exponente: 2², 3, 5.", "MCM = 4×3×5 = 60."], "solution": "MCM(20,30)=60"},
             {"eyebrow": "Trampa común", "title": "MCM no es siempre el producto",
              "statement": "El MCM de 4 y 6 no es 24 (su producto); es 12, porque comparten el factor 2.",

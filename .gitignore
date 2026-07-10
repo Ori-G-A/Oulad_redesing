@@ -94,3 +94,10 @@ models/*.json
 
 # Backups de base de datos (contienen PII — nunca subir al repo)
 backups/
+
+# Logs de dev servers locales
+/.backend*.log
+/.frontend*.log
+
+# Previews temporales de assets (composites de QA visual)
+/tmp_*.jpg

@@ -4,7 +4,7 @@ type FormulaCaption = { math: string; caption?: string };
 
 type Props = {
   eyebrow: string;
-  title: string;
+  title?: string;
   body: string;
   imageSrc?: string;
   imageAlt?: string;
@@ -38,7 +38,7 @@ export function KatiaStorySlot({
       </div>
       <div className="katia-story-copy">
         <span>{eyebrow}</span>
-        <h2>{title}</h2>
+        {title && <h2>{title}</h2>}
         <p>{body}</p>
         {formulas?.map((item, index) => (
           <div className="katia-story-formula-line" key={index}>

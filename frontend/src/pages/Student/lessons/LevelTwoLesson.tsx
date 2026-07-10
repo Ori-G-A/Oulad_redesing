@@ -103,7 +103,7 @@ function LevelTwoHub({ lesson, courseId, onBack, onFinish, finishing }: Props) {
         </header>
 
         <div className="level-presentation-media" role="img" aria-label="Imagen de KatIA aquí">
-          <span>Imagen de KatIA aquí</span>
+          <img src="/prealgebra/generated/n2-mercado/e00-hub-mercado-v4.png" alt="" loading="lazy" />
         </div>
 
         {content?.scene_text && <p className="n2-scene-text">{content.scene_text}</p>}
@@ -235,6 +235,9 @@ function LevelTwoOperation({ lesson, courseId, onBack, finishing }: Props) {
   });
 
   const allAnswered = lesson.interactions.every((interaction) => answers[interaction.interaction_id]);
+  const formalization = content?.formalization;
+  const formalizationItems = Array.isArray(formalization) ? formalization : [];
+  const formalizationBox = formalization && !Array.isArray(formalization) ? formalization : null;
   const hasIntegratedStory = content?.story_contract?.type === "narrative_with_integrated_definition";
   const isUnified = content?.story_contract?.type === "unified_set_extension";
 
@@ -261,6 +264,7 @@ function LevelTwoOperation({ lesson, courseId, onBack, finishing }: Props) {
                 title={content.katia.title}
                 body={content.katia.body}
                 question={content.katia.question}
+                imageSrc={content.katia.imageSrc}
               />
             )}
 
@@ -287,7 +291,11 @@ function LevelTwoOperation({ lesson, courseId, onBack, finishing }: Props) {
                   <h3>{example.title ?? example.statement}</h3>
                   {example.image_slot && (
                     <div className="n2-image-slot" role="img" aria-label="Espacio para imagen del ejemplo">
-                      <span>Imagen aqui</span>
+                      {example.image ? (
+                        <img src={example.image} alt="" loading="lazy" />
+                      ) : (
+                        <span>Imagen aqui</span>
+                      )}
                     </div>
                   )}
                   <p>{example.statement}</p>
@@ -444,8 +452,17 @@ function LevelTwoOperation({ lesson, courseId, onBack, finishing }: Props) {
 
         <section className="n2-formalization">
           <span>Formalizacion</span>
+          {formalizationBox && (
+            <p>{formalizationBox.title}: {formalizationBox.intro}</p>
+          )}
           <ul>
-            {content?.formalization?.map((item) => <li key={item}>{item}</li>)}
+            {formalizationItems.map((item) => <li key={item}>{item}</li>)}
+            {formalizationBox?.items.map((item) => (
+              <li key={item.label}>
+                <b>{item.label}</b> {item.rule}
+                {item.latex && <MathFormula math={item.latex} />}
+              </li>
+            ))}
           </ul>
         </section>
 

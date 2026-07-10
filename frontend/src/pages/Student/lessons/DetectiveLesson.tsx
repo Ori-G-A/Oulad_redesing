@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { studentApi, type LessonDetail } from "../../../api/student";
 import { MathFormula } from "../../../components/Math/MathContent";
 import { LessonFooter } from "./LessonFooter";
+import { KatiaStorySlot } from "./KatiaStorySlot";
 import "./DetectiveLesson.css";
 
 type Props = {
@@ -81,14 +82,14 @@ export function DetectiveLesson({ lesson, courseId, onBack, onFinish, finishing 
             <h1 id="lesson-title">{t("prealgebra.n1.b12.title")}</h1>
             <p>{t(`prealgebra.n1.b12.intro.${lesson.presentation}`)}</p>
           </div>
-          <div className="detective-katia" aria-label={t("prealgebra.n1.b12.katiaAlt")}>
-            <img src="/katia/katIA.png" alt="" aria-hidden="true" />
-            <div className="lesson-dialogue">
-              <b>KatIA</b>
-              <p>{t("prealgebra.n1.b12.katiaMessage")}</p>
-            </div>
-          </div>
         </header>
+
+        <KatiaStorySlot
+          eyebrow="KatIA"
+          body={t("prealgebra.n1.b12.katiaMessage")}
+          imageSrc="/prealgebra/generated/n1-agora/b12-detective-falsedades-v4.png"
+          imageAlt={t("prealgebra.n1.b12.katiaAlt")}
+        />
 
         <section className="detective-reminder">
           <span>{t("prealgebra.n1.b12.instruction.eyebrow")}</span>

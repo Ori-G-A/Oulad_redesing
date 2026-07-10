@@ -4,6 +4,7 @@ import { studentApi, type LessonDetail } from "../../../api/student";
 import { MathFormula } from "../../../components/Math/MathContent";
 import { Button } from "../../../components/ui/Button";
 import { LessonFooter } from "./LessonFooter";
+import { KatiaStorySlot } from "./KatiaStorySlot";
 import "./ClassifierBasicLesson.css";
 
 type Props = {
@@ -101,14 +102,14 @@ export function ClassifierBasicLesson({ lesson, courseId, onBack, onFinish, fini
             <h1 id="lesson-title">{t("prealgebra.n1.b10.title")}</h1>
             <p>{t(`prealgebra.n1.b10.intro.${lesson.presentation}`)}</p>
           </div>
-          <div className="classifier-katia" aria-label={t("prealgebra.n1.b10.katiaAlt")}>
-            <img src="/katia/katIA.png" alt="" aria-hidden="true" />
-            <div className="lesson-dialogue">
-              <b>KatIA</b>
-              <p>{t("prealgebra.n1.b10.katiaMessage")}</p>
-            </div>
-          </div>
         </header>
+
+        <KatiaStorySlot
+          eyebrow="KatIA"
+          body={t("prealgebra.n1.b10.katiaMessage")}
+          imageSrc="/prealgebra/generated/n1-agora/b10-clasificador-i-v4.png"
+          imageAlt={t("prealgebra.n1.b10.katiaAlt")}
+        />
 
         <section className="classifier-instruction">
           <span>{t("prealgebra.n1.b10.instruction.eyebrow")}</span>

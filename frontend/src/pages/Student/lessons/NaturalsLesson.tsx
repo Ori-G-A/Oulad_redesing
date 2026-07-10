@@ -158,6 +158,7 @@ export function NaturalsLesson({ lesson, courseId, onBack, onFinish, finishing }
           title={t("prealgebra.n1.b04.story.katiaTitle")}
           body={t("prealgebra.n1.b04.story.katiaBody")}
           question={t("prealgebra.n1.b04.story.katiaQuestion")}
+          imageSrc="/prealgebra/generated/n1-agora/b04-naturales-v4.png"
         />
 
         <section className="set-story" aria-label={t("prealgebra.n1.b04.story.label")}>

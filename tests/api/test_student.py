@@ -418,7 +418,7 @@ def test_trigger_question_requires_closed_responses_before_completion(
 
     for interaction_id, selected_option in (
         ("PREALG-N1-B02-Q01", "no"),
-        ("PREALG-N1-B02-Q02", "pizza"),
+        ("PREALG-N1-B02-Q02", "bread"),
     ):
         response = api_client.post(
             f"{base}/interactions",
@@ -446,7 +446,7 @@ def test_staircase_unlocks_after_trigger_and_requires_its_formative_answer(
     )
     for interaction_id, selected_option in (
         ("PREALG-N1-B02-Q01", "no"),
-        ("PREALG-N1-B02-Q02", "temperature"),
+        ("PREALG-N1-B02-Q02", "advance"),
     ):
         api_client.post(
             f"{trigger}/interactions",
@@ -500,7 +500,7 @@ def test_naturals_node_handles_guided_practice_without_elo(api_client, student_h
     )
     for interaction_id, selected_option in (
         ("PREALG-N1-B02-Q01", "no"),
-        ("PREALG-N1-B02-Q02", "pizza"),
+        ("PREALG-N1-B02-Q02", "bread"),
     ):
         api_client.post(
             f"{trigger}/interactions",
@@ -640,7 +640,7 @@ def test_rationals_node_links_fraction_division_and_decimal(api_client, student_
     prerequisites = [
         (
             "PREALG-N1-B02-PREGUNTA-DETONADORA",
-            (("PREALG-N1-B02-Q01", "no"), ("PREALG-N1-B02-Q02", "pizza")),
+            (("PREALG-N1-B02-Q01", "no"), ("PREALG-N1-B02-Q02", "bread")),
         ),
         (
             "PREALG-N1-B03-ESCALERA-NECESIDAD",
@@ -739,7 +739,7 @@ def _complete_level_one(api_client, headers):
     _complete_node(api_client, headers, "PREALG-N1-B01-BIENVENIDA")
     trigger = "PREALG-N1-B02-PREGUNTA-DETONADORA"
     _answer(api_client, headers, trigger, "PREALG-N1-B02-Q01", "no")
-    _answer(api_client, headers, trigger, "PREALG-N1-B02-Q02", "pizza")
+    _answer(api_client, headers, trigger, "PREALG-N1-B02-Q02", "bread")
     _complete_node(api_client, headers, trigger)
 
     staircase = "PREALG-N1-B03-ESCALERA-NECESIDAD"

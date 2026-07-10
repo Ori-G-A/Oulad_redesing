@@ -166,6 +166,7 @@ export function IntegersLesson({ lesson, courseId, onBack, onFinish, finishing }
           title={t("prealgebra.n1.b05.story.katiaTitle")}
           body={t("prealgebra.n1.b05.story.katiaBody")}
           question={t("prealgebra.n1.b05.story.katiaQuestion")}
+          imageSrc="/prealgebra/generated/n1-agora/b05-enteros-v4.png"
         />
 
         <section className="set-story" aria-label={t("prealgebra.n1.b05.story.label")}>

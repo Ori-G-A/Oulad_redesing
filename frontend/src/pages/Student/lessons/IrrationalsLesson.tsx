@@ -185,6 +185,7 @@ export function IrrationalsLesson({ lesson, courseId, onBack, onFinish, finishin
           title={t("prealgebra.n1.b07.story.katiaTitle")}
           body={t("prealgebra.n1.b07.story.katiaBody")}
           question={t("prealgebra.n1.b07.story.katiaQuestion")}
+          imageSrc="/prealgebra/generated/n1-agora/b07-irracionales-v4.png"
         />
 
         <section className="set-story" aria-label={t("prealgebra.n1.b07.story.label")}>

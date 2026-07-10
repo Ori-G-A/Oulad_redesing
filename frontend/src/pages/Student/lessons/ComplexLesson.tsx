@@ -126,6 +126,7 @@ export function ComplexLesson({ lesson, courseId, onBack, onFinish, finishing }:
           title={t("prealgebra.n1.b09.story.katiaTitle")}
           body={t("prealgebra.n1.b09.story.katiaBody")}
           question={t("prealgebra.n1.b09.story.katiaQuestion")}
+          imageSrc="/prealgebra/generated/n1-agora/b09-complejos-v4.png"
         />
 
         <section className="set-story" aria-label={t("prealgebra.n1.b09.story.label")}>
