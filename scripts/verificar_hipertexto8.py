@@ -36,6 +36,13 @@ from sympy import (
 ROOT = Path(__file__).resolve().parents[1]
 FUENTE = ROOT / "items" / "source" / "hipertexto8"
 
+# El manifiesto del OCR marcó estas páginas como "con ejercicios", pero al mirarlas
+# a alto DPI resultaron ser infografía pura, sin ninguna actividad que transcribir.
+# Se cuentan como hechas para que el informe de progreso no las pida siempre.
+SIN_EJERCICIOS = frozenset({
+    94, 95,  # "Matemáticas + Tecnología: la hoja de cálculo", solo rótulos
+})
+
 TIPOS_VERIFICABLES = {
     "numerico", "comparacion", "ecuacion", "orden", "intervalo", "racionalidad",
     "mismo_valor", "simbolico",
@@ -169,7 +176,7 @@ def progreso() -> int:
         item["pagina_pdf"]
         for archivo in FUENTE.glob("*.json")
         for item in json.loads(archivo.read_text(encoding="utf-8"))
-    }
+    } | SIN_EJERCICIOS
 
     total = len(filas)
     for unidad, grupo in itertools.groupby(filas, key=lambda f: (f["unidad"], f["titulo_unidad"])):
