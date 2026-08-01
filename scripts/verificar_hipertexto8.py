@@ -29,7 +29,9 @@ import json
 import sys
 from pathlib import Path
 
-from sympy import Eq, expand, powsimp, simplify, solve, symbols, sympify
+from sympy import (
+    Eq, cancel, expand, powdenest, powsimp, simplify, solve, symbols, sympify,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 FUENTE = ROOT / "items" / "source" / "hipertexto8"
@@ -76,6 +78,11 @@ def verificar(item: dict) -> str | None:
                 # powsimp es quien aplica a^m·a^n = a^(m+n). force=True porque aquí las
                 # bases son letras del ejercicio, no números que puedan ser 0 o negativos.
                 diferencia = powsimp(expand(diferencia), force=True)
+            if diferencia != 0:
+                # En cocientes notables la diferencia queda como fracción y sobrevive
+                # algún (x**2)**n que powsimp no toca: cancel junta la fracción y
+                # powdenest es quien aplana (x**2)**n -> x**(2*n).
+                diferencia = powsimp(powdenest(cancel(diferencia), force=True), force=True)
             if diferencia != 0:
                 return (
                     f"expr={item['expr']} y respuesta={item['respuesta']} "
