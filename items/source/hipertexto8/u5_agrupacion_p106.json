@@ -31,8 +31,8 @@
       "practica_seleccion"
     ],
     "nota": "Criterio: agrupar sirve cuando, tras sacar el factor común de cada grupo, queda EL MISMO binomio en todos. Si no, hay que buscar otra partición o descartar el método.",
-    "dificultad": 1450,
-    "erratum": "Está a un carácter de ser el ejemplo clásico: con $3bx+3by$ en vez de $36bx-3by$ quedaría $(x+y)(2a+3b)$. Como está impreso, la respuesta correcta es que NO se puede."
+    "verificar": "Se responde NO contra la lectura literal, que es la única defendible con lo impreso: $(2ax+2ay)+(36bx-3by)=2a(x+y)+3b(12x-y)$ y los paréntesis no coinciden. Pero el ítem está a un carácter de ser el ejemplo clásico: con $3bx+3by$ en vez de $36bx-3by$ quedaría $(x+y)(2a+3b)$, que es casi seguro lo que se quiso imprimir. Antes de reutilizarlo hay que decidir cuál de las dos versiones se usa, porque la respuesta correcta cambia por completo.",
+    "dificultad": 1450
   },
   {
     "id": "HT8-U5-P106-A1c",
@@ -117,8 +117,8 @@
       "practica_seleccion"
     ],
     "nota": "Criterio: agrupar sirve cuando, tras sacar el factor común de cada grupo, queda EL MISMO binomio en todos. Si no, hay que buscar otra partición o descartar el método.",
-    "dificultad": 1450,
-    "erratum": "Otro caso a un carácter: si el tercer término fuera $-y$ en vez de $-y^2$, quedaría $(y-3z)(4xy-1)$."
+    "verificar": "Mismo caso que el ítem b: se responde NO contra lo impreso, pero si el tercer término fuera $-y$ en vez de $-y^2$ quedaría $(y-3z)(4xy-1)$. Hay que fijar la versión antes de reutilizarlo.",
+    "dificultad": 1450
   },
   {
     "id": "HT8-U5-P106-A1h",

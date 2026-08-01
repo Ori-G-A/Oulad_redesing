@@ -20,6 +20,18 @@ Tipos verificables:
 
 `abierta` (justificar, representar en la recta, redactar) no es verificable
 automáticamente: se cuenta aparte y nunca se convierte en práctica autocalificada.
+
+Dos campos distintos para los problemas del libro, y no son intercambiables:
+
+  erratum   -> error del libro CONFIRMADO y ya corregido en `expr`/`respuesta`.
+               El ítem queda listo para usar; el campo solo deja constancia.
+  verificar -> duda MÍA que alguien debe resolver antes de reutilizar el ítem:
+               una lectura ambigua, un enunciado que admite dos versiones con
+               respuestas distintas, una respuesta que no es única.
+
+Solo `verificar` se imprime como REVISAR al final. Por eso, si se responde
+contra la lectura literal sin corregir nada, va en `verificar`: en `erratum`
+quedaría invisible.
 """
 
 from __future__ import annotations
