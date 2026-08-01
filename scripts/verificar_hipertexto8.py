@@ -29,7 +29,7 @@ import json
 import sys
 from pathlib import Path
 
-from sympy import Eq, simplify, solve, symbols, sympify
+from sympy import Eq, expand, powsimp, simplify, solve, symbols, sympify
 
 ROOT = Path(__file__).resolve().parents[1]
 FUENTE = ROOT / "items" / "source" / "hipertexto8"
@@ -71,6 +71,11 @@ def verificar(item: dict) -> str | None:
         elif tipo == "simbolico":
             # Igualdad algebraica: no basta comparar estructuras, hay que simplificar.
             diferencia = simplify(_valor(item["expr"]) - _valor(item["respuesta"]))
+            if diferencia != 0:
+                # Con exponentes literales (a**x * a**(x+1)) simplify se queda corto:
+                # powsimp es quien aplica a^m·a^n = a^(m+n). force=True porque aquí las
+                # bases son letras del ejercicio, no números que puedan ser 0 o negativos.
+                diferencia = powsimp(expand(diferencia), force=True)
             if diferencia != 0:
                 return (
                     f"expr={item['expr']} y respuesta={item['respuesta']} "
