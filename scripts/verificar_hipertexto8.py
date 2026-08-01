@@ -116,8 +116,20 @@ def verificar(item: dict) -> str | None:
             izq, der = item["ecuacion"].split("=")
             obtenidas = solve(Eq(_valor(izq), _valor(der)), incognita)
             esperadas = [_valor(s) for s in item["soluciones"]]
-            if sorted(obtenidas, key=str) != sorted(esperadas, key=str):
+            if len(obtenidas) != len(esperadas):
                 return f"ecuacion {item['ecuacion']} da {obtenidas}, se esperaba {esperadas}"
+            # sympy devuelve la solución en la forma que se le antoje (a menudo
+            # factorizada), así que no sirve comparar strings: hay que emparejar
+            # cada esperada con una obtenida que simplifique a la misma cosa.
+            libres = list(obtenidas)
+            for esperada in esperadas:
+                pareja = next((o for o in libres if simplify(o - esperada) == 0), None)
+                if pareja is None:
+                    return (
+                        f"ecuacion {item['ecuacion']} da {obtenidas}, "
+                        f"y ninguna equivale a {esperada}"
+                    )
+                libres.remove(pareja)
 
     except Exception as exc:  # transcripción que ni siquiera parsea
         return f"no se pudo evaluar ({type(exc).__name__}: {exc})"
