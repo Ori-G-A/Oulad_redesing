@@ -73,6 +73,7 @@ class PostgresRepository:
         "aritmetica_basica": "Colegio",
         "trigonometria": "Colegio",
         "geometria": "Colegio",
+        "evaluar_para_avanzar_8": "Colegio",
         # ── Bloque Concursos (preparación para concursos públicos) ────────────
         "DIAN": "Concursos",
         "SENA": "Concursos",
@@ -117,6 +118,7 @@ class PostgresRepository:
 
     _COURSE_NAME_MAP = {
         "DIAN": "Concurso DIAN — Gestor I",
+        "evaluar_para_avanzar_8": "Evaluar para Avanzar — Matemáticas 8.°",
         "SENA": "Concurso SENA — Profesional 10",
         "logica_semillero_6": "Lógica Semillero 6°",
         "algebra_semillero_6": "Álgebra Semillero 6°",
