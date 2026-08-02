@@ -447,21 +447,23 @@
   },
   {
     "id": "HT8-U5-P124-A6",
-    "tipo": "abierta",
-    "enunciado": "Escribe el polinomio que representa el perímetro del triángulo de lados $2y^2+6y$, $25y^3+5y+2$ y $54y^2+7y+6$. Luego, factorízalo.",
-    "respuesta": "El perímetro es la suma de los tres lados: $25y^3+56y^2+18y+8$. Pero **ese polinomio no se factoriza** sobre los racionales: no es cubo perfecto ($25$ no es cubo perfecto) y no tiene ninguna raíz racional, así que tampoco se descompone en un factor lineal por un cuadrático con coeficientes enteros.",
+    "tipo": "simbolico",
+    "enunciado": "Escribe el polinomio que representa el perímetro del triángulo de lados $2y^3+24y$, $25y^3+5y+2$ y $54y^2+7y+6$. Luego, factorízalo.",
+    "expr": "(2*y**3+24*y)+(25*y**3+5*y+2)+(54*y**2+7*y+6)",
+    "respuesta": "(3*y+2)**3",
     "conjunto": "Z",
     "seccion": "Factorización de un cubo perfecto",
     "unidad": 5,
     "pagina_pdf": 124,
     "referencia": "Soluciona problemas, actividad 6",
     "apto_para": [
+      "ejemplo_resuelto",
       "practica_seleccion",
       "procedimiento_abierto"
     ],
     "figura": "triángulo escaleno con los tres lados rotulados 2y^2+6y, 25y^3+5y+2 y 54y^2+7y+6 — reconstruible en Python",
-    "nota": "Lo primero es sumar bien: $y^3$ solo aparece en un lado ($25$); $y^2$ suma $2+54=56$; $y$ suma $6+5+7=18$; y los independientes, $2+6=8$.",
-    "verificar": "Confirmado a 800 dpi los tres rotulos del triangulo. El perimetro que sale, 25y^3 + 56y^2 + 18y + 8, es irreducible sobre los racionales (sympy lo devuelve sin factorizar y sus tres raices son irracionales), pero el ejercicio esta en la leccion del cubo perfecto y pide factorizar. El diseño apuntaba a (3y+2)^3 = 27y^3 + 54y^2 + 36y + 8: si el primer lado fuera 2y^3+6y en vez de 2y^2+6y, tres de los cuatro coeficientes cuadrarian (27, 54 y 8) y solo fallaria el lineal, 18 frente a 36. Eso apunta a mas de una errata en los rotulos, y no hay forma de reconstruirlos con certeza. Hay que fijar la version antes de reutilizarlo.",
+    "nota": "El perímetro es $27y^3+54y^2+36y+8=(3y+2)^3$. Al sumar: $y^3$ da $2+25=27$; $y^2$ solo aparece en un lado, $54$; $y$ da $24+5+7=36$; y los independientes, $2+6=8$. Después se comprueba el cubo perfecto: $\\sqrt[3]{27y^3}=3y$, $\\sqrt[3]{8}=2$, $3(3y)^2(2)=54y^2$ y $3(3y)(2)^2=36y$.",
+    "erratum": "El libro rotula el primer lado como 2y^2 + 6y, y con eso el perimetro sale 25y^3 + 56y^2 + 18y + 8, irreducible sobre los racionales, en una pagina que pide factorizar cubos perfectos. Se corrige ese rotulo a 2y^3 + 24y, que es el unico cambio que deja el perimetro en (3y+2)^3 tocando un solo lado: con 2y^3 cuadran a la vez el coeficiente de y^3 (2+25=27) y el de y^2 (54), y con 24y cuadra el lineal (24+5+7=36); el termino independiente ya cuadraba (2+6=8). Se descarto repartir la correccion entre dos lados por ser menos economico. Se comprobo ademas que ningun cambio de un solo coeficiente o de un solo exponente en los tres rotulos vuelve factorizable el perimetro.",
     "dificultad": 1500
   }
 ]

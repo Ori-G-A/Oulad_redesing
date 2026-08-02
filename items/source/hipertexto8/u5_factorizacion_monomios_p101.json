@@ -267,8 +267,8 @@
       "practica_seleccion"
     ],
     "nota": "$350=2\\times5^2\\times7$.",
-    "dificultad": 1050,
-    "verificar": "El libro pide dos veces el mismo número: los ítems l y o son ambos $350$. Se transcribe tal cual; al armar una práctica conviene quedarse con uno solo."
+    "erratum": "El libro pide dos veces el mismo numero: los items l y o son ambos 350. La respuesta del item no cambia por ello; solo conviene quedarse con uno de los dos al armar una practica, para no repetir.",
+    "dificultad": 1050
   },
   {
     "id": "HT8-U5-P101-A1p",

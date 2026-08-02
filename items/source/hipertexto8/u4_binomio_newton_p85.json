@@ -9,7 +9,9 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 1",
-    "apto_para": ["procedimiento_abierto"],
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
     "figura": "triángulo de Pascal de 10 filas — reconstruible en Python",
     "nota": "Cada número es la suma de los dos que tiene encima; los extremos son siempre $1$. Con esta numeración la fila $k$ da los coeficientes de $(a+b)^{k-1}$, convención que el propio libro usa en la actividad 5 (la fila $1,9,36,\\dots$ corresponde a $(x+s)^9$).",
     "dificultad": 1000
@@ -25,7 +27,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 2",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Coeficientes: $1, 7, 21, 35, 35, 21, 7, 1$ (octava fila del triángulo). Son simétricos, así que basta calcular la mitad y reflejarla.",
     "dificultad": 1200
   },
@@ -40,7 +46,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 3, ítem a",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1100
   },
   {
@@ -54,7 +64,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 3, ítem b",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1150
   },
   {
@@ -68,7 +82,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 3, ítem c",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Exponente impar: el signo negativo sobrevive.",
     "dificultad": 1200
   },
@@ -83,7 +101,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 3, ítem d",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1250
   },
   {
@@ -97,7 +119,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 3, ítem e",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1350
   },
   {
@@ -111,7 +137,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 3, ítem f",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "$4^6=4096$ y $3^6=729$: la fracción NO se simplifica, conviene calcular numerador y denominador por separado.",
     "dificultad": 1400
   },
@@ -126,7 +156,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 3, ítem g",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Exponente par: el resultado queda positivo aunque la base sea negativa.",
     "dificultad": 1500
   },
@@ -141,7 +174,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 3, ítem h",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Los dos exponentes son binomios y hay que multiplicarlos enteros: $5(x+1)=5x+5$ y $5(x-2)=5x-10$.",
     "dificultad": 1550
   },
@@ -156,7 +193,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 3, ítem i",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1500
   },
   {
@@ -170,7 +210,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 3, ítem j",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "El más pesado de la actividad: $3^7=2187$, $2^7=128$, $7(n+2)=7n+14$.",
     "dificultad": 1600
   },
@@ -185,7 +228,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 4, ítem a",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Fila $1,4,6,4,1$ multiplicada por las potencias de $2$: $1,2,4,8,16$.",
     "dificultad": 1200
   },
@@ -200,7 +247,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 4, ítem b",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Fila $1,5,10,10,5,1$ por las potencias de $5$, con signos alternados.",
     "dificultad": 1350
   },
@@ -215,7 +265,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 4, ítem c",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Ojo: los coeficientes finales NO son los de Pascal, son los de Pascal multiplicados por $2^k$: $1,6,15,20,15,6,1$ se vuelven $1,12,60,160,240,192,64$ y pierden la simetría.",
     "dificultad": 1400
   },
@@ -230,9 +284,13 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 4, ítem d",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Como el primer término es $1$, los coeficientes de Pascal quedan intactos y solo alternan de signo. Los exponentes suben de $4$ en $4$.",
-    "verificar": "El operador entre el $1$ y el $x^4$ está cubierto por una mancha del escaneo; a 1200 dpi se ve el trazo horizontal de un signo menos y ninguna barra vertical, así que se lee $(1-x^4)^7$. Vale la pena confirmarlo con un ejemplar físico.",
+    "erratum": "El operador entre el $1$ y el $x^4$ está cubierto por una mancha del escaneo; a 1200 dpi se ve el trazo horizontal de un signo menos y ninguna barra vertical, así que se lee $(1-x^4)^7$. Vale la pena confirmarlo con un ejemplar físico.",
     "dificultad": 1500
   },
   {
@@ -246,7 +304,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 4, ítem e",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Los exponentes de $x$ bajan de $2$ en $2$ y los de $y$ suben de $3$ en $3$.",
     "dificultad": 1350
   },
@@ -261,7 +322,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 4, ítem f",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Fila $1,8,28,56,70,56,28,8,1$ combinada con las potencias de $2$ desde $2^8=256$ hasta $2^0=1$.",
     "dificultad": 1600
   },
@@ -276,7 +340,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 4, ítem g",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "dificultad": 1500
   },
   {
@@ -290,7 +358,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 4, ítem h",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1450
   },
   {
@@ -304,7 +375,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 4, ítem i",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Los DOS términos son negativos, así que se puede sacar el $-1$ afuera: $(-1)^4=1$ y todo el desarrollo queda positivo. Es el atajo que evita ocho cambios de signo.",
     "dificultad": 1700
   },
@@ -319,7 +393,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 4, ítem j",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "El más largo de la página: hay que combinar la fila $1,6,15,20,15,6,1$ con las potencias de $5$ (hasta $15625$) y las de $3$ (hasta $729$), y además triplicar el exponente $3x$ hasta $18x$.",
     "dificultad": 1800
   },
@@ -334,7 +411,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 5, ítem a (opción 5)",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Corresponde a la lista 5. Atajo: un binomio elevado a $n$ tiene $n+1$ términos, así que basta contar cuántos números trae cada lista.",
     "dificultad": 1250
   },
@@ -349,7 +429,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 5, ítem b (opción 1)",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Corresponde a la lista 1: $1,5,10,10,5,1$, seis términos.",
     "dificultad": 1250
   },
@@ -364,7 +447,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 5, ítem c (opción 4)",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Corresponde a la lista 4: $1,6,15,20,15,6,1$.",
     "dificultad": 1300
   },
@@ -379,7 +465,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 5, ítem d (opción 2)",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Corresponde a la lista 2: $1,9,36,84,126,126,84,36,9,1$, que es justamente la décima fila pedida en la actividad 1.",
     "dificultad": 1450
   },
@@ -394,7 +484,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 5, ítem e (opción 3)",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Corresponde a la lista 3: $1,7,21,35,35,21,7,1$, los mismos coeficientes de la actividad 2.",
     "dificultad": 1350
   },
@@ -409,7 +502,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 6, ítem a",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "El término $k$ de $(A+B)^N$ es $\\binom{N}{k-1}A^{N-k+1}B^{k-1}$. Aquí $\\binom{4}{2}=6$ y $(-4)^2=16$, luego $6\\cdot16=96$. No hace falta desarrollar todo.",
     "dificultad": 1400
   },
@@ -424,7 +521,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 6, ítem b",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "$\\binom{5}{3}=10$, $(2x)^2=4x^2$, $5^3=125$: $10\\cdot4\\cdot125=5000$.",
     "dificultad": 1450
   },
@@ -439,7 +540,11 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 6, ítem c",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "$\\binom{8}{5}=56$ y $(-2x)^5=-32x^5$: $56\\cdot(-32)=-1792$. El exponente impar del segundo término es lo que deja el resultado negativo.",
     "dificultad": 1550
   },
@@ -454,7 +559,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 6, ítem d",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "$\\binom{10}{7}=120$ y $3^7=2187$: $120\\cdot2187=262\\,440$. Las dos $n$ se juntan: $n^3\\cdot n^7=n^{10}$.",
     "dificultad": 1650
   },
@@ -469,7 +577,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 6, ítem e",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "$\\binom{15}{9}=5005$, $2^6=64$, $(-5)^9=-1\\,953\\,125$: el coeficiente es $-625\\,625\\,000\\,000$. Es el ejemplo que justifica la fórmula del término general: desarrollar los 16 términos a mano sería absurdo.",
     "dificultad": 1800
   },
@@ -484,7 +595,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 6, ítem f",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "$\\binom{10}{4}=210$, $3^6=729$, $6^4=1296$: $\\frac{210}{729\\cdot1296}=\\frac{210}{944784}=\\frac{35}{157464}$. Positivo porque el exponente del término negativo es par.",
     "dificultad": 1750
   },
@@ -499,7 +613,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 6, ítem g",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Primero hay que deducir CUÁL término es: $a^4b^5$ aparece con exponente $1$, así que es el sexto. Luego $6\\cdot\\frac{2}{3}\\cdot(-6)^5=4\\cdot(-7776)=-31\\,104$.",
     "dificultad": 1750
   },
@@ -514,7 +631,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 6, ítem h",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "$8\\cdot\\left(\\frac{3}{4}\\right)^7\\cdot(-8)=-64\\cdot\\frac{2187}{16384}=-\\frac{2187}{256}$.",
     "dificultad": 1800
   },
@@ -529,7 +649,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 6, ítem i",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "El quinto de cinco términos: es el último, $\\left(-\\frac{1}{2}z^{n-1}\\right)^4$, y el primer término desaparece por completo. $4(n-1)=4n-4$.",
     "dificultad": 1650
   },
@@ -544,7 +667,10 @@
     "unidad": 4,
     "pagina_pdf": 85,
     "referencia": "Actividad 6, ítem j",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Las dos partes aportan potencias de $a$ que se suman: $a^{2n-2}\\cdot a^{2n}=a^{4n-2}$. Coeficiente: $6\\cdot\\frac{1}{25}\\cdot\\frac{1}{16}=\\frac{6}{400}=\\frac{3}{200}$.",
     "dificultad": 1800
   }

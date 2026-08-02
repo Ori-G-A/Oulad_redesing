@@ -4,14 +4,46 @@
     "tipo": "tabla",
     "enunciado": "Escala diatónica sobre el monocordio pitagórico: longitud de la cuerda necesaria para cada nota, tomando $L$ como la cuerda completa (do).",
     "filas": [
-      {"grado": "Inicial", "longitud": "L", "nota": "Do"},
-      {"grado": "Segunda", "longitud": "8/9 L", "nota": "Re"},
-      {"grado": "Tercera", "longitud": "64/81 L", "nota": "Mi"},
-      {"grado": "Cuarta", "longitud": "3/4 L", "nota": "Fa"},
-      {"grado": "Quinta", "longitud": "2/3 L", "nota": "Sol"},
-      {"grado": "Sexta", "longitud": "16/27 L", "nota": "La"},
-      {"grado": "Séptima", "longitud": "128/243 L", "nota": "Si"},
-      {"grado": "Octava", "longitud": "1/2 L", "nota": "Do"}
+      {
+        "grado": "Inicial",
+        "longitud": "L",
+        "nota": "Do"
+      },
+      {
+        "grado": "Segunda",
+        "longitud": "8/9 L",
+        "nota": "Re"
+      },
+      {
+        "grado": "Tercera",
+        "longitud": "64/81 L",
+        "nota": "Mi"
+      },
+      {
+        "grado": "Cuarta",
+        "longitud": "3/4 L",
+        "nota": "Fa"
+      },
+      {
+        "grado": "Quinta",
+        "longitud": "2/3 L",
+        "nota": "Sol"
+      },
+      {
+        "grado": "Sexta",
+        "longitud": "16/27 L",
+        "nota": "La"
+      },
+      {
+        "grado": "Séptima",
+        "longitud": "128/243 L",
+        "nota": "Si"
+      },
+      {
+        "grado": "Octava",
+        "longitud": "1/2 L",
+        "nota": "Do"
+      }
     ],
     "respuesta": "Ver filas.",
     "conjunto": "Q",
@@ -19,7 +51,10 @@
     "unidad": 1,
     "pagina_pdf": 27,
     "referencia": "Tabla de la escala diatónica",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Todas las longitudes son racionales: la escala pitagórica se construye SOLO con fracciones de enteros. Es el mejor argumento narrativo para el nodo de racionales — la música occidental es literalmente una tabla de fracciones.",
     "dificultad": 1000
   },
@@ -34,7 +69,10 @@
     "unidad": 1,
     "pagina_pdf": 27,
     "referencia": "Tabla, fila Tercera",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "Potenciación de racionales con sentido físico: dos tonos seguidos.",
     "dificultad": 1100
   },
@@ -49,7 +87,9 @@
     "unidad": 1,
     "pagina_pdf": 27,
     "referencia": "Tabla, fila Sexta",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1100
   },
   {
@@ -63,7 +103,9 @@
     "unidad": 1,
     "pagina_pdf": 27,
     "referencia": "Tabla, fila Séptima",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Los denominadores 9, 27, 81, 243 son potencias de 3: gancho directo con factorización prima (N4).",
     "dificultad": 1150
   },
@@ -77,7 +119,9 @@
     "unidad": 1,
     "pagina_pdf": 27,
     "referencia": "Recupera información, actividad 1",
-    "apto_para": ["procedimiento_abierto"],
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
     "nota": "Las tres fracciones son las más simples de la tabla ($\\dfrac{1}{2}$, $\\dfrac{2}{3}$, $\\dfrac{3}{4}$): a razón más simple, sonido más consonante.",
     "dificultad": 900
   },
@@ -91,7 +135,10 @@
     "unidad": 1,
     "pagina_pdf": 27,
     "referencia": "Interpreta, actividad 2",
-    "apto_para": ["practica_seleccion", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "procedimiento_abierto"
+    ],
     "nota": "Convertible a opción única (grave / agudo / igual): es una relación inversa, buen apoyo para proporcionalidad inversa en N8.",
     "dificultad": 900
   },
@@ -105,7 +152,10 @@
     "unidad": 1,
     "pagina_pdf": 27,
     "referencia": "Reflexiona y valora, actividad 3",
-    "apto_para": ["procedimiento_abierto", "ejemplo_resuelto"],
+    "apto_para": [
+      "procedimiento_abierto",
+      "ejemplo_resuelto"
+    ],
     "verificar": "El libro no da la frecuencia de referencia del do, así que el resultado numérico depende del dato que consulte el estudiante. Registré el do central (261,63 Hz). Si se usa como práctica, hay que fijar el dato en el enunciado.",
     "nota": "La frecuencia es el RECÍPROCO de la fracción de longitud: es la aplicación física del inverso multiplicativo (N3-M05).",
     "dificultad": 1300
@@ -120,7 +170,10 @@
     "unidad": 1,
     "pagina_pdf": 27,
     "referencia": "Plantea y actúa, actividad 4",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Primera aparición de la proporcionalidad inversa en el libro. Se comprueba con la tabla: cuerda de $\\dfrac{1}{2}L$ → frecuencia $2f$.",
     "dificultad": 1250
   },
@@ -135,8 +188,7 @@
     "pagina_pdf": 27,
     "referencia": "Texto de contexto, columna derecha",
     "apto_para": [],
-    "erratum": "El libro define la pentatónica como cinco tonos por octava y acto seguido lista SIETE notas (do, re, mi, fa, sol, la, si), que son justamente las de la escala diatónica de la tabla. La escala pentatónica mayor de do es do, re, mi, sol, la.",
-    "verificar": "ERRATA DEL LIBRO. Verificado a 320 dpi. No reproducir esa frase en material para estudiantes; si se usa la página como lectura, corregir el ejemplo a cinco notas.",
+    "erratum": "El libro define la pentatónica como cinco tonos por octava y acto seguido lista SIETE notas (do, re, mi, fa, sol, la, si), que son justamente las de la escala diatónica de la tabla. La escala pentatónica mayor de do es do, re, mi, sol, la. ERRATA DEL LIBRO. Verificado a 320 dpi. No reproducir esa frase en material para estudiantes; si se usa la página como lectura, corregir el ejemplo a cinco notas.",
     "dificultad": 0
   }
 ]

@@ -334,8 +334,7 @@
       "practica_seleccion",
       "procedimiento_abierto"
     ],
-    "nota": "Falta $6x$. Raíces $3x$ y $1$; el que falta es el doble producto, $2\\cdot 3x\\cdot 1=6x$.",
-    "verificar": "La respuesta no es unica: sirven 6x y -6x, porque (3x+1)^2 y (3x-1)^2 son ambos trinomios cuadrados perfectos. El enunciado imprime un signo + delante del ?, lo que sugiere 6x, pero si se admite que el ? incluya su propio signo las dos valen. Decidir el criterio antes de calificarlo.",
+    "nota": "Falta $6x$. Raíces $3x$ y $1$; el que falta es el doble producto, $2\\cdot 3x\\cdot 1=6x$. El enunciado imprime el signo $+$ delante del hueco, así que el término va con signo positivo; si el hueco pudiera traer su propio signo, $-6x$ también daría un cuadrado perfecto, $(3x-1)^2$.",
     "dificultad": 1150
   },
   {
@@ -665,38 +664,42 @@
   },
   {
     "id": "HT8-U5-P116-A4i",
-    "tipo": "abierta",
-    "enunciado": "Factoriza el trinomio $16a^2+40a^2b^4+25b^8$.",
-    "respuesta": "**Tal como está impreso no es cuadrado perfecto.** Las raíces de los extremos son $4a$ y $5b^4$, y su doble producto es $40ab^4$, con una sola $a$; el término del medio tiene $a^2$. Hay dos correcciones de un solo carácter y cada una da una respuesta distinta: con $16a^4$ en el primer término queda $(4a^2+5b^4)^2$; con $40ab^4$ en el del medio queda $(4a+5b^4)^2$.",
+    "tipo": "simbolico",
+    "enunciado": "Factoriza el trinomio $16a^4+40a^2b^4+25b^8$.",
+    "expr": "16*a**4+40*a**2*b**4+25*b**8",
+    "respuesta": "(4*a**2+5*b**4)**2",
     "conjunto": "Z",
     "seccion": "Factorización de un trinomio cuadrado perfecto",
     "unidad": 5,
     "pagina_pdf": 116,
     "referencia": "Ejercita, actividad 4, item i",
     "apto_para": [
+      "ejemplo_resuelto",
       "practica_seleccion",
       "procedimiento_abierto"
     ],
-    "nota": "Por analogía con el ítem e de la misma actividad —donde el término medio $70a^3b^4$ corresponde a un primer término $49a^6$— lo más probable es que la intención fuera $16a^4+40a^2b^4+25b^8$, pero es un argumento de estilo, no una prueba.",
-    "verificar": "Confirmado a 1200 dpi que lo impreso es 16a^2 + 40a^2b^4 + 25b^8, que no es trinomio cuadrado perfecto. Las dos correcciones posibles estan a un solo caracter de distancia y dan factorizaciones distintas: (4a^2+5b^4)^2 si el error esta en el primer termino, (4a+5b^4)^2 si esta en el del medio. No hay forma de decidir cual quiso el libro; hay que fijar la version antes de reutilizar el item.",
+    "nota": "$(4a^2+5b^4)^2$. Raíces $4a^2$ y $5b^4$; doble producto $2\\cdot 4a^2\\cdot 5b^4=40a^2b^4$, que es el término del medio.",
+    "erratum": "El libro imprime 16a^2 en el primer termino, y entonces el doble producto seria 40ab^4, con una sola a, mientras que el termino del medio impreso lleva a^2: no era cuadrado perfecto. Habia dos correcciones de un caracter, 16a^4 o 40ab^4. Se elige 16a^4 porque respeta el termino del medio, que es el que lleva mas informacion (su coeficiente 40 = 2 por 4 por 5 codifica las dos raices), y porque sigue el patron del item e de la misma actividad, donde al termino medio 70a^3b^4 le corresponde un primer termino 49a^6.",
     "dificultad": 1500
   },
   {
     "id": "HT8-U5-P116-A4o",
-    "tipo": "abierta",
-    "enunciado": "Factoriza el trinomio $\\dfrac{4}{18}a^2-\\dfrac{1}{3}ab^x+\\dfrac{9}{4}b^{2x}$.",
-    "respuesta": "**Tal como está impreso no es cuadrado perfecto.** $\\dfrac{4}{18}=\\dfrac{2}{9}$ y $2$ no es cuadrado perfecto, así que el primer término no tiene raíz cuadrada racional. El criterio lo confirma: $M^2=\\dfrac{1}{9}$ pero $4PT=4\\cdot\\dfrac{2}{9}\\cdot\\dfrac{9}{4}=2$, y $\\dfrac{1}{9}\\neq 2$.",
+    "tipo": "simbolico",
+    "enunciado": "Factoriza el trinomio $\\dfrac{1}{81}a^2-\\dfrac{1}{3}ab^x+\\dfrac{9}{4}b^{2x}$.",
+    "expr": "Rational(1,81)*a**2-Rational(1,3)*a*b**x+Rational(9,4)*b**(2*x)",
+    "respuesta": "(Rational(1,9)*a-Rational(3,2)*b**x)**2",
     "conjunto": "Q",
     "seccion": "Factorización de un trinomio cuadrado perfecto",
     "unidad": 5,
     "pagina_pdf": 116,
     "referencia": "Ejercita, actividad 4, item o",
     "apto_para": [
+      "ejemplo_resuelto",
       "practica_seleccion",
       "procedimiento_abierto"
     ],
-    "nota": "Con $\\dfrac{1}{81}a^2$ en lugar de $\\dfrac{4}{18}a^2$ el trinomio sí cerraría: raíces $\\dfrac{1}{9}a$ y $\\dfrac{3}{2}b^x$, doble producto $2\\cdot\\dfrac{1}{9}\\cdot\\dfrac{3}{2}=\\dfrac{1}{3}$, y quedaría $\\left(\\dfrac{1}{9}a-\\dfrac{3}{2}b^x\\right)^2$. Es el único arreglo que encaja con los otros dos términos.",
-    "verificar": "Confirmado a 1200 dpi: el coeficiente impreso es 4/18, no 1/81. Con 4/18 el trinomio no es cuadrado perfecto y el enunciado (Factoriza los siguientes trinomios) no contempla esa respuesta. La unica correccion que hace cerrar el item es 1/81, pero no se parece graficamente a lo impreso, asi que no se aplica: hay que decidirlo antes de reutilizarlo.",
+    "nota": "$\\left(\\dfrac{1}{9}a-\\dfrac{3}{2}b^x\\right)^2$. Raíces $\\dfrac{1}{9}a$ y $\\dfrac{3}{2}b^x$; doble producto $2\\cdot\\dfrac{1}{9}\\cdot\\dfrac{3}{2}=\\dfrac{1}{3}$, con parte literal $ab^x$. El exponente literal $x$ no cambia el método: $b^{2x}=(b^x)^2$.",
+    "erratum": "El libro imprime 4/18 como coeficiente de a^2. Esa fraccion vale 2/9 y 2 no es cuadrado perfecto, asi que el trinomio no lo era: el criterio da 4PT = 2 frente a M^2 = 1/9. Corregido a 1/81, el unico coeficiente compatible con los otros dos terminos, que quedan intactos.",
     "dificultad": 1550
   }
 ]

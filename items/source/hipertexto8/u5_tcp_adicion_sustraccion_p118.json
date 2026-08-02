@@ -302,20 +302,22 @@
   },
   {
     "id": "HT8-U5-P118-A2e",
-    "tipo": "abierta",
-    "enunciado": "Factoriza el trinomio $225a^6+270a^3b^4+81b^2$.",
-    "respuesta": "**Tal como está impreso no es cuadrado perfecto ni se arregla con el método.** Las raíces de los extremos son $15a^3$ y $9b$, y su doble producto es $270a^3b$, con $b$ a la primera; el término del medio tiene $b^4$. Hay dos correcciones de un solo carácter, y cada una da una respuesta distinta: con $81b^8$ en el tercer término queda $(15a^3+9b^4)^2$; con $270a^3b$ en el del medio queda $(15a^3+9b)^2$.",
+    "tipo": "simbolico",
+    "enunciado": "Factoriza el trinomio $225a^6+270a^3b^4+81b^8$.",
+    "expr": "225*a**6+270*a**3*b**4+81*b**8",
+    "respuesta": "(15*a**3+9*b**4)**2",
     "conjunto": "Z",
     "seccion": "Factorización de un trinomio cuadrado perfecto por adición y sustracción",
     "unidad": 5,
     "pagina_pdf": 118,
     "referencia": "Ejercita, actividad 2, item e",
     "apto_para": [
+      "ejemplo_resuelto",
       "practica_seleccion",
       "procedimiento_abierto"
     ],
-    "nota": "En cualquiera de las dos versiones sale un cuadrado perfecto directo, sin necesidad del método de adición y sustracción, igual que los ítems a, b, c, d y f de esta misma actividad.",
-    "verificar": "Confirmado a 850 dpi que lo impreso es 225a^6 + 270a^3b^4 + 81b^2. El termino del medio y el tercero son incompatibles: uno pide b^4 y el otro b. Las dos correcciones posibles estan a un caracter de distancia y dan factorizaciones distintas, (15a^3+9b^4)^2 o (15a^3+9b)^2, sin nada que permita decidir cual quiso el libro. Hay que fijar la version antes de reutilizarlo.",
+    "nota": "$(15a^3+9b^4)^2$. Raíces $15a^3$ y $9b^4$; doble producto $2\\cdot 15\\cdot 9=270$, con parte literal $a^3b^4$. Es cuadrado perfecto directo, sin necesidad del método de adición y sustracción. También se puede sacar antes el factor común $9$: $9(5a^3+3b^4)^2$.",
+    "erratum": "El libro imprime 81b^2 en el tercer termino, incompatible con el termino del medio, que pide b^4. Habia dos correcciones de un caracter, 81b^8 o 270a^3b. Se elige 81b^8 porque respeta el termino del medio, que lleva mas informacion (270 = 2 por 15 por 9), y porque los exponentes altos son el patron de esta actividad (400x^4y^2, 16z^6, 729n^12p^15).",
     "dificultad": 1550
   },
   {

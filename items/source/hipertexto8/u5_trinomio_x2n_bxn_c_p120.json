@@ -419,20 +419,22 @@
   },
   {
     "id": "HT8-U5-P120-A2d",
-    "tipo": "abierta",
-    "enunciado": "Factoriza el trinomio $m^2-6m+40$.",
-    "respuesta": "**Tal como está impreso no se factoriza**, ni siquiera con números reales: no hay dos números que multipliquen $40$ y sumen $-6$. Los pares de $40$ son $1\\cdot 40$, $2\\cdot 20$, $4\\cdot 10$ y $5\\cdot 8$, y con ambos negativos suman $-41$, $-22$, $-14$ y $-13$. El discriminante lo confirma: $(-6)^2-4\\cdot 40=-124<0$.",
+    "tipo": "simbolico",
+    "enunciado": "Factoriza el trinomio $m^2-6m-40$.",
+    "expr": "m**2-6*m-40",
+    "respuesta": "(m-10)*(m+4)",
     "conjunto": "Z",
     "seccion": "Factorización de trinomios de la forma x^{2n} + bx^n + c",
     "unidad": 5,
     "pagina_pdf": 120,
     "referencia": "Ejercita, actividad 2, item d",
     "apto_para": [
+      "ejemplo_resuelto",
       "practica_seleccion",
       "procedimiento_abierto"
     ],
-    "nota": "Sirve como contraejemplo útil: no todo trinomio de esta forma se factoriza. Pero en una lista donde los otros diecisiete sí salen, lo más probable es que sea un error de imprenta.",
-    "verificar": "Confirmado a 850 dpi que lo impreso es m^2 - 6m + 40, que es irreducible incluso sobre los reales (discriminante -124). El enunciado dice Factoriza los siguientes trinomios, sin la salida de si es posible que si traen otras actividades del libro, asi que el item no tiene respuesta. Hay al menos tres correcciones a un caracter, y cada una da una factorizacion distinta: m^2-6m-40 = (m-10)(m+4), m^2-13m+40 = (m-5)(m-8) y m^2-14m+40 = (m-4)(m-10). Hay que fijar la version antes de reutilizarlo.",
+    "nota": "$(m-10)(m+4)$. Producto $-40$ y suma $-6$: como el producto es negativo, los dos números tienen signos contrarios, y como la suma es negativa, el mayor en valor absoluto es el negativo. $40=10\\cdot 4$ y $-10+4=-6$.",
+    "erratum": "El libro imprime m^2 - 6m + 40, que es irreducible incluso sobre los reales (discriminante -124), mientras que el enunciado pide factorizar sin ofrecer la salida de si es posible. Habia tres correcciones a un caracter: -40, -13m o -14m. Se elige el cambio de signo del 40 porque es el mas economico (un signo, no un digito) y porque la actividad ya trae varios trinomios de producto negativo, como el item e, a^2 - 2a - 35.",
     "dificultad": 1400
   },
   {

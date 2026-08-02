@@ -10,7 +10,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 1, ítem a (opción 2)",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Se eleva al cubo el coeficiente y se triplica el exponente: $3^3=27$ y $(x^2)^3=x^6$.",
     "dificultad": 1100
   },
@@ -25,7 +29,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 1, ítem b (opción 5)",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1100
   },
   {
@@ -39,7 +47,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 1, ítem c (opción 3)",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1150
   },
   {
@@ -53,7 +65,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 1, ítem d (opción 8)",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1150
   },
   {
@@ -67,7 +83,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 1, ítem e (opción 4)",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Exponente literal: $(x^{3m})^3=x^{9m}$. La regla es la misma, se multiplican los exponentes aunque uno sea una letra.",
     "dificultad": 1300
   },
@@ -82,7 +101,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 1, ítem f (opción 1)",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1200
   },
   {
@@ -96,7 +119,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 1, ítem g (opción 6)",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1200
   },
   {
@@ -110,7 +137,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 1, ítem h (opción 7)",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "El más difícil de la actividad: hay que triplicar un exponente que ya es un binomio, $3(3n-1)=9n-3$. El error típico es escribir $a^{9n-1}$.",
     "dificultad": 1500
   },
@@ -125,7 +156,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem a",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "$(a+b)^3=a^3+3a^2b+3ab^2+b^3$. Coeficientes $1,3,3,1$ (cuarta fila del triángulo de Pascal).",
     "dificultad": 1150
   },
@@ -140,7 +175,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem b",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Con resta los signos alternan: $+,-,+,-$.",
     "dificultad": 1150
   },
@@ -155,7 +194,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem c",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1250
   },
   {
@@ -169,7 +212,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem d",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1250
   },
   {
@@ -183,7 +230,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem e",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Los dos términos comparten factor $ab$, así que todo el desarrollo tiene $a^3$ y se puede escribir $a^3b^3(b-1)^3$. Comprobarlo por los dos caminos es un buen control.",
     "dificultad": 1350
   },
@@ -198,7 +249,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem f",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "dificultad": 1350
   },
   {
@@ -212,7 +267,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem g",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Términos centrales: $3\\cdot\\frac{1}{4}x^2\\cdot\\frac{1}{5}=\\frac{3}{20}x^2$ y $3\\cdot\\frac{1}{2}x\\cdot\\frac{1}{25}=\\frac{3}{50}x$.",
     "dificultad": 1400
   },
@@ -227,7 +286,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem h",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "dificultad": 1450
   },
   {
@@ -241,7 +303,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem i",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "dificultad": 1450
   },
   {
@@ -255,7 +320,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem j",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Con exponente literal: $(x^n)^2=x^{2n}$ y $(x^n)^3=x^{3n}$. Nunca $x^{n^2}$ ni $x^{n+2}$.",
     "dificultad": 1500
   },
@@ -270,7 +339,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem k",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "El exponente $x-1$ se multiplica entero: $2(x-1)=2x-2$ y $3(x-1)=3x-3$. Olvidar el paréntesis mental es el error clásico.",
     "dificultad": 1600
   },
@@ -285,7 +357,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem l",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "dificultad": 1600
   },
   {
@@ -299,7 +374,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem m",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Junta las dos dificultades de la actividad: fracciones y exponentes literales. Término central: $3\\cdot\\frac{1}{9}x^{4n}\\cdot(-4y^n)=-\\frac{4}{3}x^{4n}y^n$.",
     "dificultad": 1700
   },
@@ -314,7 +392,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 2, ítem n",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Los denominadores no se simplifican igual en todos los términos: $216$, $72$, $72$, $216$. Vale la pena sacar factor común $\\frac{b^6}{216}$ y comprobar $(a^3-5b)^3$.",
     "dificultad": 1700
   },
@@ -329,7 +410,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 3, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "SÍ coincide (✓). Coeficientes $1,-9,27,-27$.",
     "dificultad": 1300
   },
@@ -344,7 +428,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 3, ítem b",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "NO coincide. Los coeficientes reales son $1,-6,+12,-8$: en la lista del libro el tercero y el cuarto tienen el signo cambiado. Con una resta los signos SIEMPRE alternan, así que dos negativos seguidos delatan el error sin hacer la cuenta.",
     "dificultad": 1300
   },
@@ -359,7 +446,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 3, ítem c",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "SÍ coincide (✓).",
     "dificultad": 1300
   },
@@ -374,7 +464,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 3, ítem d",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "SÍ coincide (✓).",
     "dificultad": 1350
   },
@@ -389,7 +482,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 3, ítem e",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "NO coincide. El tercer coeficiente es $3\\cdot6\\cdot1=18$, no $3$: quien escribió $3$ se quedó con el $3$ de la fórmula y olvidó multiplicarlo por el $6$ del primer término.",
     "dificultad": 1350
   },
@@ -404,9 +500,12 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 3, ítem f",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "NO coincide: el último coeficiente es $-1$, no $+1$.",
-    "verificar": "El libro imprime este ítem (y el g) SIN el exponente $3$ fuera del paréntesis: escribe «$(a^3b^2-c^4)$». Por el enunciado de la actividad («el cubo del binomio») el exponente es claramente una omisión tipográfica; se transcribe como cubo.",
+    "erratum": "El libro imprime este ítem (y el g) SIN el exponente $3$ fuera del paréntesis: escribe «$(a^3b^2-c^4)$». Por el enunciado de la actividad («el cubo del binomio») el exponente es claramente una omisión tipográfica; se transcribe como cubo.",
     "dificultad": 1400
   },
   {
@@ -420,9 +519,12 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 3, ítem g",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "SÍ coincide (✓).",
-    "verificar": "También aquí el libro omite el exponente $3$ fuera del paréntesis. Se transcribe como cubo, igual que en el ítem f.",
+    "erratum": "También aquí el libro omite el exponente $3$ fuera del paréntesis. Se transcribe como cubo, igual que en el ítem f.",
     "dificultad": 1400
   },
   {
@@ -436,7 +538,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 4, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Dos errores en el tercer término: el signo (debe ser $+$, porque con resta los signos alternan) y el grado (debe ser $y$, no $y^3$). Los grados tienen que bajar $3,2,1,0$.",
     "dificultad": 1450
   },
@@ -451,7 +557,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 4, ítem b",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Tres errores: el signo del segundo término (es una suma, todos van $+$), el tercero es $3\\cdot3x\\cdot1^2=9x$ y el último es $1^3=1$, no $3$.",
     "dificultad": 1450
   },
@@ -466,9 +576,13 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 4, ítem c",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "El error está en el segundo término: $3(2x^2y)^2(-3)=-36x^4y^2$, no $-36x^2y^2$. Se elevó al cuadrado el $y$ pero no el $x^2$.",
-    "verificar": "En el libro este ítem aparece con exponente $2$ fuera del paréntesis, $(2x^2y-3)^2$, aunque el desarrollo impreso es de grado 3 y la actividad pide cubos. Se transcribe como cubo, que es la única lectura coherente.",
+    "erratum": "En el libro este ítem aparece con exponente $2$ fuera del paréntesis, $(2x^2y-3)^2$, aunque el desarrollo impreso es de grado 3 y la actividad pide cubos. Se transcribe como cubo, que es la única lectura coherente.",
     "dificultad": 1500
   },
   {
@@ -482,7 +596,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 4, ítem d",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Tres exponentes mal: $a^5$ debe ser $a^6$, el $b^7$ del tercer término debe ser $b^8$ y $b^4$ debe ser $b^9$. Control rápido: todos los términos han de tener grado total $9$, y $-8b^4$ tiene grado $4$.",
     "dificultad": 1550
   },
@@ -497,9 +614,13 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 5, ítem a",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Caso base de la suma de cubos: $(x+a)(x^2-ax+a^2)=x^3+a^3$. Los seis términos del producto se cancelan de a pares y solo sobreviven los cubos.",
-    "verificar": "En la teoría de la página 82 el libro escribe este producto notable como «$(2m+y)(4m^2-2my+y^2)=(2m)^3-(y)^3=8m^3+y^3$»: el paso intermedio lleva un $-$ que debería ser $+$ (el resultado final sí es correcto). Erratum de la página de teoría, no de esta actividad.",
+    "erratum": "En la teoría de la página 82 el libro escribe este producto notable como «$(2m+y)(4m^2-2my+y^2)=(2m)^3-(y)^3=8m^3+y^3$»: el paso intermedio lleva un $-$ que debería ser $+$ (el resultado final sí es correcto). Erratum de la página de teoría, no de esta actividad.",
     "dificultad": 1250
   },
   {
@@ -513,7 +634,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 5, ítem b",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Diferencia de cubos: $(x-a)(x^2+ax+a^2)=x^3-a^3$. Aquí $a=5$ y $5^3=125$.",
     "dificultad": 1250
   },
@@ -528,7 +653,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 5, ítem c",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Con $x\\to2x$ y $a\\to3y$: el trinomio debe ser $(2x)^2+(2x)(3y)+(3y)^2$, y en efecto $4x^2+6xy+9y^2$ encaja.",
     "dificultad": 1350
   },
@@ -543,7 +672,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 5, ítem d",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "El término central del trinomio es $\\frac{1}{3}a\\cdot3b=ab$, por eso aparece sin coeficiente. Resultado: $\\left(\\frac{1}{3}a\\right)^3-(3b)^3$.",
     "dificultad": 1450
   },
@@ -558,7 +691,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 5, ítem e",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "El «primer término» de la fórmula puede ser un producto entero: aquí $x=ab$, así que $x^3=a^3b^3$.",
     "dificultad": 1400
   },
@@ -573,7 +709,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 5, ítem f",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Reconocer la forma es todo el trabajo: con $x^{2n}$ y $y^n$ como «primer y segundo término», el trinomio $x^{4n}+x^{2n}y^n+y^{2n}$ es exactamente el que pide la fórmula.",
     "dificultad": 1600
   },
@@ -588,7 +728,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 5, ítem g",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "El más difícil de la página: $(3a^{x-1})^3=27a^{3x-3}$ y $(b^{2x})^3=b^{6x}$. Comprobación de que el trinomio es el correcto: $(3a^{x-1})^2=9a^{2x-2}$ ✓.",
     "dificultad": 1700
   },
@@ -603,7 +746,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 6, ítem a",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "figura": "cubo verde con la arista inferior rotulada m−3 — reconstruible en Python",
     "nota": "Aquí el cubo del binomio deja de ser una fórmula: es literalmente el volumen de un cubo. La misma expansión que en la actividad 2, ítem b.",
     "dificultad": 1200
@@ -619,7 +766,11 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 6, ítem b",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "figura": "cubo naranja con la arista inferior rotulada 3x²+2 — reconstruible en Python",
     "nota": "Solo aparecen potencias pares de $x$ porque la arista es par en $x$: útil como control rápido del resultado.",
     "dificultad": 1350
@@ -635,7 +786,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 7, ítem a",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "figura": "cubo naranja de arista 4x+5y con un cubo de arista (2/3)x+y removido de la esquina superior derecha frontal — reconstruible en Python",
     "nota": "Es una diferencia de cubos, así que también se puede escribir factorizada con la fórmula de la actividad 5: con $A=4x+5y$ y $B=\\frac{2}{3}x+y$, $A-B=\\frac{10}{3}x+4y$ y el volumen es $(A-B)(A^2+AB+B^2)$. Los coeficientes con denominador $27$ salen de $\\left(\\frac{2}{3}\\right)^3$.",
     "dificultad": 1700
@@ -651,7 +805,10 @@
     "unidad": 4,
     "pagina_pdf": 83,
     "referencia": "Actividad 7, ítem b",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "figura": "cruz tridimensional rosada: cubo central de arista 3x²y+y² con seis cubos de arista x+2 sobresaliendo, uno por cara — reconstruible en Python",
     "nota": "Dos cubos de binomio independientes que se suman; no hay término mixto entre ellos porque los seis salientes no se tocan entre sí.",
     "verificar": "La figura muestra silueta de cruz tanto de frente como de perfil, lo que fija seis salientes iguales (uno por cara), pero el saliente trasero no es visible en el dibujo y solo se deduce de la simetría. Los seis rótulos $x+2$ del dibujo son consistentes con esa lectura.",

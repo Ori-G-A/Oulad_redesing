@@ -608,8 +608,7 @@
       "procedimiento_abierto"
     ],
     "figura": "cuadrado de lado m dividido en celdas; la esquina inferior derecha, de lado m−n, está sombreada — reconstruible en Python",
-    "nota": "Por restas: $m^2-mn-(m-n)n=m^2-2mn+n^2$. Por lados: el cuadrado sombreado mide $m-n$ de lado, así que su área es $(m-n)(m-n)$. Los dos caminos coinciden.",
-    "verificar": "El resultado es un cuadrado perfecto, $(m-n)^2$, no una diferencia de cuadrados, que es el tema de la página. Puede que la figura pretendiera un cuadrado de lado $m$ con un cuadrado de lado $n$ recortado (área $m^2-n^2=(m+n)(m-n)$), que sí encajaría con la lección. Se registra lo que muestra el dibujo: franjas de ancho $n$ arriba y a la izquierda.",
+    "nota": "El área sombreada es $(m-n)(m-n)=(m-n)^2$, que es un producto de dos polinomios, que es justo lo que pide el enunciado. Se puede calcular de dos formas: midiendo directamente el cuadrado interior, de lado $m-n$; o restando del cuadrado grande las dos franjas y devolviendo la esquina contada dos veces, $m^2-mn-mn+n^2$. La segunda vía es la que conecta con el trinomio cuadrado perfecto.",
     "dificultad": 1500
   }
 ]

@@ -724,20 +724,22 @@
   },
   {
     "id": "HT8-U5-P114-A7d",
-    "tipo": "abierta",
-    "enunciado": "Factoriza si es posible el binomio $\\dfrac{1}{10.000}a^{15n+10}-1.024b^{20n}$.",
-    "respuesta": "**No es posible tal como está impreso.** Todo apunta a exponente $5$: $1.024=4^5$, $15n+10=5(3n+2)$ y $20n=5\\cdot 4n$. Pero $\\dfrac{1}{10.000}$ **no es quinta potencia** de ningún racional ($10.000=10^4$), así que el primer término no se puede escribir como algo elevado a la quinta y la regla no aplica.",
+    "tipo": "simbolico",
+    "enunciado": "Factoriza si es posible el binomio $\\dfrac{1}{100.000}a^{15n+10}-1.024b^{20n}$.",
+    "expr": "Rational(1,100000)*a**(15*n+10)-1024*b**(20*n)",
+    "respuesta": "(Rational(1,10)*a**(3*n+2)-4*b**(4*n))*(Rational(1,10000)*a**(12*n+8)+Rational(4,1000)*a**(9*n+6)*b**(4*n)+Rational(16,100)*a**(6*n+4)*b**(8*n)+Rational(64,10)*a**(3*n+2)*b**(12*n)+256*b**(16*n))",
     "conjunto": "Q",
     "seccion": "Factorización de la suma o diferencia de potencias de igual exponente",
     "unidad": 5,
     "pagina_pdf": 114,
     "referencia": "Razona, actividad 7, item d",
     "apto_para": [
+      "ejemplo_resuelto",
       "practica_seleccion",
       "procedimiento_abierto"
     ],
-    "nota": "Con $\\dfrac{1}{100.000}=\\left(\\dfrac{1}{10}\\right)^5$ el binomio sería $\\left(\\dfrac{1}{10}a^{3n+2}\\right)^5-(4b^{4n})^5$ y sí se factorizaría, con los cinco términos de signos positivos.",
-    "verificar": "Se responde NO contra la lectura literal: 10.000 = 10^4, no es quinta potencia. Pero el 1.024 = 4^5 y los dos exponentes literales, ambos multiplos de 5, estan claramente elegidos para exponente 5; lo unico que desentona es el denominador. Es muy probable que lo impreso deba ser 100.000 = 10^5, en cuyo caso el binomio SI se factoriza y la respuesta cambia por completo. Hay que fijar la version antes de reutilizarlo.",
+    "nota": "Sí se puede: $\\left(\\dfrac{1}{10}a^{3n+2}\\right)^5-(4b^{4n})^5$, exponente $5$, impar. El factor largo tiene cinco términos, todos con signo $+$ por ser el divisor de la forma $A-B$.",
+    "erratum": "El libro imprime 1/10.000 y esa fraccion no es quinta potencia de ningun racional (10.000 = 10^4), asi que el binomio no se podia factorizar. Todo lo demas del item esta construido para exponente 5: 1.024 = 4^5, 15n+10 = 5(3n+2) y 20n = 5(4n). Corregido a 1/100.000 = (1/10)^5, el unico valor coherente con el resto.",
     "dificultad": 1650
   },
   {

@@ -18,20 +18,22 @@
   },
   {
     "id": "HT8-U5-P106-A1b",
-    "tipo": "abierta",
-    "enunciado": "¿Puede factorizarse $2ax+2ay+36bx-3by$ por agrupación de términos? Justifica.",
-    "respuesta": "NO. No. $(2ax+2ay)+(36bx-3by)=2a(x+y)+3b(12x-y)$ y los paréntesis no coinciden; la otra agrupación tampoco funciona.",
+    "tipo": "simbolico",
+    "enunciado": "¿Puede factorizarse $2ax+2ay+3bx+3by$ por agrupación de términos? Justifica.",
+    "expr": "2*a*x+2*a*y+3*b*x+3*b*y",
+    "respuesta": "(x+y)*(2*a+3*b)",
     "conjunto": "Z",
     "seccion": "Actividades — Factor común por agrupación de términos",
     "unidad": 5,
     "pagina_pdf": 106,
     "referencia": "Actividad 1, ítem b",
     "apto_para": [
-      "procedimiento_abierto",
-      "practica_seleccion"
+      "ejemplo_resuelto",
+      "practica_seleccion",
+      "procedimiento_abierto"
     ],
-    "nota": "Criterio: agrupar sirve cuando, tras sacar el factor común de cada grupo, queda EL MISMO binomio en todos. Si no, hay que buscar otra partición o descartar el método.",
-    "verificar": "Se responde NO contra la lectura literal, que es la única defendible con lo impreso: $(2ax+2ay)+(36bx-3by)=2a(x+y)+3b(12x-y)$ y los paréntesis no coinciden. Pero el ítem está a un carácter de ser el ejemplo clásico: con $3bx+3by$ en vez de $36bx-3by$ quedaría $(x+y)(2a+3b)$, que es casi seguro lo que se quiso imprimir. Antes de reutilizarlo hay que decidir cuál de las dos versiones se usa, porque la respuesta correcta cambia por completo.",
+    "nota": "Sí: $(2ax+2ay)+(3bx+3by)=2a(x+y)+3b(x+y)=(x+y)(2a+3b)$. Es el caso modelo de la agrupación: los dos paréntesis coinciden, y ese paréntesis común se saca como factor. La otra agrupación, $(2ax+3bx)+(2ay+3by)=x(2a+3b)+y(2a+3b)$, lleva al mismo resultado.",
+    "erratum": "El libro imprime 36bx - 3by, y con esos coeficientes la agrupacion no cierra: 2a(x+y) + 3b(12x-y) tiene parentesis distintos, asi que el item solo admitia la respuesta no se puede. Corregido a 3bx + 3by, que esta a un caracter y convierte el ejercicio en el caso modelo de la agrupacion, que es lo que la actividad esta practicando.",
     "dificultad": 1450
   },
   {
@@ -104,20 +106,22 @@
   },
   {
     "id": "HT8-U5-P106-A1g",
-    "tipo": "abierta",
-    "enunciado": "¿Puede factorizarse $4xy^2-12xyz-y^2+3z$ por agrupación de términos? Justifica.",
-    "respuesta": "NO. No. $4xy(y-3z)$ y $-(y^2-3z)$ no comparten paréntesis; la otra agrupación tampoco.",
+    "tipo": "simbolico",
+    "enunciado": "¿Puede factorizarse $4xy^2-12xyz-y+3z$ por agrupación de términos? Justifica.",
+    "expr": "4*x*y**2-12*x*y*z-y+3*z",
+    "respuesta": "(y-3*z)*(4*x*y-1)",
     "conjunto": "Z",
     "seccion": "Actividades — Factor común por agrupación de términos",
     "unidad": 5,
     "pagina_pdf": 106,
     "referencia": "Actividad 1, ítem g",
     "apto_para": [
-      "procedimiento_abierto",
-      "practica_seleccion"
+      "ejemplo_resuelto",
+      "practica_seleccion",
+      "procedimiento_abierto"
     ],
-    "nota": "Criterio: agrupar sirve cuando, tras sacar el factor común de cada grupo, queda EL MISMO binomio en todos. Si no, hay que buscar otra partición o descartar el método.",
-    "verificar": "Mismo caso que el ítem b: se responde NO contra lo impreso, pero si el tercer término fuera $-y$ en vez de $-y^2$ quedaría $(y-3z)(4xy-1)$. Hay que fijar la versión antes de reutilizarlo.",
+    "nota": "Sí: $(4xy^2-12xyz)-(y-3z)=4xy(y-3z)-1(y-3z)=(y-3z)(4xy-1)$. Lo que hay que cuidar es el signo: al sacar el $-1$ del segundo grupo, los dos términos cambian de signo.",
+    "erratum": "El libro imprime -y^2 + 3z como segundo grupo, y entonces queda -(y^2 - 3z), que no coincide con el parentesis (y - 3z) del primer grupo: la agrupacion no cierra y el item solo admitia la respuesta no se puede. Corregido a -y + 3z, un solo caracter, con lo que el ejercicio se resuelve y ademas practica el cambio de signo al factorizar -1.",
     "dificultad": 1450
   },
   {

@@ -386,20 +386,22 @@
   },
   {
     "id": "HT8-U5-P122-A3h",
-    "tipo": "abierta",
-    "enunciado": "Factoriza el polinomio $8x^2+15-14x$.",
-    "respuesta": "**Tal como está impreso no se factoriza.** Ordenado es $8x^2-14x+15$, y haría falta un par de producto $8\\cdot 15=120$ y suma $-14$; con los dos negativos las sumas posibles son $-121, -62, -43, -34, -29, -26, -23, -22$, y ninguna da $-14$. El discriminante lo confirma: $(-14)^2-4\\cdot 8\\cdot 15=-284<0$.",
+    "tipo": "simbolico",
+    "enunciado": "Factoriza el polinomio $8x^2-15-14x$.",
+    "expr": "8*x**2-15-14*x",
+    "respuesta": "(2*x-5)*(4*x+3)",
     "conjunto": "Z",
     "seccion": "Factorización de trinomios de la forma ax^{2n} + bx^n + c",
     "unidad": 5,
     "pagina_pdf": 122,
     "referencia": "Ejercita, actividad 3, item h",
     "apto_para": [
+      "ejemplo_resuelto",
       "practica_seleccion",
       "procedimiento_abierto"
     ],
-    "nota": "Es el único de los catorce polinomios de la actividad que no sale, lo que hace pensar en un error de imprenta más que en un ejercicio con truco.",
-    "verificar": "Confirmado a 900 dpi que lo impreso es 8x^2 + 15 - 14x, irreducible incluso sobre los reales (discriminante -284), y el enunciado no admite la respuesta no se puede. Hay dos correcciones a un caracter y cada una da una factorizacion distinta: 8x^2-14x+5 = (2x-1)(4x-5) y 8x^2-14x-15 = (2x-5)(4x+3). Hay que fijar la version antes de reutilizarlo.",
+    "nota": "$(2x-5)(4x+3)$. Ordenado es $8x^2-14x-15$. Se multiplica $a\\cdot c=8\\cdot(-15)=-120$ y se busca un par de producto $-120$ y suma $-14$: son $6$ y $-20$. Queda $8x^2+6x-20x-15=2x(4x+3)-5(4x+3)$.",
+    "erratum": "El libro imprime 8x^2 + 15 - 14x, irreducible incluso sobre los reales (discriminante -284) y unico de los catorce polinomios de la actividad que no sale. Habia dos correcciones de un caracter, +15 -> -15 o 15 -> 5. Se elige el cambio de signo porque es el mas economico: cambia un signo en vez de borrar un digito.",
     "dificultad": 1450
   },
   {

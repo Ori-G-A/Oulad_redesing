@@ -9,7 +9,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 1",
-    "apto_para": ["procedimiento_abierto"],
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
     "dificultad": 800
   },
   {
@@ -27,7 +29,10 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 2",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Alimenta N4 (divisibilidad): pares, primos, múltiplos y divisores en un solo ítem. En d, los divisores de 15 son 1, 3, 5 y 15, pero solo 5 y 15 están en $A$.",
     "dificultad": 1000
   },
@@ -42,7 +47,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 3, ítem a",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 800
   },
   {
@@ -56,7 +63,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 3, ítem b",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 850
   },
   {
@@ -70,7 +79,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 3, ítem c",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 950
   },
   {
@@ -84,7 +95,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 3, ítem d",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1050
   },
   {
@@ -98,7 +111,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 3, ítem e",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Tres niveles de agrupación anidados: es el ítem más exigente de la actividad.",
     "dificultad": 1250
   },
@@ -108,14 +123,19 @@
     "enunciado": "Un lote de forma rectangular mide 4 m más de largo que de ancho. Si su perímetro es de 20 m, ¿cuáles son las medidas de sus dimensiones?",
     "ecuacion": "2*(n + (n+4)) = 20",
     "incognita": "n",
-    "soluciones": ["3"],
+    "soluciones": [
+      "3"
+    ],
     "respuesta": "Ancho $3\\text{ m}$ y largo $7\\text{ m}$.",
     "conjunto": "N",
     "seccion": "Taller 1 — Números naturales",
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 4",
-    "apto_para": ["ejemplo_resuelto", "practica_numerica"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "practica_numerica"
+    ],
     "nota": "La ecuación da el ancho; el largo se obtiene sumándole 4.",
     "dificultad": 1100
   },
@@ -130,7 +150,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 6, ítem a",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 700
   },
   {
@@ -144,7 +166,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 6, ítem b",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 800
   },
   {
@@ -158,7 +182,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 6, ítem c",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Tres signos anidados dan $-4$, pero el valor absoluto lo devuelve positivo. Distractor esperado: $-4$.",
     "dificultad": 1000
   },
@@ -173,7 +199,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 6, ítem d",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 850
   },
   {
@@ -187,7 +215,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 6, ítem e",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Primero se opera dentro de las barras. Error previsto: $|-9|-|10|=-1$.",
     "dificultad": 950
   },
@@ -202,7 +232,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 6, ítem f",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 950
   },
   {
@@ -222,9 +254,11 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 7",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
-    "nota": "Material directo para N3 (propiedades). Ojo: d y e no se justifican con UNA sola propiedad — hay reordenamiento (conmutativa) y reagrupamiento (asociativa). Si se convierte en opción múltiple, la clave debe admitir ambas o el enunciado debe pedir la principal.",
-    "verificar": "Los ítems d y e admiten más de una respuesta correcta. No usarlos como opción única sin reformular.",
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
+    "nota": "Propiedades: a. clausurativa (el producto de dos enteros es entero); b. modulativa o elemento neutro del producto; c. distributiva del producto respecto de la suma; d. **conmutativa y asociativa a la vez** —se cambia el orden de los factores y también el agrupamiento—; e. según la igualdad, la que corresponda del mismo repertorio. Los ítems d y e admiten más de una propiedad porque en un solo paso se aplican dos: al calificar hay que aceptar la respuesta que nombre las dos, y no usarlos como pregunta de opción única sin reformularlos.",
     "dificultad": 1100
   },
   {
@@ -238,7 +272,10 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 8",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "Hay que descontar primero los 8 que sobran. Error previsto: $248\\div 16=15{,}5$.",
     "dificultad": 1050
   },
@@ -253,7 +290,10 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 9 (primera pregunta)",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "Descenso total $15-(-23)=38$ grados; son 19 tramos de 2 grados, es decir $19\\times 8=152$ minutos. El error típico es restar $15-23=-8$.",
     "dificultad": 1250
   },
@@ -268,7 +308,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 9 (segunda pregunta)",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "En 60 minutos caben 7,5 tramos de 8 minutos, o sea 15 grados de descenso: queda exactamente en $0\\,^\\circ$C.",
     "dificultad": 1200
   },
@@ -282,7 +324,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 10",
-    "apto_para": ["procedimiento_abierto"],
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
     "nota": "$\\dfrac{28}{12}$ conviene simplificarla a $\\dfrac{7}{3}$ antes de ubicarla.",
     "dificultad": 950
   },
@@ -297,7 +341,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 11, ítem a",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1050
   },
   {
@@ -311,7 +357,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 11, ítem b",
-    "apto_para": ["ejemplo_resuelto"],
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
     "nota": "Restar una fracción negativa suma: $\\dfrac{9}{7}+\\dfrac{8}{5}=\\dfrac{101}{35}$. No da decimal finito, así que no sirve para práctica tecleable.",
     "dificultad": 1350
   },
@@ -326,7 +374,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 11, ítem c",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Da decimal exacto de 4 cifras: cabe en el regex del backend.",
     "dificultad": 1150
   },
@@ -341,7 +391,9 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 11, ítem d",
-    "apto_para": ["ejemplo_resuelto"],
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
     "nota": "El numerador se simplifica bonito ($-\\dfrac{8}{7}\\times\\dfrac{7}{20}=-\\dfrac{2}{5}$), pero el denominador da $-\\dfrac{1117}{600}$: el resultado no es decimal finito.",
     "dificultad": 1400
   },
@@ -356,7 +408,10 @@
     "unidad": 1,
     "pagina_pdf": 24,
     "referencia": "Taller 1, actividad 11, ítem e",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "Fracción compleja: primero el numerador ($\\dfrac{3}{8}$), luego se divide entre $\\dfrac{1}{2}$, o sea se multiplica por 2.",
     "dificultad": 1150
   }

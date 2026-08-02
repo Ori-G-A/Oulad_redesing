@@ -10,7 +10,11 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 1, ítem a",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1150
   },
   {
@@ -24,7 +28,11 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 1, ítem b",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1150
   },
   {
@@ -38,7 +46,11 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 1, ítem c",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1200
   },
   {
@@ -52,7 +64,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 1, ítem d",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1300
   },
   {
@@ -66,7 +81,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 1, ítem e",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1300
   },
   {
@@ -80,7 +98,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 1, ítem f",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "En el doble producto los exponentes de $x$ se SUMAN: $2n+(n+1)=3n+1$. Es el error más común de la actividad.",
     "dificultad": 1600
   },
@@ -95,7 +116,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 1, ítem g",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Doble producto: $2\\cdot\\frac{1}{5}x^3\\cdot8m^2=\\frac{16}{5}x^3m^2$.",
     "dificultad": 1400
   },
@@ -110,7 +134,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 1, ítem h",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Doble producto: $2\\cdot\\frac{2}{7}\\cdot\\frac{1}{3}=\\frac{4}{21}$, y las letras dan $m^3n^3$.",
     "dificultad": 1500
   },
@@ -125,7 +152,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 1, ítem i",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Fracciones y exponentes literales a la vez: $2\\cdot\\frac{4}{3}\\cdot2=\\frac{16}{3}$ y $2n+(n+2)=3n+2$.",
     "dificultad": 1700
   },
@@ -140,7 +170,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 1, ítem j",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "El más pesado del taller. Doble producto: $2\\cdot\\frac{5}{2}\\cdot\\frac{3}{4}=\\frac{15}{4}$; en $x$, $(2n+1)+(n-1)=3n$; en $y$, $(n+2)+n=2n+2$.",
     "dificultad": 1800
   },
@@ -155,7 +188,11 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 2, ítem a",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Con $m=8$ la fórmula se reduce a $k=4v^2$, así que se eleva el binomio al cuadrado y se multiplica todo por $4$.",
     "dificultad": 1350
   },
@@ -170,7 +207,11 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 2, ítem b",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1350
   },
   {
@@ -184,7 +225,11 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 2, ítem c",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1350
   },
   {
@@ -198,7 +243,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 2, ítem d",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1450
   },
   {
@@ -212,7 +260,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 2, ítem e",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Aquí la letra $m$ del enunciado (la masa) y la letra $m$ de la velocidad son cosas distintas; conviene sustituir el valor $8$ antes de operar para no mezclarlas.",
     "dificultad": 1450
   },
@@ -227,7 +278,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 2, ítem f",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "El $4$ de fuera simplifica los denominadores: $4\\cdot\\frac{1}{16}=\\frac{1}{4}$ y $4\\cdot\\frac{1}{6}=\\frac{2}{3}$.",
     "dificultad": 1600
   },
@@ -241,7 +295,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 3, ítem a",
-    "apto_para": ["procedimiento_abierto", "practica_seleccion"],
+    "apto_para": [
+      "procedimiento_abierto",
+      "practica_seleccion"
+    ],
     "dificultad": 1350
   },
   {
@@ -254,8 +311,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 3, ítem b",
-    "apto_para": ["procedimiento_abierto"],
-    "verificar": "El libro probablemente espera «V», leyendo la afirmación sobre trinomios con letras distintas. La respuesta honesta es F por el contraejemplo con $x^2+x+1$; conviene precisar el enunciado antes de reutilizarlo («si los tres términos no son semejantes entre sí…»).",
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
+    "nota": "**F.** Seis términos es lo que se obtiene **antes** de reducir; si aparecen términos semejantes, quedan menos. Contraejemplo: $(x^2+x+1)^2=x^4+2x^3+3x^2+2x+1$, cinco términos, porque $2\\cdot x^2\\cdot 1$ y $x\\cdot x$ son semejantes y se suman. La afirmación solo sería verdadera si se añadiera «si ningún par de productos cruzados resulta semejante», que es el caso habitual cuando los tres términos llevan letras distintas.",
     "dificultad": 1550
   },
   {
@@ -268,7 +327,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 3, ítem c",
-    "apto_para": ["procedimiento_abierto", "practica_seleccion"],
+    "apto_para": [
+      "procedimiento_abierto",
+      "practica_seleccion"
+    ],
     "nota": "Regla práctica: todos los productos cruzados llevan el $2$, y su signo es el producto de los signos de los dos términos que se multiplican.",
     "dificultad": 1500
   },
@@ -282,7 +344,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 3, ítem d",
-    "apto_para": ["procedimiento_abierto", "practica_seleccion"],
+    "apto_para": [
+      "procedimiento_abierto",
+      "practica_seleccion"
+    ],
     "erratum": "En el libro el lado izquierdo aparece sin el exponente: escribe «$(2a+b-c)=4a^2+\\dots$». Es una omisión tipográfica evidente; con el cuadrado la igualdad es correcta.",
     "dificultad": 1500
   },
@@ -297,7 +362,11 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 4, ítem a",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1050
   },
   {
@@ -311,7 +380,11 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 4, ítem b",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1200
   },
   {
@@ -325,7 +398,11 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 4, ítem c",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "El ítem trampa del taller: los dos términos de cada paréntesis son SEMEJANTES, así que primero se reducen ($5xy^2$ y $9xy^2$) y el producto es $45x^2y^4$. Aplicar la fórmula a ciegas daría $49x^2y^4-4x^2y^4$, que casualmente también es $45x^2y^4$; el resultado coincide, pero por el camino corto se ve mejor.",
     "dificultad": 1400
   },
@@ -340,7 +417,11 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 4, ítem d",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1250
   },
   {
@@ -354,23 +435,29 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 4, ítem e",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1400
   },
   {
     "id": "HT8-U4-P90-A5-F1",
     "tipo": "simbolico",
-    "enunciado": "Completa la fila de la tabla cuyo producto es $x^9-1$: escribe los dos factores.",
-    "expr": "(x**3 - 1)*(x**6 + x**3 + 1)",
-    "respuesta": "x**9 - 1",
+    "enunciado": "Completa la fila de la tabla cuyo producto es $x^8-1$: escribe los dos factores.",
+    "expr": "(x**4-1)*(x**4+1)",
+    "respuesta": "x**8-1",
     "conjunto": "Z",
     "seccion": "Taller 4 — Productos notables",
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 5, fila 1",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
-    "nota": "$x^9$ no es un cuadrado perfecto, así que esta fila NO es suma por diferencia: es la diferencia de cubos $(x^3)^3-1^3$, con factores $x^3-1$ y $x^6+x^3+1$.",
-    "verificar": "Las otras siete filas de la tabla son todas suma por diferencia; esta rompe el patrón. Podría ser errata por $x^8-1$, que daría los conjugados $x^4-1$ y $x^4+1$. Se registra la lectura literal, que además es un producto notable visto en esta misma unidad (página 82).",
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
+    "nota": "Los factores son $x^4-1$ y $x^4+1$: suma por diferencia con $A=x^4$ y $B=1$. Como las otras siete filas de la tabla, es un producto de conjugados.",
+    "erratum": "El libro imprime x^9 - 1, que no es producto de conjugados: seria (x^3-1)(x^6+x^3+1), una diferencia de cubos, y rompe el patron de las otras siete filas de la tabla, todas de la forma suma por diferencia. Corregido a x^8 - 1 = (x^4-1)(x^4+1), un solo caracter, que restaura el patron de la tabla.",
     "dificultad": 1600
   },
   {
@@ -384,7 +471,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 5, fila 2",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Conjugado: $x^2-1$. Producto: $x^4-1$.",
     "dificultad": 1250
   },
@@ -399,7 +489,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 5, fila 3",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Conjugado: $3x^2+2$. Producto: $9x^4-4$.",
     "dificultad": 1250
   },
@@ -414,7 +507,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 5, fila 4",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Factores: $7mn^2+2$ y $7mn^2-2$. Se llega a ellos sacando raíz cuadrada a cada término: $\\sqrt{49m^2n^4}=7mn^2$ y $\\sqrt4=2$.",
     "dificultad": 1350
   },
@@ -429,7 +525,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 5, fila 5",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Conjugado: $8x^2y+3x$. Producto: $64x^4y^2-9x^2$.",
     "dificultad": 1350
   },
@@ -444,7 +543,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 5, fila 6",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Factores: $6x^n\\pm3y^{2n+1}$. La raíz cuadrada de $y^{4n+2}$ es $y^{2n+1}$: se divide el exponente entre $2$, incluido el término independiente.",
     "dificultad": 1650
   },
@@ -459,7 +561,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 5, fila 7",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Conjugado: $\\frac{1}{5}m^2n-\\frac{4}{3}$. Producto: $\\frac{1}{25}m^4n^2-\\frac{16}{9}$.",
     "dificultad": 1450
   },
@@ -474,7 +579,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 5, fila 8",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Factores: $\\frac{1}{7}a^{x+1}b^{2x}\\pm\\frac{4}{5}b^{x+2}$. Todos los exponentes del producto son el doble de los del factor.",
     "erratum": "El libro imprime el segundo término como $\\frac{16}{25}b^{x+4}$, que no es un cuadrado perfecto: su raíz sería $b^{(x+4)/2}$, sin exponente entero. Para que la fila sea una suma por diferencia el exponente debe ser $2x+4$, que es como se registra aquí.",
     "dificultad": 1800
@@ -490,7 +598,11 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 6, ítem a",
-    "apto_para": ["practica_numerica", "practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "figura": "rectángulo azul con base rotulada x+8 y altura x−3 — reconstruible en Python",
     "nota": "Producto de la forma $(x+a)(x+b)$ con $a=8$ y $b=-3$: el coeficiente central es $8+(-3)=5$ y el independiente $8\\cdot(-3)=-24$.",
     "dificultad": 1200
@@ -506,7 +618,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 6, ítem b",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "figura": "paralelogramo verde con base y²+5/3 y altura interior punteada y²−1/3 — reconstruible en Python",
     "nota": "También es $(x+a)(x+b)$, esta vez con $x=y^2$: $\\frac{5}{3}-\\frac{1}{3}=\\frac{4}{3}$ y $\\frac{5}{3}\\cdot\\left(-\\frac13\\right)=-\\frac59$.",
     "dificultad": 1450
@@ -522,7 +637,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 6, ítem c",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "figura": "triángulo rectángulo verde con cateto horizontal x+5 y cateto vertical x−4 — reconstruible en Python",
     "nota": "Primero el producto notable, $x^2+x-20$, y solo después la división entre $2$.",
     "dificultad": 1400
@@ -538,7 +656,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 6, ítem d",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "figura": "rombo naranja con diagonal vertical mn+3/5 y diagonal horizontal mn+1/3 — reconstruible en Python",
     "nota": "Área del rombo $=\\frac{d_1d_2}{2}$. El producto es $m^2n^2+\\frac{14}{15}mn+\\frac15$, y al dividir entre $2$ queda $\\frac{7}{15}mn$ y $\\frac1{10}$.",
     "dificultad": 1600
@@ -554,7 +675,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 7, ítem a",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "figura": "cubo verde de arista 4x+y con un cubo menor de arista xy−4 sobre la cara superior — reconstruible en Python",
     "nota": "Dos cubos de binomio que se suman. El término $-12x^2y^2$ del segundo cubo y el $+12xy^2$ del primero NO son semejantes, así que no se reducen entre sí.",
     "dificultad": 1750
@@ -570,7 +694,10 @@
     "unidad": 4,
     "pagina_pdf": 90,
     "referencia": "Actividad 7, ítem b",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "figura": "cubo rosado de arista 2x²−3x con cuatro cubos de arista x−1 sobresaliendo en cruz — reconstruible en Python",
     "nota": "$(2x^2-3x)^3=8x^6-36x^5+54x^4-27x^3$ y $4(x-1)^3=4x^3-12x^2+12x-4$; los dos $x^3$ sí se reducen: $-27x^3+4x^3=-23x^3$.",
     "verificar": "El dibujo muestra cuatro salientes (arriba, abajo, izquierda, derecha) y la cara frontal aparece limpia, sin saliente, a diferencia de la figura análoga de la página 83 (donde sí hay seis). Se registran cuatro; si hubiera además uno delante y otro detrás, el término sería $6(x-1)^3$.",

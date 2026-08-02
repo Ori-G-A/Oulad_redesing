@@ -9,7 +9,9 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 1 (Recupera información)",
-    "apto_para": ["procedimiento_abierto"],
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
     "nota": "Buena pregunta de control: si el estudiante solo dice «se multiplican», falta lo esencial — que la multiplicación se REPARTE y que después hay que reducir. El número de productos parciales es (términos del primero) × (términos del segundo), y sirve para comprobar que no se olvidó ninguno.",
     "dificultad": 900
   },
@@ -24,7 +26,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 2, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Monomio por binomio: el $5m^2$ multiplica a los DOS términos. El segundo producto ($5m^2\\cdot8$) es el que más se olvida.",
     "dificultad": 900
   },
@@ -39,7 +44,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 2, ítem b",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "El primer factor trae $-y-7y$ SIN reducir: conviene juntarlos en $-8y$ antes de multiplicar y así hacer dos productos en vez de tres. Reducir primero es más barato que reducir después.",
     "dificultad": 1050
   },
@@ -54,7 +62,9 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 2, ítem c",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Los tres signos del resultado alternan porque el factor de afuera es negativo: $(-)(-)=+$, $(-)(+)=-$, $(-)(-)=+$.",
     "dificultad": 1050
   },
@@ -69,7 +79,9 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 2, ítem d",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Los tres términos del resultado tienen grado total 8: es un polinomio homogéneo, y sirve de comprobación rápida de que no se equivocó ningún exponente.",
     "dificultad": 1100
   },
@@ -84,7 +96,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 2, ítem e",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "$1{,}5\\cdot0{,}3=0{,}45$ y $0{,}4\\cdot0{,}3=0{,}12$: los decimales se multiplican como enteros y se cuentan las cifras decimales. Ambos resultados son exactos.",
     "dificultad": 1150
   },
@@ -99,7 +114,9 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 2, ítem f",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Al multiplicar fracciones no hace falta común denominador: numerador por numerador y denominador por denominador. $\\dfrac{3}{2}\\cdot\\dfrac{1}{7}=\\dfrac{3}{14}$.",
     "dificultad": 1200
   },
@@ -114,7 +131,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 2, ítem g",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "Tres productos de fracciones con signo: solo el primero queda negativo. $\\dfrac{7}{8}\\cdot\\dfrac{1}{6}=\\dfrac{7}{48}$ y $\\dfrac{7}{8}\\cdot\\dfrac{3}{8}=\\dfrac{21}{64}$ — ninguno se simplifica, hay que dejarlos así.",
     "dificultad": 1400
   },
@@ -129,7 +149,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 2, ítem h",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Exponentes literales: $a^x\\cdot a^{x+1}=a^{2x+1}$ y $a^x\\cdot a^{2x+2}=a^{3x+2}$. Los exponentes se suman como expresiones algebraicas, no como números.",
     "dificultad": 1400
   },
@@ -144,7 +167,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 3, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Primer binomio por binomio: cuatro productos parciales ($10x^3$, $-40x^2$, $-6x^2$, $+24x$) y solo dos de ellos se reducen entre sí, dando $-46x^2$.",
     "dificultad": 1100
   },
@@ -159,7 +185,9 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 3, ítem b",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Los dos productos cruzados ($+8m^3n^3$ y $-21m^3n^3$) sí son semejantes y se reducen a $-13m^3n^3$.",
     "dificultad": 1250
   },
@@ -174,7 +202,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 3, ítem c",
-    "apto_para": ["practica_seleccion", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "procedimiento_abierto"
+    ],
     "nota": "Seis productos parciales y NINGUNO se reduce con otro: el resultado tiene los seis términos. Es el mejor ejemplo de que «reducir» no siempre acorta la respuesta.",
     "dificultad": 1400
   },
@@ -189,7 +220,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 3, ítem d",
-    "apto_para": ["practica_seleccion", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "procedimiento_abierto"
+    ],
     "nota": "Trinomio por trinomio: nueve productos parciales que se reducen a seis términos. Conviene organizarlos en tabla de $3\\times3$ para no perder ninguno.",
     "dificultad": 1550
   },
@@ -204,7 +238,11 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 3, ítem e",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "El primer factor trae $-11a^3b$ y $-6a^3b$, que son SEMEJANTES: se reducen a $-17a^3b$ y el trinomio se vuelve binomio. Quien no lo note hace seis productos en vez de cuatro y llega al mismo sitio con el doble de trabajo.",
     "dificultad": 1600
   },
@@ -219,7 +257,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 3, ítem f",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "El $\\dfrac{1}{4}$ es un término independiente: multiplica igual que los demás y produce los dos últimos términos. Ninguno de los cuatro se reduce con otro.",
     "dificultad": 1450
   },
@@ -234,7 +275,9 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 3, ítem g",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Los cuatro términos llevan $b^2$: la $b$ aparece a la primera en los cuatro factores. Solo cambia la potencia de $a$, de $a^5$ a $a^2$.",
     "dificultad": 1450
   },
@@ -249,7 +292,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 3, ítem h",
-    "apto_para": ["practica_numerica", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_numerica",
+      "procedimiento_abierto"
+    ],
     "nota": "El ejercicio más pesado de la actividad: nueve productos de fracciones, con dos parejas que se reducen ($xy$ y $x$). El término en $xy$ sale $-\\dfrac{1}{35}-\\dfrac{3}{4}=-\\dfrac{109}{140}$.",
     "dificultad": 1650
   },
@@ -264,7 +310,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 3, ítem i",
-    "apto_para": ["practica_seleccion", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "procedimiento_abierto"
+    ],
     "nota": "Ocho productos parciales y ocho términos en el resultado: tampoco aquí se reduce nada. El término independiente $-4$ del primer factor genera los dos últimos términos.",
     "dificultad": 1550
   },
@@ -279,7 +328,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 4, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Los dos productos son cuadrados de binomios ($x^2+2xy+y^2$ y $x^2-2xz+z^2$) — un anticipo directo de la unidad 4. Los dos $x^2$ se suman y dan $2x^2$.",
     "dificultad": 1250
   },
@@ -294,7 +346,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 4, ítem b",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Primero se multiplica DENTRO de cada corchete y solo después se resta, cambiando los tres signos del segundo. El resultado tiene factor común 2: $2(a^2-ab-b^2)$.",
     "dificultad": 1400
   },
@@ -309,7 +364,9 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 4, ítem c",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "El corchete vale $-6x^2+2xy-8x$ y va precedido de un menos, así que los tres términos entran con el signo cambiado. El $-5x^2y$ no se reduce con nada.",
     "dificultad": 1300
   },
@@ -324,7 +381,9 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 4, ítem d",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "El producto da $6m^2-mn-2n^2$ y al restar queda $2m^2+2mn-2n^2$. Curiosamente coincide con el resultado del ítem b cambiando las letras.",
     "dificultad": 1350
   },
@@ -339,7 +398,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 4, ítem e",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Tres términos en $a^4b^3$ se juntan: $-14+2-21=-33$. Hay que multiplicar dentro del corchete ANTES de tocar la llave.",
     "dificultad": 1450
   },
@@ -354,7 +416,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 4, ítem f",
-    "apto_para": ["practica_seleccion", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "procedimiento_abierto"
+    ],
     "nota": "El $(5n)$ multiplica a TODA la llave, no solo al último término. La llave vale $-6m^2n-6m^2+mn+n^2$ y cada uno de sus cuatro términos se multiplica por $5n$.",
     "dificultad": 1550
   },
@@ -369,7 +434,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 4, ítem g",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "El $4$ multiplica a los tres términos del paréntesis: $\\dfrac{9}{2}x-\\dfrac{10}{3}y+\\dfrac{8}{7}$. Nótese que $\\dfrac{6}{21}=\\dfrac{2}{7}$, así que $4\\cdot\\dfrac{6}{21}=\\dfrac{8}{7}$ y con el $-\\dfrac{3}{7}$ queda $\\dfrac{5}{7}$.",
     "dificultad": 1500
   },
@@ -384,7 +452,11 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 4, ítem h",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Tres niveles de agrupación con coeficientes fraccionarios. De dentro hacia fuera: el corchete es $8a^2-8a+12$; multiplicado por $-\\dfrac{3}{5}$ y luego por $\\dfrac{5}{7}$ queda $-\\dfrac{24}{7}a^2+\\dfrac{24}{7}a-\\dfrac{36}{7}$. El $\\dfrac{5}{5}$ se cancela: conviene NO multiplicar las dos fracciones por separado.",
     "dificultad": 1700
   },
@@ -399,7 +471,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 5, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Cuadros: $y^4$ en el factor; luego $-1$, $x^8$, $y^1$ en el primer término y $x^3$ en el segundo. Se resuelve al revés: el $y^5$ del resultado obliga a que el factor traiga $y^4$, porque el otro factor aporta $y^1$.",
     "dificultad": 1350
   },
@@ -414,7 +489,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 5, ítem b",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Cuadros: $b^3$ y $a^4$ en el factor; $8$, $a^3$ en el primer término y $-12$, $b^3$ en el segundo. El $a^6$ del resultado es la pista: $2+\\square=6$.",
     "dificultad": 1400
   },
@@ -429,7 +507,9 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 5, ítem c",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Aquí los cuadros de $\\square6$ y $\\square10$ son SIGNOS, no coeficientes: $-6m^4$ y $+10m$. El $n^4$ del resultado obliga a que el factor traiga $n^4$, porque $-2m$ no aporta ninguna $n$.",
     "dificultad": 1400
   },
@@ -444,9 +524,11 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 5, ítem d",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
-    "nota": "Cuadros: $x^2$ y $y^4$ en el factor; $y^4$ y $20$ en el resultado. El cuadro precedido de menos debe contener $-3$ para que el término quede $+3x^3y^2$ y el producto salga $+15x^5y^4$.",
-    "verificar": "El primer factor del paréntesis está impreso como $-\\square x^3y^2$ y el resultado como $+15x^5y^4$. Para que la identidad sea verdadera, el cuadro tiene que contener $-3$ (doble negación). Si el libro esperaba que el cuadro guardara solo el $3$, entonces el signo impreso del resultado sería una errata. Se registra la lectura literal.",
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
+    "nota": "Los cuadros son, en orden: $2$, $-3$, $4$ y $20$; la identidad completa es $(5x^2y^2)(-3x^3y^2+4xy^4)=-15x^5y^4+20x^3y^6$. Convenio adoptado: **el cuadro guarda el término con su signo**. Ojo con el resultado: el primer término queda $-15x^5y^4$, negativo, porque $5\\cdot(-3)=-15$.",
     "dificultad": 1500
   },
   {
@@ -460,7 +542,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 5, ítem e",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Cuadros: $b^1$ y $a^2$ en el primer factor; $-2$ y $a^3$ en el monomio; $b^4$ en el resultado. El $+14$ inicial obliga a que el monomio sea negativo, y de ahí sale todo lo demás.",
     "dificultad": 1500
   },
@@ -475,7 +560,10 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 6, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "figura": "rectángulo con base 3x²+5x−6 y altura 2x+1 — reconstruible en Python",
     "nota": "Área = base × altura, igual que con números: la única diferencia es que hay que distribuir. Trinomio por binomio: seis productos que se reducen a cuatro términos.",
     "dificultad": 1300
@@ -491,7 +579,9 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 6, ítem b",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "figura": "rectángulo con base 12x²−5x−7 y altura 8x²−3x — reconstruible en Python",
     "nota": "El resultado no tiene término independiente porque la altura tampoco lo tiene: los dos factores de $8x^2-3x$ llevan $x$.",
     "dificultad": 1400
@@ -507,7 +597,11 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 7, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "figura": "triángulo rectángulo con cateto vertical 4x²+6x y cateto horizontal 8x²−7x+1 — reconstruible en Python",
     "nota": "Conviene dividir por 2 ANTES de multiplicar: $\\dfrac{4x^2+6x}{2}=2x^2+3x$ deja el producto sin fracciones. Dividir al final obliga a partir cuatro coeficientes en vez de dos.",
     "dificultad": 1500
@@ -523,7 +617,11 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 7, ítem b",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "figura": "trapecio con base menor 4x²+5x+1, base mayor 6x²+7x−5 y altura 8x+6 punteada — reconstruible en Python",
     "nota": "$A=\\dfrac{(B+b)\\cdot h}{2}$: primero se SUMAN las bases ($10x^2+12x-4$), después se divide entre 2 ($5x^2+6x-2$) y al final se multiplica por la altura. Sumar antes de multiplicar ahorra la mitad de los productos.",
     "dificultad": 1550
@@ -539,7 +637,11 @@
     "unidad": 3,
     "pagina_pdf": 57,
     "referencia": "Actividad 8 (Soluciona problemas)",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "figura": "prisma con canal longitudinal: las dos franjas superiores de 4x, el canal de 4x por 2x y la profundidad 7x+12 — reconstruible en Python",
     "nota": "El ancho total sale de las tres franjas del dibujo: $4x+4x+4x=12x$. Como el canal atraviesa la pieza de lado a lado, basta con restar las ÁREAS de la sección ($72x^2-8x^2=64x^2$) y multiplicar una sola vez por el largo. El resultado se factoriza como $64x^2(7x+12)$, que es una buena forma de comprobarlo.",
     "dificultad": 1650

@@ -15,7 +15,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 11",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Se cuentan variables DISTINTAS, no apariciones. En c y e las últimas variables ($z$, $d$) aparecen una sola vez y es fácil pasarlas por alto.",
     "dificultad": 900
   },
@@ -30,7 +32,10 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 12, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Dos niveles de signos de agrupación con menos delante: cada eliminación cambia los signos de todo lo que contiene.",
     "dificultad": 1200
   },
@@ -45,7 +50,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 12, ítem b",
-    "apto_para": ["ejemplo_resuelto"],
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1350
   },
   {
@@ -59,7 +66,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 12, ítem c",
-    "apto_para": ["ejemplo_resuelto"],
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1350
   },
   {
@@ -73,8 +82,10 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 12, ítem d",
-    "apto_para": ["ejemplo_resuelto"],
-    "verificar": "Verificado a 360 dpi: NO hay signo $+$ entre $0{,}25a$ y el corchete, así que el monomio MULTIPLICA al corchete. Eso saca el ítem del alcance de la actividad (que pide reducir términos semejantes) y exige distribuir, produciendo $a^2$ y $ab$. Revisar si es intencional antes de usarlo aquí.",
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
+    "nota": "Verificado a 360 dpi: **no** hay signo $+$ entre $0{,}25a$ y el corchete, así que el monomio **multiplica** al corchete. Por tanto hay que reducir dentro del corchete y después distribuir: $\\dfrac{2}{3}b-\\left(0{,}75a+\\dfrac{3}{2}b\\right)=-0{,}75a-\\dfrac{5}{6}b$, y al multiplicar por $0{,}25a$ y cambiar el signo global queda $0{,}1875a^2+\\dfrac{5}{24}ab$. Nótese que aparecen $a^2$ y $ab$: el ítem va más allá de reducir términos semejantes, que es lo que anuncia la actividad, así que conviene usarlo después de haber visto el producto de monomios.",
     "dificultad": 1450
   },
   {
@@ -88,7 +99,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 12, ítem e",
-    "apto_para": ["ejemplo_resuelto"],
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1300
   },
   {
@@ -108,7 +121,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 13",
-    "apto_para": ["procedimiento_abierto"],
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
     "nota": "Respuesta abierta: infinitas soluciones válidas. Basta con que UN término alcance el grado pedido; los demás pueden ser de grado menor.",
     "dificultad": 1250
   },
@@ -128,7 +143,10 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 14",
-    "apto_para": ["practica_vf", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_vf",
+      "ejemplo_resuelto"
+    ],
     "verificar": "El ítem c no tiene respuesta única: la p.37 (actividad 2g) y la p.39 usan coeficientes literales declarados constantes, lo que contradice un 'V' rotundo. No usarlo como práctica autocalificada sin precisar el enunciado.",
     "nota": "El ítem e es buen contraste con el 5a de la p.37: allí se preguntaba si tres VARIABLES implican trinomio (falso); aquí, si tres TÉRMINOS lo implican (verdadero).",
     "dificultad": 1200
@@ -148,7 +166,10 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 15",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Un polinomio es completo respecto a una variable si aparecen TODOS los grados desde el mayor hasta 0. Dos de los cuatro ($b$ y $d$) ya lo son: la respuesta correcta es 'no hay que agregar nada', que suele desconcertar.",
     "dificultad": 1300
   },
@@ -163,7 +184,10 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 16, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Es el modelo de área de $(3x+1)(3x)$: las cuatro piezas arman un rectángulo grande. Antesala directa de los productos notables de la unidad 4.",
     "dificultad": 1200
   },
@@ -178,7 +202,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 16, ítem b",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Equivale a $(2x+1)(5x)$.",
     "dificultad": 1200
   },
@@ -193,7 +219,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 16, ítem c",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Equivale a $(4x+2)(3x)$.",
     "dificultad": 1200
   },
@@ -208,7 +236,10 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 16, ítem d",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "El único de los cuatro que da un trinomio: es exactamente el modelo de área de $(3x+3)(2x+5)$, con los dos términos centrales ($6x$ y $15x$) que se suman en $21x$. El mejor ítem de la página para introducir la multiplicación de binomios.",
     "dificultad": 1300
   },
@@ -223,7 +254,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 17, ítem a",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 900
   },
   {
@@ -237,7 +270,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 17, ítem b",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1050
   },
   {
@@ -251,7 +286,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 17, ítem c",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1150
   },
   {
@@ -265,7 +302,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 17, ítem d",
-    "apto_para": ["ejemplo_resuelto"],
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1300
   },
   {
@@ -279,7 +318,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 17, ítem e",
-    "apto_para": ["ejemplo_resuelto"],
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
     "nota": "$=1266{,}7$: decimal exacto pese a los denominadores 4, 2 y 5. Los tres términos son grandes y de signos alternos ($-1440$, $+864$, $+1843{,}2$), así que conviene calcularlos por separado antes de sumar.",
     "dificultad": 1400
   },
@@ -294,7 +335,10 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 17, ítem f",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "Con $x=-2$ el paréntesis $(x+2)$ vale 0, así que el término central desaparece entero. Vale la pena que el estudiante lo note antes de multiplicar.",
     "dificultad": 1250
   },
@@ -309,7 +353,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 18, ítem a",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1100
   },
   {
@@ -323,9 +369,10 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 18, ítem b",
-    "apto_para": ["ejemplo_resuelto"],
-    "verificar": "El resultado es NEGATIVO ($-81.398$), lo que no tiene sentido para un costo. La expresión del libro es correcta tal como está impresa; el problema es el modelo: con $x$ grande dominan los términos $-5x^2$ y $-\\dfrac{x^3}{4}$. Conviene usarlo como discusión sobre el rango de validez de un modelo, no como cálculo 'con respuesta bonita'.",
-    "nota": "Buena ocasión para preguntar a partir de qué tonelaje el modelo deja de tener sentido.",
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
+    "nota": "$C(64)=-81.398$. El cálculo es correcto, pero el resultado **negativo** revela el límite del modelo: para $x$ grande dominan $-5x^2$ y $-\\dfrac{x^3}{4}$, y el costo se vuelve negativo a partir de unas $9$ toneladas ($C(9)\\approx 44$, $C(10)=-20$). Un costo negativo no tiene sentido físico, así que el polinomio solo modela la situación en un rango pequeño de $x$. Es el mejor ítem de la unidad para discutir el **dominio de validez** de un modelo: la aritmética puede estar bien y la respuesta seguir sin significar nada.",
     "dificultad": 1350
   },
   {
@@ -333,10 +380,26 @@
     "tipo": "tabla",
     "enunciado": "La energía potencial de un cuerpo a cierta altura es $u=mgh$, con $g=9{,}8$. Completa la tabla.",
     "filas": [
-      {"m": "0,2 kg", "h": "1,5 m", "u": "2,94"},
-      {"m": "0,5 kg", "h": "2 m", "u": "9,8"},
-      {"m": "0,75 kg", "h": "0,8 m", "u": "5,88"},
-      {"m": "0,8 kg", "h": "1,2 m", "u": "9,408"}
+      {
+        "m": "0,2 kg",
+        "h": "1,5 m",
+        "u": "2,94"
+      },
+      {
+        "m": "0,5 kg",
+        "h": "2 m",
+        "u": "9,8"
+      },
+      {
+        "m": "0,75 kg",
+        "h": "0,8 m",
+        "u": "5,88"
+      },
+      {
+        "m": "0,8 kg",
+        "h": "1,2 m",
+        "u": "9,408"
+      }
     ],
     "respuesta": "Ver filas.",
     "conjunto": "Q",
@@ -344,7 +407,9 @@
     "unidad": 2,
     "pagina_pdf": 41,
     "referencia": "Taller 2, actividad 19",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Las filas 2 y 4 dan valores casi iguales ($9{,}8$ y $9{,}408$) con masas y alturas distintas: sirve para ver que lo que importa es el producto $mh$.",
     "dificultad": 1150
   }

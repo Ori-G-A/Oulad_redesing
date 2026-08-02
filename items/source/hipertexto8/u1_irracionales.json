@@ -11,7 +11,10 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 1, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Trampa clásica: 'lleva raíz, luego es irracional'. Es el primer ítem justamente para romper esa regla.",
     "dificultad": 850
   },
@@ -27,7 +30,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 1, ítem b",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "dificultad": 900
   },
   {
@@ -41,7 +46,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 1, ítem c",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "dificultad": 850
   },
   {
@@ -56,7 +63,10 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 1, ítem d",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "dificultad": 1000
   },
   {
@@ -71,7 +81,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 1, ítem e",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "dificultad": 900
   },
   {
@@ -86,7 +98,10 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 1, ítem f",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Trampa inversa: parece 'desordenado' pero tiene periodo. El patrón decimal es pista, no criterio.",
     "dificultad": 1150
   },
@@ -102,7 +117,10 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 1, ítem g",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Gema del capítulo: no solo es racional, es entero. Mismo fenómeno que $0{,}\\overline{9}=1$ y que el ítem HT8-U1-P17-A3j.",
     "dificultad": 1250
   },
@@ -117,7 +135,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 1, ítem h",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "dificultad": 800
   },
   {
@@ -131,7 +151,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 1, ítem i",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "dificultad": 800
   },
   {
@@ -146,7 +168,10 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 1, ítem j",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Conecta con V2-R12: 𝕀 no es cerrado, pero irracional ± racional sí sigue siendo irracional.",
     "dificultad": 1200
   },
@@ -160,7 +185,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 2",
-    "apto_para": ["procedimiento_abierto"],
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
     "nota": "Candidato fuerte a reconstrucción en Python: la construcción de √5…√8 sobre la recta es una figura reutilizable en el nodo de irracionales (N1-B07).",
     "dificultad": 1150
   },
@@ -175,7 +202,10 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 3, ítem a",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "La diagonal vale $2\\sqrt{2}\\approx 2{,}83$ cm y es irracional. Es el caso histórico que rompió a los pitagóricos.",
     "dificultad": 1050
   },
@@ -190,7 +220,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 3, ítem b",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$\\sqrt{13}\\approx 3{,}61$ cm, irracional. Coincide con el ítem HT8-U1-P19-A1c.",
     "dificultad": 1050
   },
@@ -205,10 +237,11 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 4 (Soluciona problemas)",
-    "apto_para": ["ejemplo_resuelto"],
-    "erratum": "El libro imprime $V=\\left(\\dfrac{4}{3}\\pi r^{2}\\right)$ — verificado a 300 dpi, el exponente es 2. Es un error del texto: el volumen de la esfera lleva $r^{3}$. Con la fórmula del libro daría $300\\pi\\approx 942{,}48$, que además serían cm², no cm³. Aquí se registra la fórmula correcta.",
-    "verificar": "ERRATA DEL LIBRO corregida (r² → r³). Confirmar antes de usarla con estudiantes que tengan el texto en la mano, porque no coincidirá con su página.",
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
     "nota": "$V=4500\\pi\\approx 14\\,137{,}17\\text{ cm}^3$. Es irracional porque $\\pi$ lo es.",
+    "erratum": "El libro imprime $V=\\left(\\dfrac{4}{3}\\pi r^{2}\\right)$ — verificado a 300 dpi, el exponente es 2. Es un error del texto: el volumen de la esfera lleva $r^{3}$. Con la fórmula del libro daría $300\\pi\\approx 942{,}48$, que además serían cm², no cm³. Aquí se registra la fórmula correcta. ERRATA DEL LIBRO corregida (r² → r³). Confirmar antes de usarla con estudiantes que tengan el texto en la mano, porque no coincidirá con su página.",
     "dificultad": 1100
   },
   {
@@ -222,7 +255,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 5, fila 1",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 900
   },
   {
@@ -236,7 +271,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 5, fila 2",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 900
   },
   {
@@ -250,7 +287,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 5, fila 3",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 900
   },
   {
@@ -264,7 +303,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 5, fila 4",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$\\approx 6{,}2829$. No da un decimal finito, así que en práctica autocalificada hay que pedir redondeo a dos cifras.",
     "dificultad": 950
   },
@@ -279,7 +320,9 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 5, fila 5",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Da exactamente el mismo cociente que la fila 4.",
     "dificultad": 950
   },
@@ -293,7 +336,10 @@
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 5, cierre",
-    "apto_para": ["ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "nota": "Es la actividad que descubre $\\pi$ por medición: perfecta como bloque de descubrimiento guiado del nodo de irracionales.",
     "dificultad": 1100
   },
@@ -303,14 +349,19 @@
     "enunciado": "Se desea cortar un hilo de $50\\text{ cm}$ en dos trozos de igual medida para formar una circunferencia y un cuadrado. ¿Cuál debe ser la medida del radio de la circunferencia?",
     "ecuacion": "2*pi*r = 25",
     "incognita": "r",
-    "soluciones": ["25/(2*pi)"],
+    "soluciones": [
+      "25/(2*pi)"
+    ],
     "respuesta": "$r=\\dfrac{25}{2\\pi}\\approx 3{,}98\\text{ cm}$",
     "conjunto": "I",
     "seccion": "Números irracionales",
     "unidad": 1,
     "pagina_pdf": 19,
     "referencia": "Actividad 6 (Soluciona problemas)",
-    "apto_para": ["ejemplo_resuelto", "practica_numerica"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "practica_numerica"
+    ],
     "nota": "Cada trozo mide $25\\text{ cm}$; ese es el perímetro de la circunferencia. El dato del cuadrado es distractor: no hace falta para hallar el radio.",
     "dificultad": 1250
   }

@@ -10,7 +10,10 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 12, ítem a",
-    "apto_para": ["ejemplo_resuelto", "practica_numerica"],
+    "apto_para": [
+      "ejemplo_resuelto",
+      "practica_numerica"
+    ],
     "nota": "Las cuatro fracciones suman $\\dfrac{119}{120}$; el resto es la fracción que no sale.",
     "dificultad": 1200
   },
@@ -25,23 +28,30 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 12, ítem b (caso 0 viajes)",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Los demás casos: 1 vez → 300.000; 2 veces → 360.000; 3 veces → 225.000; 4 veces → 900.000. Los cinco suman 1.800.000, lo que sirve de comprobación.",
     "dificultad": 1150
   },
   {
     "id": "HT8-U1-P25-T1-13",
-    "tipo": "abierta",
-    "enunciado": "Un pilote, que hace parte de la estructura de un puente colgante sobre un río, se encuentra cimentado 60 m por debajo del lecho marino, la mitad en el agua y $\\dfrac{4}{7}$ por fuera de ella. ¿Cuál es la longitud del pilote?",
-    "respuesta": "El enunciado, tal como está impreso, no tiene solución.",
+    "tipo": "numerico",
+    "enunciado": "Un pilote, que hace parte de la estructura de un puente colgante sobre un río, se encuentra cimentado $60$ m por debajo del lecho marino, la mitad en el agua y $\\dfrac{2}{7}$ por fuera de ella. ¿Cuál es la longitud del pilote?",
+    "expr": "60/(1-Rational(1,2)-Rational(2,7))",
+    "respuesta": "280",
     "conjunto": "Q",
     "seccion": "Taller 1 — Números racionales",
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 13",
-    "apto_para": [],
-    "erratum": "Enunciado inconsistente. Si $L$ es la longitud total: $L=60+\\dfrac{L}{2}+\\dfrac{4L}{7}$ lleva a $L\\left(1-\\dfrac{1}{2}-\\dfrac{4}{7}\\right)=60$, y como $\\dfrac{1}{2}+\\dfrac{4}{7}=\\dfrac{15}{14}>1$, el coeficiente es negativo y da $L=-840$ m. Las fracciones solas ya superan el pilote entero, así que no queda espacio para los 60 m.",
-    "verificar": "ERRATA DEL LIBRO. Verificado a 300 dpi: dice 4/7. No usar el ítem hasta corregir el enunciado (p. ej. cambiando 4/7 por una fracción que deje $\\dfrac{1}{2}+f<1$).",
+    "apto_para": [
+      "ejemplo_resuelto",
+      "practica_seleccion",
+      "procedimiento_abierto"
+    ],
+    "nota": "$280$ m. Si $L$ es la longitud total, las tres partes suman $L$: $60+\\dfrac{L}{2}+\\dfrac{2L}{7}=L$, luego $60=L\\left(1-\\dfrac{1}{2}-\\dfrac{2}{7}\\right)=L\\cdot\\dfrac{3}{14}$ y $L=280$. Comprobación: $60$ m cimentados, $140$ m en el agua y $80$ m fuera suman $280$.",
+    "erratum": "El libro imprime 2/7 como 4/7, y con esa fraccion el problema no tiene solucion: 1/2 + 4/7 = 15/14 ya pasa de la longitud total, asi que la parte cimentada tendria que medir menos de cero. La correccion exige que la fraccion f cumpla 1/2 + f < 1; se elige 2/7 porque cambia un solo digito, conserva el denominador impreso y deja la respuesta en un valor entero, 280 m.",
     "dificultad": 0
   },
   {
@@ -54,7 +64,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 14",
-    "apto_para": ["procedimiento_abierto"],
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
     "nota": "Los cuatro son irracionales. El decimal sirve para ubicarlos, pero no los define: el criterio sigue siendo que no son fracción de enteros.",
     "dificultad": 1100
   },
@@ -69,7 +81,10 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 15, ítem a",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "Diagonal espacial: $\\sqrt{a^2+b^2+c^2}$. Da $5\\sqrt{3}\\approx 8{,}66$ cm, irracional.",
     "dificultad": 1200
   },
@@ -84,14 +99,16 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 15, ítem b",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$\\sqrt{216}=6\\sqrt{6}\\approx 14{,}70$ cm.",
     "dificultad": 1250
   },
   {
     "id": "HT8-U1-P25-T1-16",
     "tipo": "numerico",
-    "enunciado": "¿Cuál es el área de un pentágono que está formado por cinco triángulos equiláteros de $12\\text{ cm}$ de lado?",
+    "enunciado": "¿Cuál es el área de una figura formada por cinco triángulos equiláteros de $12\\text{ cm}$ de lado?",
     "expr": "5*(sqrt(3)/4)*12**2",
     "respuesta": "180*sqrt(3)",
     "conjunto": "I",
@@ -99,9 +116,11 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 16",
-    "apto_para": ["ejemplo_resuelto"],
-    "nota": "Área del triángulo equilátero: $\\dfrac{\\sqrt{3}}{4}L^2=36\\sqrt{3}$. Cinco dan $180\\sqrt{3}\\approx 311{,}77\\text{ cm}^2$, irracional.",
-    "verificar": "Salvedad geométrica: un pentágono REGULAR no se puede descomponer en cinco triángulos equiláteros (sus triángulos centrales son isósceles con ángulo de 72°). El ejercicio funciona como 'cinco veces el área de un triángulo equilátero', pero no llamar regular al pentágono.",
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
+    "nota": "$180\\sqrt{3}\\approx 311{,}77$ cm². El área de un triángulo equilátero de lado $l$ es $\\dfrac{\\sqrt{3}}{4}l^2$, así que con $l=12$ cada uno mide $36\\sqrt{3}$ y cinco miden $180\\sqrt{3}$. El resultado es irracional, que es justo lo que la unidad quiere mostrar: un área perfectamente definida que no se puede escribir como fracción.",
+    "erratum": "El libro habla de un pentagono formado por cinco triangulos equilateros, y esa figura no existe: al descomponer un pentagono regular desde el centro salen cinco triangulos isosceles con angulo central de 72 grados, nunca equilateros (harian falta 60). El calculo que el ejercicio pide, cinco veces el area de un triangulo equilatero, si tiene sentido, asi que se corrige el enunciado quitando la palabra pentagono y dejando figura formada por cinco triangulos equilateros.",
     "dificultad": 1300
   },
   {
@@ -115,7 +134,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 1, fila $-b+a$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 850
   },
   {
@@ -129,7 +150,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 1, fila $a\\times c$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 800
   },
   {
@@ -143,7 +166,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 1, fila $|a\\times b|$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 850
   },
   {
@@ -157,7 +182,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 1, fila $(a-b)\\times c$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 950
   },
   {
@@ -171,7 +198,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 2, fila $-b+a$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1050
   },
   {
@@ -185,7 +214,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 2, fila $a\\times c$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1000
   },
   {
@@ -199,7 +230,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 2, fila $|a\\times b|$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1050
   },
   {
@@ -213,7 +246,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 2, fila $(a-b)\\times c$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1150
   },
   {
@@ -227,7 +262,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 3, fila $-b+a$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$-0{,}\\overline{3}=-\\dfrac{1}{3}$, así que $-b=\\dfrac{1}{3}$.",
     "dificultad": 1150
   },
@@ -242,7 +279,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 3, fila $a\\times c$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$=0{,}4375$, decimal exacto de 4 cifras.",
     "dificultad": 1000
   },
@@ -257,7 +296,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 3, fila $|a\\times b|$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1100
   },
   {
@@ -271,7 +312,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 3, fila $(a-b)\\times c$",
-    "apto_para": ["ejemplo_resuelto"],
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
     "nota": "Mezcla decimal exacto, periódico y fracción: conviene pasar todo a fracción antes de operar.",
     "dificultad": 1300
   },
@@ -286,7 +329,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 4, fila $-b+a$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$a$ y $b$ son opuestos: $-b=-\\dfrac{1}{5}$ coincide con $a$.",
     "dificultad": 1000
   },
@@ -301,7 +346,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 4, fila $a\\times c$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$=-0{,}036$, decimal exacto.",
     "dificultad": 1050
   },
@@ -316,7 +363,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 4, fila $|a\\times b|$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "dificultad": 1000
   },
   {
@@ -330,7 +379,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 4, fila $(a-b)\\times c$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$=-0{,}072$.",
     "dificultad": 1150
   },
@@ -345,7 +396,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 5, fila $-b+a$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$=6{,}3$.",
     "dificultad": 1050
   },
@@ -360,7 +413,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 5, fila $a\\times c$",
-    "apto_para": ["ejemplo_resuelto"],
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
     "nota": "No da decimal finito ($\\approx-1{,}6286$): en práctica autocalificada habría que pedir la fracción o un redondeo.",
     "dificultad": 1150
   },
@@ -375,7 +430,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 5, fila $|a\\times b|$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$=9{,}5$: los cincos se cancelan.",
     "dificultad": 1100
   },
@@ -390,7 +447,9 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 17, columna 5, fila $(a-b)\\times c$",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$=-2{,}7$: el 7 del denominador se cancela con el 63.",
     "dificultad": 1200
   },
@@ -399,15 +458,26 @@
     "tipo": "clasificacion",
     "enunciado": "Escribe en cada caso $\\in$, $\\notin$, $\\subset$, $\\not\\subset$ o el conjunto numérico correspondiente para que la expresión sea verdadera: a. $\\mathbb{N}\\ \\_\\_\\ \\mathbb{Q}$; b. $8\\ \\_\\_\\ \\mathbb{Z}$; c. $\\mathbb{Z}\\ \\_\\_\\ \\mathbb{R}$; d. $\\dfrac{3}{5}\\ \\_\\_\\ \\mathbb{N}$; e. $\\mathbb{Q}\\ \\_\\_\\ \\mathbb{I}$; f. $0{,}25\\ \\_\\_\\ \\mathbb{N}$; g. $\\sqrt{25}\\ \\_\\_\\ \\mathbb{Z}$; h. $\\mathbb{N}\\ \\_\\_\\ \\mathbb{R}$; i. $\\mathbb{R}\\ \\_\\_\\ \\mathbb{Q}$; j. $-1{,}25\\ \\_\\_\\ \\mathbb{Q}$.",
     "respuesta": {
-      "a": "$\\subset$", "b": "$\\in$", "c": "$\\subset$", "d": "$\\notin$", "e": "$\\not\\subset$",
-      "f": "$\\notin$", "g": "$\\in$", "h": "$\\subset$", "i": "$\\not\\subset$", "j": "$\\in$"
+      "a": "$\\subset$",
+      "b": "$\\in$",
+      "c": "$\\subset$",
+      "d": "$\\notin$",
+      "e": "$\\not\\subset$",
+      "f": "$\\notin$",
+      "g": "$\\in$",
+      "h": "$\\subset$",
+      "i": "$\\not\\subset$",
+      "j": "$\\in$"
     },
     "conjunto": "R",
     "seccion": "Taller 1 — Números reales",
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 18",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Distingue pertenencia (número ↔ conjunto) de contenencia (conjunto ↔ conjunto): es el eje del ítem. Ojo con g: $\\sqrt{25}=5$, entero. En i, $\\mathbb{R}\\not\\subset\\mathbb{Q}$ porque los irracionales quedan fuera.",
     "dificultad": 1150
   },
@@ -429,29 +499,34 @@
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 19",
-    "apto_para": ["practica_vf", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_vf",
+      "ejemplo_resuelto"
+    ],
     "nota": "El ítem b es la trampa central de todo el capítulo: confundir $\\cap$ con $\\cup$ en $\\mathbb{R}=\\mathbb{Q}\\cup\\mathbb{I}$. Candidato directo a tarjeta trampa del nodo de reales.",
     "dificultad": 1250
   },
   {
     "id": "HT8-U1-P25-T1-20",
     "tipo": "clasificacion",
-    "enunciado": "Relaciona las operaciones que tienen la misma respuesta. Columna izquierda: a. $-18+3$; b. $-\\dfrac{5}{3}-\\dfrac{2}{8}$; c. $\\pi-2$; d. $\\left|\\sqrt{25}\\right|-\\left|\\sqrt{4}\\right|$; e. $-5+2{,}04$. Columna derecha: 1. $-1-0{,}\\overline{96}$; 2. $\\dfrac{-5}{3}\\times\\dfrac{-9}{5}$; 3. $-2-0{,}96$; 4. $-[2-(5\\pi-4\\pi)]$; 5. $-35+20$.",
+    "enunciado": "Relaciona las operaciones que tienen la misma respuesta. Columna izquierda: a. $-18+3$; b. $-\\dfrac{5}{3}-\\dfrac{2}{8}$; c. $\\pi-2$; d. $\\left|\\sqrt{25}\\right|-\\left|\\sqrt{4}\\right|$; e. $-5+2{,}04$. Columna derecha: 1. $-1-0{,}91\\overline{6}$; 2. $\\dfrac{-5}{3}\\times\\dfrac{-9}{5}$; 3. $-2-0{,}96$; 4. $-[2-(5\\pi-4\\pi)]$; 5. $-35+20$.",
     "respuesta": {
       "a": "5 — ambos valen $-15$.",
+      "b": "1 — ambos valen $-\\dfrac{23}{12}$.",
       "c": "4 — $-[2-\\pi]=\\pi-2$.",
       "d": "2 — ambos valen $3$.",
-      "e": "3 — ambos valen $-2{,}96$.",
-      "b": "1 — es el par que queda, pero NO coinciden (ver erratum)."
+      "e": "3 — ambos valen $-2{,}96$."
     },
     "conjunto": "R",
     "seccion": "Taller 1 — Números reales",
     "unidad": 1,
     "pagina_pdf": 25,
     "referencia": "Taller 1, actividad 20",
-    "apto_para": ["ejemplo_resuelto"],
-    "erratum": "Cuatro parejas casan exacto (a–5, c–4, d–2, e–3), pero la quinta no: $b=-\\dfrac{5}{3}-\\dfrac{2}{8}=-\\dfrac{23}{12}\\approx-1{,}9167$, mientras que $1=-1-0{,}\\overline{96}=-1-\\dfrac{32}{33}=-\\dfrac{65}{33}\\approx-1{,}9697$. Difieren en $\\approx 0{,}053$.",
-    "verificar": "ERRATA DEL LIBRO. Verificado a 400 dpi: b dice $-\\dfrac{5}{3}-\\dfrac{2}{8}$ y el ítem 1 dice $-1-0{,}\\overline{96}$ con el arco sobre las dos cifras. Usar solo las cuatro parejas exactas; para restaurar la quinta, el ítem 1 tendría que ser $-1-0{,}91\\overline{6}$.",
+    "apto_para": [
+      "ejemplo_resuelto"
+    ],
+    "nota": "Las cinco parejas: a–5, b–1, c–4, d–2, e–3. La b es la única que exige pasar el decimal periódico a fracción: $0{,}91\\overline{6}=\\dfrac{11}{12}$, luego $-1-\\dfrac{11}{12}=-\\dfrac{23}{12}$, que es exactamente $-\\dfrac{5}{3}-\\dfrac{2}{8}=-\\dfrac{20}{12}-\\dfrac{3}{12}$.",
+    "erratum": "El libro imprime el item 1 de la columna derecha como -1 - 0,96 con el arco sobre las dos cifras. Ese numero vale -65/33, mientras que el item b vale -23/12: la quinta pareja no casaba y el ejercicio quedaba sin solucion completa. Corregido a -1 - 0,91 con el arco sobre el 6 solamente, que vale exactamente -23/12 y restaura la pareja. Las otras cuatro parejas ya casaban exacto.",
     "dificultad": 1300
   }
 ]

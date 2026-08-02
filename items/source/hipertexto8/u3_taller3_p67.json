@@ -10,7 +10,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 7, ítem a",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "dificultad": 950
   },
   {
@@ -24,7 +26,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 7, ítem b",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Los tres términos del resultado tienen grado total 11: sirve de comprobación rápida.",
     "dificultad": 1150
   },
@@ -39,7 +43,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 7, ítem c",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$0{,}75=\\dfrac{3}{4}$, así que el primer término sale entero ($3a^5b^3$) y los otros dos quedan en $-3{,}75$ y $4{,}5$.",
     "dificultad": 1250
   },
@@ -54,7 +60,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 7, ítem d",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Factor negativo: los signos del paréntesis se invierten todos. $\\dfrac{8}{3}\\cdot\\dfrac{1}{6}=\\dfrac{4}{9}$ tras simplificar.",
     "dificultad": 1400
   },
@@ -69,7 +77,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 7, ítem e",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "$\\dfrac{3}{7}\\cdot7=3$: el término del medio sale entero porque el $7$ cancela el denominador. Buena ocasión para simplificar antes de multiplicar.",
     "dificultad": 1350
   },
@@ -84,7 +95,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 8, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Los términos en $x^2$ se CANCELAN ($+6x^2-6x^2$) y el resultado no tiene término cuadrático. Que un término desaparezca no es señal de error.",
     "dificultad": 1250
   },
@@ -99,7 +113,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 8, ítem b",
-    "apto_para": ["practica_seleccion", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "procedimiento_abierto"
+    ],
     "nota": "Seis productos parciales y ninguno se reduce: el resultado tiene los seis términos.",
     "dificultad": 1400
   },
@@ -114,7 +131,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 8, ítem c",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "El producto deja $-18mn$ y al sumarle $21mn$ queda $+3mn$. Es el único par de términos semejantes del ejercicio.",
     "dificultad": 1300
   },
@@ -129,7 +149,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 8, ítem d",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Doble negación: el segundo corchete vale $-2x^3y^3+5x^2y^4$ y al restarlo se convierte en $+2x^3y^3-5x^2y^4$. Después $-24+2=-22$.",
     "dificultad": 1450
   },
@@ -144,7 +167,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 8, ítem e",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Cuatro productos de fracciones, ninguno reducible con otro. $\\dfrac{3}{4}\\cdot\\dfrac{2}{3}=\\dfrac{1}{2}$ simplificando antes de multiplicar.",
     "dificultad": 1450
   },
@@ -159,7 +184,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 8, ítem f",
-    "apto_para": ["practica_numerica", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_numerica",
+      "procedimiento_abierto"
+    ],
     "nota": "Dos factores negativos (el $-\\dfrac{7}{5}$ y el menos de la llave) dan producto positivo: conviene resolver el signo global ANTES de multiplicar, y así los tres términos heredan directamente los signos del trinomio.",
     "dificultad": 1650
   },
@@ -174,7 +202,11 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 9, ítem a",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "figura": "pentágono tipo «home plate»: rectángulo (8x+3)×(5x−2) sobre triángulo de altura 12x+7 — reconstruible en Python",
     "nota": "En lenguaje algebraico el área es $88x^2+45x+\\dfrac{9}{2}$; con $x=5$ da $2429{,}5$ m². El medio metro cuadrado viene del triángulo: $\\dfrac{43\\cdot67}{2}=1440{,}5$. No es un error de redondeo, es exacto.",
     "dificultad": 1500
@@ -190,7 +222,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 9, ítem b",
-    "apto_para": ["practica_seleccion", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "procedimiento_abierto"
+    ],
     "figura": "polígono compuesto: triángulo izquierdo + rectángulo superior + rectángulo inferior derecho, con las medidas 10x+3, 4x−2, 8x−9, 3x−5 y 3x−8 — reconstruible en Python",
     "nota": "La altura del rectángulo inferior NO está rotulada: se obtiene restando, $(8x-9)-(4x-2)=4x-7$. Descomponer la figura y anotar cada pieza antes de operar es la mitad del trabajo.",
     "dificultad": 1650
@@ -206,7 +241,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 10, ítem a",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "dificultad": 900
   },
   {
@@ -220,9 +257,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 10, ítem b",
-    "apto_para": ["procedimiento_abierto"],
-    "nota": "$x^{3-5}=x^{-2}$: el cociente NO es un monomio, queda la fracción algebraica $-\\dfrac{7y}{3x^2}$.",
-    "verificar": "Los exponentes negativos aún no se han presentado en el libro. Decidir con el docente si se escribe como fracción algebraica o si el ítem se pospone.",
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
+    "nota": "$-\\dfrac{7y}{3x^2}$. Al restar los exponentes de $x$ sale $3-5=-2$. Convenio: **se escribe como fracción algebraica**, no con exponente negativo, porque el libro no los ha presentado todavía.",
     "dificultad": 1350
   },
   {
@@ -236,7 +274,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 10, ítem c",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Dividir entre $-\\dfrac{1}{2}$ es multiplicar por $-2$: $\\dfrac{3}{7}\\cdot(-2)=-\\dfrac{6}{7}$.",
     "dificultad": 1250
   },
@@ -251,7 +291,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 10, ítem d",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "$(2x+1)-(x-3)=x+4$. Los paréntesis en la resta de exponentes son obligatorios: sin ellos sale $x-2$.",
     "dificultad": 1350
   },
@@ -266,7 +309,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 10, ítem e",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "$(3m-1)-(2m+2)=m-3$. El exponente resultante puede ser positivo o negativo según el valor de $m$, pero la expresión es la misma.",
     "dificultad": 1400
   },
@@ -281,9 +326,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 10, ítem f",
-    "apto_para": ["procedimiento_abierto"],
-    "nota": "Coeficiente $\\dfrac{4}{5}\\cdot\\dfrac{3}{2}=\\dfrac{6}{5}$, positivo por ser negativo entre negativo. Pero $x^{3-5}=x^{-2}$ vuelve a dejar una fracción algebraica.",
-    "verificar": "Mismo caso que el ítem b: exponente negativo. Decidir con el docente si se acepta la forma $\\dfrac{6y}{5x^2}$.",
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
+    "nota": "$\\dfrac{6y}{5x^2}$. Mismo caso que el ítem b: exponente negativo en $x$, que se escribe como fracción algebraica siguiendo el convenio de la transcripción.",
     "dificultad": 1400
   },
   {
@@ -297,7 +343,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 11, fila 1",
-    "apto_para": ["procedimiento_abierto"],
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
     "nota": "División respecto de $x$ con $y$ como parámetro. El cociente tiene coeficiente fraccionario ($-\\dfrac{y}{3}$) porque el divisor no es mónico, y el residuo $-6y^2$ tiene grado $0$ en $x$, menor que el del divisor.",
     "verificar": "El resultado es incómodo para un taller de repaso. Vale la pena confirmar con el docente si esperaba que $3x+3y$ dividiera exacto (no lo hace: $6x^2+5xy-7y^2$ evaluado en $x=-y$ da $-6y^2\\ne0$).",
     "dificultad": 1650
@@ -313,7 +361,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 11, fila 2",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Uso directo de $D=d\\cdot c+r$. Es la fila más sencilla de la tabla y conviene resolverla primero para fijar la fórmula.",
     "dificultad": 1250
   },
@@ -328,7 +379,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 11, fila 3",
-    "apto_para": ["practica_seleccion", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "procedimiento_abierto"
+    ],
     "nota": "División respecto de $m$: el divisor tiene grado 1 en $m$, así que el residuo debe tener grado 0 en $m$ — y en efecto $20n^4-9$ no lleva $m$.",
     "dificultad": 1550
   },
@@ -343,7 +397,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 11, fila 4",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "Como el residuo es $0$, el divisor es dividendo ÷ cociente. El grado cuadra: $4-2=2$.",
     "dificultad": 1500
   },
@@ -358,7 +415,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 11, fila 5",
-    "apto_para": ["procedimiento_abierto", "ejemplo_resuelto"],
+    "apto_para": [
+      "procedimiento_abierto",
+      "ejemplo_resuelto"
+    ],
     "nota": "Aquí la división NO es exacta: divisor $5x^2-7x$ y residuo $2x$. El divisor no se puede obtener dividiendo (el cociente no divide al dividendo); hay que plantear $D=d\\cdot c+r$ con $d=ax^2+bx+c$ y $r=dx+e$, e igualar coeficientes. Salen $a=5$, $b=-7$, $c=0$, residuo $2x$, y el sistema cuadra sin sobrar ecuaciones.",
     "verificar": "Es la fila más difícil de la tabla y su solución exige igualar coeficientes, técnica que el libro no ha presentado en esta unidad. Confirmar con el docente antes de usarla como práctica.",
     "dificultad": 1800
@@ -374,7 +434,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 11, fila 6",
-    "apto_para": ["procedimiento_abierto"],
+    "apto_para": [
+      "procedimiento_abierto"
+    ],
     "nota": "Fracciones sin simplificar en el enunciado ($\\dfrac{3}{18}=\\dfrac{1}{6}$, $\\dfrac{10}{16}=\\dfrac{5}{8}$, $\\dfrac{6}{4}=\\dfrac{3}{2}$): conviene reducirlas antes de dividir. El residuo $\\dfrac{45}{2}n^3$ no lleva $m$, como debe ser.",
     "verificar": "Resultado correcto pero incómodo. Reservar para procedimiento abierto.",
     "dificultad": 1800
@@ -390,7 +452,11 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 12, ítem a",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto", "procedimiento_abierto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto",
+      "procedimiento_abierto"
+    ],
     "figura": "cono con altura punteada, A_b=4x²+x−9 y V=4x³+5x²−8x−9 — reconstruible en Python",
     "nota": "En el cono $V=\\dfrac{A_b\\cdot h}{3}$, luego $h=\\dfrac{3V}{A_b}$. La división $V\\div A_b$ da $x+1$ exacto y el $3$ lo triplica: $3x+3$. Olvidar el factor $3$ es el error típico.",
     "dificultad": 1500
@@ -406,7 +472,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 12, ítem b",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "figura": "cono con altura punteada, A_b=x²−3x−6 y V=x³−5x²+12 — reconstruible en Python",
     "nota": "El volumen no tiene término en $x$: hay que escribir el $0x$ al montar la división. $V\\div A_b=x-2$ y la altura es $3x-6$.",
     "dificultad": 1500
@@ -422,7 +491,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 13, ítem a",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Exacta: $x^2+4x+3=(x+1)(x+3)$.",
     "dificultad": 1100
   },
@@ -437,7 +508,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 13, ítem b",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Exacta. En el esquema va $-2$, no $+2$.",
     "dificultad": 1100
   },
@@ -452,7 +525,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 13, ítem c",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Exacta, residuo $0$: $x+1$ es factor.",
     "dificultad": 1200
   },
@@ -467,7 +542,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 13, ítem d",
-    "apto_para": ["practica_seleccion"],
+    "apto_para": [
+      "practica_seleccion"
+    ],
     "nota": "Exacta, residuo $0$.",
     "dificultad": 1250
   },
@@ -482,7 +559,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 13, ítem e",
-    "apto_para": ["practica_seleccion", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_seleccion",
+      "ejemplo_resuelto"
+    ],
     "nota": "La única no exacta de la actividad 13: residuo $-24$, es decir $P(3)=-24$.",
     "dificultad": 1300
   },
@@ -497,7 +577,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 14, ítem a",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Residuo $30$: NO es exacta. Ojo, $x^2+3x-10=(x+5)(x-2)$, así que el binomio que sí la divide es $x+5$, no $x-5$.",
     "dificultad": 1200
   },
@@ -512,7 +594,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 14, ítem b",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Residuo $0$: SÍ es exacta.",
     "dificultad": 1150
   },
@@ -527,7 +611,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 14, ítem c",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Residuo $18$: no exacta.",
     "dificultad": 1150
   },
@@ -542,7 +628,9 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 14, ítem d",
-    "apto_para": ["practica_numerica"],
+    "apto_para": [
+      "practica_numerica"
+    ],
     "nota": "Residuo $28$: no exacta.",
     "dificultad": 1200
   },
@@ -557,7 +645,10 @@
     "unidad": 3,
     "pagina_pdf": 67,
     "referencia": "Taller 3, actividad 14, ítem e",
-    "apto_para": ["practica_numerica", "ejemplo_resuelto"],
+    "apto_para": [
+      "practica_numerica",
+      "ejemplo_resuelto"
+    ],
     "nota": "Residuo $0$: SÍ es exacta. Para $x-1$ el residuo es simplemente la SUMA de los coeficientes ($3-6-5+8=0$), atajo que conviene conocer. De las cinco divisiones de la actividad 14, solo b y e son exactas.",
     "dificultad": 1250
   }

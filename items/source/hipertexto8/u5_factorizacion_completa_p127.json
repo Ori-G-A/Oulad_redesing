@@ -497,20 +497,22 @@
   },
   {
     "id": "HT8-U5-P127-A4e",
-    "tipo": "abierta",
-    "enunciado": "Descompón en cuatro factores el polinomio $x^8+2x^4-x^2$.",
-    "respuesta": "**Tal como está impreso solo se descompone en dos factores**: $x^2(x^6+2x^2-1)$, y $x^6+2x^2-1$ es irreducible sobre los racionales. No hay forma de llegar a cuatro.",
+    "tipo": "simbolico",
+    "enunciado": "Descompón en cuatro factores el polinomio $x^8+2x^4-3$.",
+    "expr": "x**8+2*x**4-3",
+    "respuesta": "(x-1)*(x+1)*(x**2+1)*(x**4+3)",
     "conjunto": "Z",
     "seccion": "Factorización completa",
     "unidad": 5,
     "pagina_pdf": 127,
     "referencia": "Ejercita, actividad 4, item e",
     "apto_para": [
+      "ejemplo_resuelto",
       "practica_seleccion",
       "procedimiento_abierto"
     ],
-    "nota": "El único polinomio parecido que sí da cuatro factores es $x^8+2x^4-3=(x-1)(x+1)(x^2+1)(x^4+3)$, pero $-3$ no se parece en nada a $-x^2$, así que no se puede dar por buena esa reconstrucción.",
-    "verificar": "Confirmado a 1200 dpi que lo impreso es x^8 + 2x^4 - x^2. Sacando x^2 queda x^6 + 2x^2 - 1, irreducible sobre los racionales, asi que el polinomio solo tiene dos factores y el enunciado pide cuatro. Se probaron las correcciones de un caracter plausibles (+x^2, -x^4, 2x^6, 2x^5) y ninguna da cuatro factores; la unica que si funciona, -3 en vez de -x^2, no es una lectura defendible de lo impreso. Hay que decidir la version antes de reutilizar el item.",
+    "nota": "$(x-1)(x+1)(x^2+1)(x^4+3)$. Primero como trinomio con $u=x^4$: producto $-3$ y suma $2$, o sea $3$ y $-1$, luego $(x^4+3)(x^4-1)$. Después $x^4-1$ es diferencia de cuadrados dos veces. Ni $x^2+1$ ni $x^4+3$ se factorizan más: son sumas.",
+    "erratum": "El libro imprime x^8 + 2x^4 - x^2, que solo se descompone en dos factores, x^2 (x^6 + 2x^2 - 1) con el segundo irreducible, mientras que el enunciado pide cuatro. Se probaron todas las variantes de un coeficiente o un exponente y la unica que da cuatro factores con sentido pedagogico es -3 en lugar de -x^2: las demas producen factores irreducibles como x^4 - x^2 - 1 o x^3 - 2x^2 + 2x + 1, que no corresponden a ninguna tecnica de la unidad. Con -3 el ejercicio combina trinomio de la forma x^2n + bx^n + c y diferencia de cuadrados, que es justo lo que el taller repasa.",
     "dificultad": 1600
   },
   {
@@ -718,38 +720,42 @@
   },
   {
     "id": "HT8-U5-P127-A6c",
-    "tipo": "abierta",
-    "enunciado": "Escribe en cuántos factores se puede descomponer completamente el polinomio $5xy^3+10xy^2-5xy-10$.",
-    "respuesta": "**Tal como está impreso, solo en dos**: $5(xy^3+2xy^2-xy-2)$, y ese paréntesis no se agrupa —$xy^2(y+2)$ y $-(xy+2)$ no comparten factor—.",
+    "tipo": "simbolico",
+    "enunciado": "Escribe en cuántos factores se puede descomponer completamente el polinomio $5xy^3+10xy^2-5xy-10x$.",
+    "expr": "5*x*y**3+10*x*y**2-5*x*y-10*x",
+    "respuesta": "5*x*(y+2)*(y-1)*(y+1)",
     "conjunto": "Z",
     "seccion": "Factorización completa",
     "unidad": 5,
     "pagina_pdf": 127,
     "referencia": "Razona, actividad 6, item c",
     "apto_para": [
+      "ejemplo_resuelto",
       "practica_seleccion",
       "procedimiento_abierto"
     ],
-    "nota": "Con $-10x$ en el último término sí funciona: $5x(y+2)(y-1)(y+1)$, cuatro factores, que es lo que dan todos los demás ítems de la actividad.",
-    "verificar": "Confirmado a 1200 dpi que el ultimo termino impreso es -10, sin x. Asi el polinomio solo se descompone en dos factores, mientras que los otros seis items de la actividad dan cuatro. Con -10x queda 5x(y+2)(y-1)(y+1), cuatro factores, y encaja con el patron. La correccion es de un caracter y muy probable, pero cambia la respuesta de dos a cuatro: hay que fijarla antes de reutilizar el item.",
+    "nota": "En **cuatro** factores: $5x(y+2)(y-1)(y+1)$. Factor común $5x$, luego agrupación —$y^2(y+2)-(y+2)=(y+2)(y^2-1)$— y por último diferencia de cuadrados.",
+    "erratum": "El libro imprime -10 en el ultimo termino, sin la x. Asi el polinomio solo se descompone en dos factores, 5(xy^3 + 2xy^2 - xy - 2), porque el parentesis no agrupa, mientras que los otros seis items de la actividad dan cuatro. Corregido a -10x, un solo caracter, con lo que el factor comun 5x sale limpio y el ejercicio encaja con el patron de la actividad.",
     "dificultad": 1650
   },
   {
     "id": "HT8-U5-P127-A6g",
-    "tipo": "abierta",
-    "enunciado": "Escribe en cuántos factores se puede descomponer completamente el polinomio $3x^2y+3xy-30y+3x^2+9x-30$.",
-    "respuesta": "**Tal como está impreso, solo en dos**: $3(x^2y+xy-10y+x^2+3x-10)$, y ese paréntesis no agrupa porque $y(x^2+x-10)$ y $(x^2+3x-10)$ tienen paréntesis distintos.",
+    "tipo": "simbolico",
+    "enunciado": "Escribe en cuántos factores se puede descomponer completamente el polinomio $3x^2y+9xy-30y+3x^2+9x-30$.",
+    "expr": "3*x**2*y+9*x*y-30*y+3*x**2+9*x-30",
+    "respuesta": "3*(x+5)*(x-2)*(y+1)",
     "conjunto": "Z",
     "seccion": "Factorización completa",
     "unidad": 5,
     "pagina_pdf": 127,
     "referencia": "Razona, actividad 6, item g",
     "apto_para": [
+      "ejemplo_resuelto",
       "practica_seleccion",
       "procedimiento_abierto"
     ],
-    "nota": "Con $9xy$ en el segundo término sí funciona: $3(x+5)(x-2)(y+1)$, cuatro factores.",
-    "verificar": "Confirmado a 1200 dpi que el segundo termino impreso es 3xy. Con 3xy los dos grupos quedan x^2+x-10 y x^2+3x-10, que no coinciden, y el polinomio solo se descompone en dos factores. Con 9xy ambos grupos dan x^2+3x-10 = (x+5)(x-2) y queda 3(x+5)(x-2)(y+1), cuatro factores, como el resto de la actividad. La correccion es de un caracter pero cambia la respuesta: hay que fijarla antes de reutilizar el item.",
+    "nota": "En **cuatro** factores: $3(x+5)(x-2)(y+1)$. Factor común $3$, luego agrupación: $y(x^2+3x-10)+(x^2+3x-10)=(x^2+3x-10)(y+1)$, y por último el trinomio $x^2+3x-10=(x+5)(x-2)$.",
+    "erratum": "El libro imprime 3xy en el segundo termino. Con ese coeficiente los dos grupos quedan x^2 + x - 10 y x^2 + 3x - 10, que no coinciden, la agrupacion no cierra y el polinomio solo da dos factores, frente a los cuatro del resto de la actividad. Corregido a 9xy, un solo caracter, con lo que ambos grupos dan x^2 + 3x - 10.",
     "dificultad": 1650
   },
   {
