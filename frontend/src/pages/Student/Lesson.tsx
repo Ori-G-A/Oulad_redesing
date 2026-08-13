@@ -11,15 +11,7 @@ import {
 } from "../../api/student";
 import { Button } from "../../components/ui/Button";
 import { MathFormula } from "../../components/Math/MathContent";
-import { NaturalsLesson } from "./lessons/NaturalsLesson";
-import { IntegersLesson } from "./lessons/IntegersLesson";
-import { RationalsLesson } from "./lessons/RationalsLesson";
-import { IrrationalsLesson } from "./lessons/IrrationalsLesson";
-import { RealsLesson } from "./lessons/RealsLesson";
-import { ComplexLesson } from "./lessons/ComplexLesson";
-import { ClassifierBasicLesson } from "./lessons/ClassifierBasicLesson";
-import { ClassifierRigorousLesson } from "./lessons/ClassifierRigorousLesson";
-import { DetectiveLesson } from "./lessons/DetectiveLesson";
+import { ElevenBlockLesson, isElevenBlock } from "./lessons/blocks/ElevenBlockLesson";
 import { ClosingDiagnosticLesson } from "./lessons/ClosingDiagnosticLesson";
 import { LevelTwoLesson } from "./lessons/LevelTwoLesson";
 import { LevelThreeLesson } from "./lessons/LevelThreeLesson";
@@ -65,6 +57,28 @@ const N4_IDS = [
   "PREALG-N4-C04-FACTORIZACION-PRIMA",
   "PREALG-N4-C05-MCD",
   "PREALG-N4-C06-MCM",
+] as const;
+// ALG-N1 · El Papiro de las Cuatro Casas. Módulo narrativo nuevo (Kemet), misma
+// arquitectura de 11 bloques: se pintan con el renderer genérico de más abajo.
+const ALG_HUB_ID = "ALG-A00-PAPIRO-CUATRO-CASAS";
+const ALG_N1_IDS = [
+  ALG_HUB_ID,
+  "ALG-N1-L01-VARIABLES",
+  "ALG-N1-L02-CONSTANTES",
+  "ALG-N1-L03-TRADUCCION",
+  "ALG-N1-L04-VALOR-NUMERICO",
+  "ALG-N1-O01-SEMEJANTES",
+  "ALG-N1-O02-SIGNOS",
+  "ALG-N1-O03-PRODUCTO",
+  "ALG-N1-O04-COCIENTE",
+  "ALG-N1-F01-SIMPLIFICAR",
+  "ALG-N1-F02-SUMA",
+  "ALG-N1-F03-PRODUCTO",
+  "ALG-N1-F04-DIVISION",
+  "ALG-N1-R01-RAZONES",
+  "ALG-N1-R02-REGLA-DE-TRES",
+  "ALG-N1-R03-PORCENTAJES",
+  "ALG-N1-R04-VARIACION",
 ] as const;
 
 export function Lesson() {
@@ -132,11 +146,29 @@ export function Lesson() {
   if (isLoading) {
     return <div className="lesson-state">{t("prealgebra.loading")}</div>;
   }
-  if (isError || !data || ![B01_ID, B02_ID, B03_ID, B04_ID, B05_ID, B06_ID, B07_ID, B08_ID, B09_ID, B10_ID, B11_ID, B12_ID, B13_ID, ...N2_IDS, ...N3_IDS, ...N4_IDS].includes(nodeId)) {
+  // Aquí había una lista blanca con los 50 node_id. Era redundante y había que
+  // tocarla con cada nodo nuevo: el backend ya devuelve 404 para un nodo que no
+  // existe, y eso llega como `isError`. Las listas N2/N3/N4 siguen abajo porque
+  // eligen renderer, que es otra cosa.
+  if (isError || !data) {
     return <div className="lesson-state error">{t("prealgebra.error")}</div>;
   }
 
-  if ((N4_IDS as readonly string[]).includes(nodeId)) {
+  // Un nodo reconstruido a 11 bloques se declara en su propio contenido y se
+  // pinta con el renderer genérico: migrar un nodo no toca este archivo.
+  if (isElevenBlock(data.content)) {
+    return (
+      <ElevenBlockLesson
+        lesson={data}
+        courseId={courseId}
+        onBack={() => navigate(`/student/course/${courseId}/map`)}
+        onFinish={finish}
+        finishing={eventMutation.isPending}
+      />
+    );
+  }
+
+  if (nodeId === ALG_HUB_ID || (N4_IDS as readonly string[]).includes(nodeId)) {
     return (
       <LevelFourLesson
         lesson={data}
@@ -175,126 +207,6 @@ export function Lesson() {
   if (nodeId === B02_ID) {
     return (
       <TriggerQuestionLesson
-        lesson={data}
-        courseId={courseId}
-        onBack={() => navigate(`/student/course/${courseId}/map`)}
-        onFinish={finish}
-        finishing={eventMutation.isPending}
-      />
-    );
-  }
-
-  if (nodeId === B03_ID) {
-    return (
-      <StaircaseLesson
-        lesson={data}
-        courseId={courseId}
-        onBack={() => navigate(`/student/course/${courseId}/map`)}
-        onFinish={finish}
-        finishing={eventMutation.isPending}
-      />
-    );
-  }
-
-  if (nodeId === B04_ID) {
-    return (
-      <NaturalsLesson
-        lesson={data}
-        courseId={courseId}
-        onBack={() => navigate(`/student/course/${courseId}/map`)}
-        onFinish={finish}
-        finishing={eventMutation.isPending}
-      />
-    );
-  }
-
-  if (nodeId === B05_ID) {
-    return (
-      <IntegersLesson
-        lesson={data}
-        courseId={courseId}
-        onBack={() => navigate(`/student/course/${courseId}/map`)}
-        onFinish={finish}
-        finishing={eventMutation.isPending}
-      />
-    );
-  }
-
-  if (nodeId === B06_ID) {
-    return (
-      <RationalsLesson
-        lesson={data}
-        courseId={courseId}
-        onBack={() => navigate(`/student/course/${courseId}/map`)}
-        onFinish={finish}
-        finishing={eventMutation.isPending}
-      />
-    );
-  }
-
-  if (nodeId === B07_ID) {
-    return (
-      <IrrationalsLesson
-        lesson={data}
-        courseId={courseId}
-        onBack={() => navigate(`/student/course/${courseId}/map`)}
-        onFinish={finish}
-        finishing={eventMutation.isPending}
-      />
-    );
-  }
-
-  if (nodeId === B08_ID) {
-    return (
-      <RealsLesson
-        lesson={data}
-        courseId={courseId}
-        onBack={() => navigate(`/student/course/${courseId}/map`)}
-        onFinish={finish}
-        finishing={eventMutation.isPending}
-      />
-    );
-  }
-
-  if (nodeId === B09_ID) {
-    return (
-      <ComplexLesson
-        lesson={data}
-        courseId={courseId}
-        onBack={() => navigate(`/student/course/${courseId}/map`)}
-        onFinish={finish}
-        finishing={eventMutation.isPending}
-      />
-    );
-  }
-
-  if (nodeId === B10_ID) {
-    return (
-      <ClassifierBasicLesson
-        lesson={data}
-        courseId={courseId}
-        onBack={() => navigate(`/student/course/${courseId}/map`)}
-        onFinish={finish}
-        finishing={eventMutation.isPending}
-      />
-    );
-  }
-
-  if (nodeId === B11_ID) {
-    return (
-      <ClassifierRigorousLesson
-        lesson={data}
-        courseId={courseId}
-        onBack={() => navigate(`/student/course/${courseId}/map`)}
-        onFinish={finish}
-        finishing={eventMutation.isPending}
-      />
-    );
-  }
-
-  if (nodeId === B12_ID) {
-    return (
-      <DetectiveLesson
         lesson={data}
         courseId={courseId}
         onBack={() => navigate(`/student/course/${courseId}/map`)}
@@ -610,221 +522,6 @@ function TriggerQuestionLesson({ lesson, courseId, onBack, onFinish, finishing }
             {lesson.state === "completed"
               ? t("prealgebra.backToMap")
               : t("prealgebra.n1.b02.finish")}
-          </Button>
-        </footer>
-      </div>
-    </article>
-  );
-}
-
-const B03_Q01 = "PREALG-N1-B03-Q01";
-
-function StaircaseLesson({ lesson, courseId, onBack, onFinish, finishing }: TriggerProps) {
-  const { t } = useTranslation();
-  const stored = lesson.progress.responses[B03_Q01];
-  const [answer, setAnswer] = useState(stored?.selected_option ?? "");
-  const [feedbackKey, setFeedbackKey] = useState(
-    stored
-      ? stored.selected_option === "expand"
-        ? "sets_expand"
-        : stored.selected_option === "replace"
-          ? "numbers_remain"
-          : "size_is_not_the_point"
-      : "",
-  );
-  const [attempts, setAttempts] = useState(stored ? (stored.is_expected ? 2 : 1) : 0);
-  const [activeStep, setActiveStep] = useState(0);
-  const [challenge, setChallenge] = useState<Record<string, string>>({});
-  const [challengeChecked, setChallengeChecked] = useState(false);
-
-  const interactionMutation = useMutation({
-    mutationFn: (option: string) =>
-      studentApi.lessonInteraction(courseId, lesson.node_id, B03_Q01, option),
-    onSuccess: (result) => {
-      setAnswer(result.selected_option);
-      setFeedbackKey(result.feedback_key);
-      setAttempts((current) => current + 1);
-    },
-  });
-
-  const steps = lesson.staircase?.core_steps ?? [
-    "naturals",
-    "integers",
-    "rationals",
-    "irrationals",
-    "reals",
-  ];
-  const stepMath: Record<string, string> = {
-    naturals: String.raw`\mathbb{N}`,
-    integers: String.raw`\mathbb{Z}`,
-    rationals: String.raw`\mathbb{Q}`,
-    irrationals: String.raw`\mathbb{R}\setminus\mathbb{Q}`,
-    reals: String.raw`\mathbb{R}`,
-  };
-  const hotspotFrames = [
-    { left: "18%", top: "70.8%", width: "22.8%", height: "8.4%" },
-    { left: "22.2%", top: "59.5%", width: "22.4%", height: "8%" },
-    { left: "26.4%", top: "48.2%", width: "22%", height: "8%" },
-    { left: "30.6%", top: "36.9%", width: "21.6%", height: "8%" },
-    { left: "34.8%", top: "25.6%", width: "21.2%", height: "8%" },
-  ];
-  const canRetry = Boolean(answer && answer !== "expand" && attempts < 2);
-  const questionResolved = answer === "expand" || attempts >= 2;
-  const challengeKeys = ["count", "belowZero", "share", "nonFraction"] as const;
-  const challengeCorrect =
-    challenge.count === "naturals" &&
-    challenge.belowZero === "integers" &&
-    challenge.share === "rationals" &&
-    challenge.nonFraction === "irrationals";
-
-  return (
-    <article className="lesson-page staircase-page" aria-labelledby="lesson-title">
-      <header className="lesson-topbar">
-        <button className="lesson-back" onClick={onBack}>{t("prealgebra.backToMap")}</button>
-        <span className="lesson-safe">{t("prealgebra.safeZone")}</span>
-      </header>
-
-      <div className="lesson-shell staircase-shell">
-        <header className="staircase-heading">
-          <span className="lesson-kicker">{t("prealgebra.n1.b03.kicker")}</span>
-          <h1 id="lesson-title">{t("prealgebra.n1.b03.title")}</h1>
-          <p>{t(`prealgebra.n1.b03.intro.${lesson.presentation}`)}</p>
-        </header>
-
-        <section className="staircase-layout illustrated" aria-label={t("prealgebra.n1.b03.staircaseAria")}>
-          <figure className="staircase-visual-panel">
-            <img
-              className="staircase-art"
-              src="/prealgebra/escalera-conjuntos.png"
-              alt=""
-              aria-hidden="true"
-            />
-            <ol className="staircase-hotspots" aria-label={t("prealgebra.n1.b03.staircaseAria")}>
-            {steps.map((step, index) => (
-              <li
-                key={step}
-                style={
-                  {
-                    "--hotspot-left": hotspotFrames[index]?.left,
-                    "--hotspot-top": hotspotFrames[index]?.top,
-                    "--hotspot-width": hotspotFrames[index]?.width,
-                    "--hotspot-height": hotspotFrames[index]?.height,
-                  } as CSSProperties
-                }
-              >
-                <motion.button
-                  className={activeStep === index ? "active" : ""}
-                  onClick={() => setActiveStep(index)}
-                  aria-pressed={activeStep === index}
-                  animate={{ scale: activeStep === index ? 1.025 : 1 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                >
-                  <span>0{index + 1}</span>
-                  <b>{t(`prealgebra.n1.b03.steps.${step}.name`)}</b>
-                  <small aria-label={t(`prealgebra.n1.b03.steps.${step}.aria`)}>
-                    <MathFormula math={stepMath[step]} />
-                  </small>
-                </motion.button>
-              </li>
-            ))}
-            </ol>
-          </figure>
-
-          <aside className="step-explanation" aria-live="polite">
-            <span>{t("prealgebra.n1.b03.needLabel")}</span>
-            <h2>{t(`prealgebra.n1.b03.steps.${steps[activeStep]}.question`)}</h2>
-            <p>{t(`prealgebra.n1.b03.steps.${steps[activeStep]}.explanation`)}</p>
-            <div className="inclusion-chain" aria-label={t("prealgebra.n1.b03.inclusionAria")}>
-              <MathFormula math={String.raw`\mathbb{N}\subset\mathbb{Z}\subset\mathbb{Q}\subset\mathbb{R}`} />
-            </div>
-          </aside>
-
-          <aside className="complex-detour">
-            <span>{t("prealgebra.n1.b03.detour.eyebrow")}</span>
-            <h2>{t("prealgebra.n1.b03.detour.title")}</h2>
-            <p>{t("prealgebra.n1.b03.detour.body")}</p>
-          </aside>
-        </section>
-
-        <section className="trigger-question staircase-question" aria-labelledby="b03-q01-title">
-          <span className="question-number">01</span>
-          <div>
-            <h2 id="b03-q01-title">{t("prealgebra.n1.b03.q01.prompt")}</h2>
-            <div className="choice-stack">
-              {(["expand", "replace", "bigger"] as const).map((option) => (
-                <button
-                  key={option}
-                  className={answer === option ? "selected" : ""}
-                  disabled={questionResolved || interactionMutation.isPending}
-                  onClick={() => interactionMutation.mutate(option)}
-                  aria-pressed={answer === option}
-                >
-                  {t(`prealgebra.n1.b03.q01.options.${option}`)}
-                </button>
-              ))}
-            </div>
-            {feedbackKey && (
-              <div className="trigger-feedback" role="status">
-                <p>{t(`prealgebra.n1.b03.feedback.${feedbackKey}`)}</p>
-                {canRetry && <strong>{t("prealgebra.n1.b03.feedback.retry")}</strong>}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {questionResolved && lesson.presentation === "avanzado" && (
-          <section className="trigger-challenge staircase-challenge">
-            <span>{t("prealgebra.n1.b03.challenge.eyebrow")}</span>
-            <h2>{t("prealgebra.n1.b03.challenge.title")}</h2>
-            <div className="challenge-grid four">
-              {challengeKeys.map((key) => (
-                <label key={key}>
-                  {t(`prealgebra.n1.b03.challenge.situations.${key}`)}
-                  <select
-                    value={challenge[key] ?? ""}
-                    disabled={challengeChecked}
-                    onChange={(event) => setChallenge((current) => ({ ...current, [key]: event.target.value }))}
-                  >
-                    <option value="">{t("prealgebra.n1.b03.challenge.choose")}</option>
-                    {steps.slice(0, 4).map((step) => (
-                      <option key={step} value={step}>
-                        {t(`prealgebra.n1.b03.steps.${step}.name`)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ))}
-            </div>
-            {!challengeChecked ? (
-              <Button
-                variant="secondary"
-                disabled={Object.keys(challenge).length < challengeKeys.length}
-                onClick={() => setChallengeChecked(true)}
-              >
-                {t("prealgebra.n1.b03.challenge.check")}
-              </Button>
-            ) : (
-              <p className="trigger-feedback" role="status">
-                {t(`prealgebra.n1.b03.challenge.${challengeCorrect ? "correct" : "review"}`)}
-              </p>
-            )}
-          </section>
-        )}
-
-        <footer className="lesson-footer trigger-footer">
-          <div>
-            <span>{t("prealgebra.n1.b03.footerLabel")}</span>
-            <p>{t("prealgebra.n1.b03.footerBody")}</p>
-          </div>
-          <Button
-            size="lg"
-            disabled={!questionResolved}
-            loading={finishing}
-            onClick={onFinish}
-          >
-            {lesson.state === "completed"
-              ? t("prealgebra.backToMap")
-              : t("prealgebra.n1.b03.finish")}
           </Button>
         </footer>
       </div>

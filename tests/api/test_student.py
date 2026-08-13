@@ -18,6 +18,28 @@ import pytest
 
 _COURSE_ID = "algebra_basica"  # Colegio — presente en el banco de preguntas
 _COURSE_UNIV = "calculo_diferencial"  # Universidad
+_B03 = "PREALG-N1-B03-ESCALERA-NECESIDAD"
+_B04 = "PREALG-N1-B04-NATURALES-CONTAR"
+_B05 = "PREALG-N1-B05-ENTEROS-DEUDA"
+_B06 = "PREALG-N1-B06-RACIONALES-FRACCION-DIVISION"
+
+
+def _answers(node_id):
+    """Respuestas correctas de todo lo que bloquea `node_completed` en un nodo de 11 bloques.
+
+    Se derivan del contenido, así que migrar un nodo nuevo no obliga a tocar
+    estos tests: basta con que declare `kind: "eleven_block_node"`.
+    """
+    from src.domain.learning.prealgebra import get_lesson
+
+    content = get_lesson(node_id).get("content") or {}
+    if content.get("kind") != "eleven_block_node":
+        return []
+    items = content["practice"] + [{**content["closing_item"], "kind": "numeric"}]
+    return [
+        (f"{node_id}-{i['id']}", i["answer"] if i["kind"] == "numeric" else i["expected"])
+        for i in items
+    ]
 
 
 class TestCourses:
@@ -472,13 +494,14 @@ def test_staircase_unlocks_after_trigger_and_requires_its_formative_answer(
     )
     assert incomplete.status_code == 409
 
-    answer = api_client.post(
-        f"{staircase}/interactions",
-        headers=student_headers,
-        json={"interaction_id": "PREALG-N1-B03-Q01", "selected_option": "expand"},
-    )
-    assert answer.status_code == 200
-    assert answer.json()["is_expected"] is True
+    for interaction_id, option in _answers(_B03):
+        answer = api_client.post(
+            f"{staircase}/interactions",
+            headers=student_headers,
+            json={"interaction_id": interaction_id, "selected_option": option},
+        )
+        assert answer.status_code == 200
+        assert answer.json()["is_expected"] is True
 
     completed = api_client.post(
         f"{staircase}/events",
@@ -515,11 +538,12 @@ def test_naturals_node_handles_guided_practice_without_elo(api_client, student_h
         "/api/student/lessons/algebra_basica/"
         "PREALG-N1-B03-ESCALERA-NECESIDAD"
     )
-    api_client.post(
-        f"{staircase}/interactions",
-        headers=student_headers,
-        json={"interaction_id": "PREALG-N1-B03-Q01", "selected_option": "expand"},
-    )
+    for interaction_id, option in _answers(_B03):
+        api_client.post(
+            f"{staircase}/interactions",
+            headers=student_headers,
+            json={"interaction_id": interaction_id, "selected_option": option},
+        )
     api_client.post(
         f"{staircase}/events", headers=student_headers, json={"event": "node_completed"}
     )
@@ -535,17 +559,12 @@ def test_naturals_node_handles_guided_practice_without_elo(api_client, student_h
     wrong_total = api_client.post(
         f"{naturals}/interactions",
         headers=student_headers,
-        json={"interaction_id": "PREALG-N1-B04-Q01", "selected_option": "7"},
+        json={"interaction_id": f"{_B04}-E1", "selected_option": "7"},
     )
     assert wrong_total.status_code == 200
     assert wrong_total.json()["is_expected"] is False
 
-    for interaction_id, selected_option in (
-        ("PREALG-N1-B04-Q01", "8"),
-        ("PREALG-N1-B04-Q02", "no"),
-        ("PREALG-N1-B04-Q03", "2"),
-        ("PREALG-N1-B04-Q04", "zero,four,fifteen"),
-    ):
+    for interaction_id, selected_option in _answers(_B04):
         response = api_client.post(
             f"{naturals}/interactions",
             headers=student_headers,
@@ -575,17 +594,12 @@ def test_integers_node_uses_negative_sign_and_discrete_anchor(api_client, studen
             (("PREALG-N1-B02-Q01", "no"), ("PREALG-N1-B02-Q02", "debt")),
         ),
         (
-            "PREALG-N1-B03-ESCALERA-NECESIDAD",
-            (("PREALG-N1-B03-Q01", "expand"),),
+            _B03,
+            _answers(_B03),
         ),
         (
-            "PREALG-N1-B04-NATURALES-CONTAR",
-            (
-                ("PREALG-N1-B04-Q01", "8"),
-                ("PREALG-N1-B04-Q02", "no"),
-                ("PREALG-N1-B04-Q03", "2"),
-                ("PREALG-N1-B04-Q04", "zero,four,fifteen"),
-            ),
+            _B04,
+            _answers(_B04),
         ),
     ]
     for node_id, interactions in prerequisites:
@@ -607,13 +621,7 @@ def test_integers_node_uses_negative_sign_and_discrete_anchor(api_client, studen
     assert detail.status_code == 200
     assert detail.json()["affects_elo"] is False
 
-    for interaction_id, selected_option in (
-        ("PREALG-N1-B05-Q01", "35000"),
-        ("PREALG-N1-B05-Q02", "5000"),
-        ("PREALG-N1-B05-Q03", "negative"),
-        ("PREALG-N1-B05-Q04", "negative_5000"),
-        ("PREALG-N1-B05-Q05", "neg8,zero,six"),
-    ):
+    for interaction_id, selected_option in _answers(_B05):
         response = api_client.post(
             f"{integers}/interactions",
             headers=student_headers,
@@ -643,27 +651,16 @@ def test_rationals_node_links_fraction_division_and_decimal(api_client, student_
             (("PREALG-N1-B02-Q01", "no"), ("PREALG-N1-B02-Q02", "bread")),
         ),
         (
-            "PREALG-N1-B03-ESCALERA-NECESIDAD",
-            (("PREALG-N1-B03-Q01", "expand"),),
+            _B03,
+            _answers(_B03),
         ),
         (
-            "PREALG-N1-B04-NATURALES-CONTAR",
-            (
-                ("PREALG-N1-B04-Q01", "8"),
-                ("PREALG-N1-B04-Q02", "no"),
-                ("PREALG-N1-B04-Q03", "2"),
-                ("PREALG-N1-B04-Q04", "zero,four,fifteen"),
-            ),
+            _B04,
+            _answers(_B04),
         ),
         (
-            "PREALG-N1-B05-ENTEROS-DEUDA",
-            (
-                ("PREALG-N1-B05-Q01", "35000"),
-                ("PREALG-N1-B05-Q02", "5000"),
-                ("PREALG-N1-B05-Q03", "negative"),
-                ("PREALG-N1-B05-Q04", "negative_5000"),
-                ("PREALG-N1-B05-Q05", "neg8,zero,six"),
-            ),
+            _B05,
+            _answers(_B05),
         ),
     ]
     for node_id, interactions in prerequisites:
@@ -691,17 +688,15 @@ def test_rationals_node_links_fraction_division_and_decimal(api_client, student_
     reversed_share = api_client.post(
         f"{rationals}/interactions",
         headers=student_headers,
-        json={"interaction_id": "PREALG-N1-B06-Q01", "selected_option": "four_thirds"},
+        json={
+            "interaction_id": _B06 + "-E5",
+            "selected_option": "true_same",  # la trampa: el decimal truncado
+        },
     )
     assert reversed_share.status_code == 200
     assert reversed_share.json()["is_expected"] is False
 
-    for interaction_id, selected_option in (
-        ("PREALG-N1-B06-Q01", "three_fourths"),
-        ("PREALG-N1-B06-Q02", "three_div_four"),
-        ("PREALG-N1-B06-Q03", "decimal_075"),
-        ("PREALG-N1-B06-Q04", "frac_34,dec_025,neg3,periodic_0333"),
-    ):
+    for interaction_id, selected_option in _answers(_B06):
         response = api_client.post(
             f"{rationals}/interactions",
             headers=student_headers,
@@ -742,42 +737,17 @@ def _complete_level_one(api_client, headers):
     _answer(api_client, headers, trigger, "PREALG-N1-B02-Q02", "bread")
     _complete_node(api_client, headers, trigger)
 
-    staircase = "PREALG-N1-B03-ESCALERA-NECESIDAD"
-    _answer(api_client, headers, staircase, "PREALG-N1-B03-Q01", "expand")
+    for interaction_id, option in _answers(_B03):
+        _answer(api_client, headers, _B03, interaction_id, option)
+    staircase = _B03
     _complete_node(api_client, headers, staircase)
 
-    naturals = "PREALG-N1-B04-NATURALES-CONTAR"
-    for interaction_id, selected_option in (
-        ("PREALG-N1-B04-Q01", "8"),
-        ("PREALG-N1-B04-Q02", "no"),
-        ("PREALG-N1-B04-Q03", "2"),
-        ("PREALG-N1-B04-Q04", "zero,four,fifteen"),
-    ):
-        _answer(api_client, headers, naturals, interaction_id, selected_option)
-    _complete_node(api_client, headers, naturals)
-
-    integers = "PREALG-N1-B05-ENTEROS-DEUDA"
-    for interaction_id, selected_option in (
-        ("PREALG-N1-B05-Q01", "35000"),
-        ("PREALG-N1-B05-Q02", "5000"),
-        ("PREALG-N1-B05-Q03", "negative"),
-        ("PREALG-N1-B05-Q04", "negative_5000"),
-        ("PREALG-N1-B05-Q05", "neg8,zero,six"),
-    ):
-        _answer(api_client, headers, integers, interaction_id, selected_option)
-    _complete_node(api_client, headers, integers)
-
-    rationals = "PREALG-N1-B06-RACIONALES-FRACCION-DIVISION"
-    for interaction_id, selected_option in (
-        ("PREALG-N1-B06-Q01", "three_fourths"),
-        ("PREALG-N1-B06-Q02", "three_div_four"),
-        ("PREALG-N1-B06-Q03", "decimal_075"),
-        ("PREALG-N1-B06-Q04", "frac_34,dec_025,neg3,periodic_0333"),
-    ):
-        _answer(api_client, headers, rationals, interaction_id, selected_option)
-    _complete_node(api_client, headers, rationals)
-
+    # `_answers` devuelve [] para los nodos que todavía no se reconstruyeron,
+    # así que este bucle no cambia cuando se migra uno más.
     for node_id in (
+        _B04,
+        _B05,
+        _B06,
         "PREALG-N1-B07-IRRACIONALES-DECIMALES",
         "PREALG-N1-B08-REALES-RECTA",
         "PREALG-N1-B10-CLASIFICADOR-BASICO",
@@ -785,6 +755,8 @@ def _complete_level_one(api_client, headers):
         "PREALG-N1-B12-DETECTIVE-FALSEDADES",
         "PREALG-N1-B13-CIERRE-DIAGNOSTICO",
     ):
+        for interaction_id, selected_option in _answers(node_id):
+            _answer(api_client, headers, node_id, interaction_id, selected_option)
         response = _complete_node(api_client, headers, node_id)
         assert response.status_code == 200
 
@@ -875,14 +847,8 @@ def test_level_three_unlocks_after_level_two_and_tracks_laboratory_machines(
             headers=student_headers,
         )
         assert detail.status_code == 200
-        for situation in detail.json()["content"]["situations"]:
-            response = _answer(
-                api_client,
-                student_headers,
-                node_id,
-                f"{node_id}-{situation['id']}",
-                situation["answer"],
-            )
+        for interaction_id, answer in _answers(node_id):
+            response = _answer(api_client, student_headers, node_id, interaction_id, answer)
             assert response.status_code == 200
         assert _complete_node(api_client, student_headers, node_id).status_code == 200
 
@@ -911,4 +877,29 @@ def test_level_three_unlocks_after_level_two_and_tracks_laboratory_machines(
         headers=student_headers,
     )
     assert first_machine.status_code == 200
-    assert first_machine.json()["content"]["opening_hook"]["katia_message"] == "¡Qué curioso! El orden no importa."
+    assert first_machine.json()["content"]["station"] == "La Prensa de Intercambio"
+
+
+def test_algebra_nodes_appear_in_the_map_blocked_until_prealgebra_is_done(
+    api_client, student_headers
+):
+    """El Papiro de las Cuatro Casas se ve en el mapa desde el principio, cerrado."""
+    response = api_client.get("/api/student/map/algebra_basica", headers=student_headers)
+    assert response.status_code == 200
+
+    alg_nodes = [
+        node for node in response.json()["nodes"]
+        if (node.get("node_id") or "").startswith("ALG-")
+    ]
+    # La lista sale de la ruta, no se copia a mano: cada nodo de Álgebra nuevo
+    # obligaba a editar este test, que es la misma deuda que se cerró en B4.
+    from src.domain.learning.prealgebra import (
+        ALG_N1_NODE_IDS,
+        ALG_N2_NODE_IDS,
+        ALG_N3_NODE_IDS,
+    )
+
+    assert [node["node_id"] for node in alg_nodes] == ALG_N1_NODE_IDS + ALG_N2_NODE_IDS + ALG_N3_NODE_IDS
+
+    # Sin el MCM completado, todo el módulo de Álgebra está cerrado.
+    assert all(node["state"] == "blocked" for node in alg_nodes)

@@ -55,46 +55,27 @@ from src.domain.elo.vector_elo import aggregate_global_elo
 from src.domain.learning.prealgebra import (
     CLASSIFIER_BASIC_NODE_ID,
     CLASSIFIER_RIGOROUS_NODE_ID,
-    CLOSING_NODE_ID,
     COMPLEX_NODE_ID,
     DETECTIVE_NODE_ID,
     DIAGNOSTIC_NODE_IDS,
     INTEGERS_NODE_ID,
     IRRATIONALS_NODE_ID,
-    N2_DIVISION_NODE_ID,
-    N2_EXPONENTIATION_NODE_ID,
     N2_HUB_NODE_ID,
-    N2_MULTIPLICATION_NODE_ID,
     N2_OPERATION_NODE_IDS,
-    N2_RADICATION_NODE_ID,
-    N2_SUBTRACTION_NODE_ID,
-    N2_SUM_NODE_ID,
-    N3_ASSOCIATIVE_NODE_ID,
-    N3_COMMUTATIVE_NODE_ID,
-    N3_DISTRIBUTIVE_NODE_ID,
     N3_HUB_NODE_ID,
-    N3_IDENTITY_NODE_ID,
-    N3_INVERSES_NODE_ID,
     N3_MACHINE_NODE_IDS,
-    N4_CONCEPT_NODE_IDS,
-    N4_DIVISIBILITY_NODE_ID,
-    N4_FACTORIZATION_NODE_ID,
-    N4_GCD_NODE_ID,
-    N4_HUB_NODE_ID,
-    N4_LCM_NODE_ID,
-    N4_MULTIPLES_NODE_ID,
-    N4_PRIMES_NODE_ID,
     NATURALS_NODE_ID,
     PREALGEBRA_COURSE_ID,
     RATIONALS_NODE_ID,
     REALS_NODE_ID,
     STAIRCASE_NODE_ID,
     TRIGGER_NODE_ID,
-    WELCOME_NODE_ID,
     evaluate_interaction,
     get_lesson,
     presentation_band,
+    curriculum_map_rows,
     recommended_node_for_misconception,
+    route_position,
 )
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -1146,26 +1127,15 @@ def lesson_event(
     required_by_node = {
         TRIGGER_NODE_ID: {"PREALG-N1-B02-Q01", "PREALG-N1-B02-Q02"},
         STAIRCASE_NODE_ID: {"PREALG-N1-B03-Q01"},
-        NATURALS_NODE_ID: {
-            "PREALG-N1-B04-Q01",
-            "PREALG-N1-B04-Q02",
-            "PREALG-N1-B04-Q03",
-            "PREALG-N1-B04-Q04",
-        },
-        INTEGERS_NODE_ID: {
-            "PREALG-N1-B05-Q01",
-            "PREALG-N1-B05-Q02",
-            "PREALG-N1-B05-Q03",
-            "PREALG-N1-B05-Q04",
-            "PREALG-N1-B05-Q05",
-        },
-        RATIONALS_NODE_ID: {
-            "PREALG-N1-B06-Q01",
-            "PREALG-N1-B06-Q02",
-            "PREALG-N1-B06-Q03",
-            "PREALG-N1-B06-Q04",
-        },
+        # Los nodos reconstruidos a 11 bloques no se listan: sus interacciones
+        # son data-driven y se derivan del propio nodo (igual que N2/N3/N4).
     }
+    if body.event == "node_completed" and (lesson.get("content") or {}).get(
+        "kind"
+    ) == "eleven_block_node":
+        required_by_node[node_id] = {
+            interaction["interaction_id"] for interaction in lesson.get("interactions", [])
+        }
     if body.event == "node_completed" and node_id in required_by_node:
         responses = repo.get_lesson_interactions(user["user_id"], course_id, node_id)
         required = required_by_node[node_id]
@@ -1276,7 +1246,9 @@ def prealgebra_summary(course_id: str, user: CurrentUser, repo: RepoDep):
         node = recommended_node_for_misconception(tag)
         if node and node in _NODE_MAP_TITLE and node not in review_nodes:
             review_nodes.append(node)
-    review_nodes.sort(key=lambda n: DIAGNOSTIC_NODE_IDS.index(n))
+    # Por posición en la ruta, no por índice en la lista de un nivel: desde que
+    # el enrutado cubre N2-N4 y Álgebra, `DIAGNOSTIC_NODE_IDS.index` reventaría.
+    review_nodes.sort(key=route_position)
     review = [
         {"node_id": n, "label_key": _NODE_MAP_TITLE[n]}
         for n in review_nodes[:4]
@@ -1344,107 +1316,31 @@ def course_map(course_id: str, user: CurrentUser, repo: RepoDep):
 
     raw = raw[:30]  # tope de nodos para no saturar el mapa
 
-    welcome_progress = None
-    trigger_progress = None
-    staircase_progress = None
-    naturals_progress = None
-    integers_progress = None
-    rationals_progress = None
-    irrationals_progress = None
-    reals_progress = None
+    curriculum: list[MapNode] = []
     curriculum_completed = True
     if course_id == PREALGEBRA_COURSE_ID:
-        welcome_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, WELCOME_NODE_ID
-        )
-        trigger_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, TRIGGER_NODE_ID
-        )
-        staircase_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, STAIRCASE_NODE_ID
-        )
-        naturals_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, NATURALS_NODE_ID
-        )
-        integers_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, INTEGERS_NODE_ID
-        )
-        rationals_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, RATIONALS_NODE_ID
-        )
-        irrationals_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, IRRATIONALS_NODE_ID
-        )
-        reals_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, REALS_NODE_ID
-        )
-        complex_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, COMPLEX_NODE_ID
-        )
-        classifier_basic_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, CLASSIFIER_BASIC_NODE_ID
-        )
-        classifier_rigorous_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, CLASSIFIER_RIGOROUS_NODE_ID
-        )
-        detective_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, DETECTIVE_NODE_ID
-        )
-        closing_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, CLOSING_NODE_ID
-        )
-        n2_hub_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N2_HUB_NODE_ID
-        )
-        n2_sum_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N2_SUM_NODE_ID
-        )
-        n2_subtraction_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N2_SUBTRACTION_NODE_ID
-        )
-        n2_multiplication_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N2_MULTIPLICATION_NODE_ID
-        )
-        n2_division_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N2_DIVISION_NODE_ID
-        )
-        n2_exponentiation_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N2_EXPONENTIATION_NODE_ID
-        )
-        n2_radication_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N2_RADICATION_NODE_ID
-        )
-        n3_hub_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N3_HUB_NODE_ID
-        )
-        n3_commutative_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N3_COMMUTATIVE_NODE_ID
-        )
-        n3_associative_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N3_ASSOCIATIVE_NODE_ID
-        )
-        n3_distributive_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N3_DISTRIBUTIVE_NODE_ID
-        )
-        n3_identity_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N3_IDENTITY_NODE_ID
-        )
-        n3_inverses_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N3_INVERSES_NODE_ID
-        )
-        n4_hub_progress = repo.get_lesson_progress(
-            user["user_id"], course_id, N4_HUB_NODE_ID
-        )
-        n4_progress_by_node = {
-            node_id: repo.get_lesson_progress(user["user_id"], course_id, node_id)
-            for node_id in N4_CONCEPT_NODE_IDS
-        }
+        # Una sola lectura por nodo; la ruta y los estados los deriva el dominio
+        # de `unlock_after`. El endpoint ya no sabe de nodos concretos: añadir
+        # uno no se toca aquí.
+        _cache: dict[str, str] = {}
+
+        def _state_of(node_id: str) -> str:
+            if node_id not in _cache:
+                _cache[node_id] = repo.get_lesson_progress(
+                    user["user_id"], course_id, node_id
+                )["state"]
+            return _cache[node_id]
+
         # B09 (complejos) solo visible para banda intermedia/avanzada (callejón opcional).
         _diag = repo.get_diagnostic(user["user_id"], course_id)
         complex_visible = presentation_band(
             _diag.get("score_pct") if _diag else None
         ) in ("intermedio", "avanzado")
-        curriculum_completed = reals_progress["state"] == "completed"
+        curriculum = [
+            MapNode(**row)
+            for row in curriculum_map_rows(_state_of, complex_visible=complex_visible)
+        ]
+        curriculum_completed = _state_of(REALS_NODE_ID) == "completed"
 
     # estado: dominado (>=umbral) = completed; el PRIMER nodo no dominado =
     # current (dónde reforzar); el resto = available (no se bloquea: es refuerzo).
@@ -1453,7 +1349,7 @@ def course_map(course_id: str, user: CurrentUser, repo: RepoDep):
         if curriculum_completed
         else None
     )
-    nodes = [
+    nodes = curriculum + [
         MapNode(
             topic=n["topic"],
             label=n["label"],
@@ -1472,428 +1368,6 @@ def course_map(course_id: str, user: CurrentUser, repo: RepoDep):
         )
         for i, n in enumerate(raw)
     ]
-
-    if welcome_progress is not None:
-        nodes.insert(
-            0,
-            MapNode(
-                topic="reales",
-                label="Reales",
-                label_key="prealgebra.n1.b08.mapTitle",
-                node_id=REALS_NODE_ID,
-                node_type="guided_practice",
-                elo=0,
-                rd=0,
-                item_count=2,
-                state=(
-                    "blocked"
-                    if not irrationals_progress or irrationals_progress["state"] != "completed"
-                    else "completed"
-                    if reals_progress and reals_progress["state"] == "completed"
-                    else "current"
-                ),
-            ),
-        )
-        nodes.insert(
-            0,
-            MapNode(
-                topic="irracionales",
-                label="Irracionales",
-                label_key="prealgebra.n1.b07.mapTitle",
-                node_id=IRRATIONALS_NODE_ID,
-                node_type="guided_practice",
-                elo=0,
-                rd=0,
-                item_count=3,
-                state=(
-                    "blocked"
-                    if not rationals_progress or rationals_progress["state"] != "completed"
-                    else "completed"
-                    if irrationals_progress and irrationals_progress["state"] == "completed"
-                    else "current"
-                ),
-            ),
-        )
-        nodes.insert(
-            0,
-            MapNode(
-                topic="racionales",
-                label="Racionales",
-                label_key="prealgebra.n1.b06.mapTitle",
-                node_id=RATIONALS_NODE_ID,
-                node_type="guided_practice",
-                elo=0,
-                rd=0,
-                item_count=3,
-                state=(
-                    "blocked"
-                    if not integers_progress or integers_progress["state"] != "completed"
-                    else "completed"
-                    if rationals_progress and rationals_progress["state"] == "completed"
-                    else "current"
-                ),
-            ),
-        )
-        nodes.insert(
-            0,
-            MapNode(
-                topic="enteros",
-                label="Enteros",
-                label_key="prealgebra.n1.b05.mapTitle",
-                node_id=INTEGERS_NODE_ID,
-                node_type="guided_practice",
-                elo=0,
-                rd=0,
-                item_count=4,
-                state=(
-                    "blocked"
-                    if not naturals_progress or naturals_progress["state"] != "completed"
-                    else "completed"
-                    if integers_progress and integers_progress["state"] == "completed"
-                    else "current"
-                ),
-            ),
-        )
-        nodes.insert(
-            0,
-            MapNode(
-                topic="naturales",
-                label="Naturales",
-                label_key="prealgebra.n1.b04.mapTitle",
-                node_id=NATURALS_NODE_ID,
-                node_type="guided_practice",
-                elo=0,
-                rd=0,
-                item_count=4,
-                state=(
-                    "blocked"
-                    if not staircase_progress or staircase_progress["state"] != "completed"
-                    else "completed"
-                    if naturals_progress and naturals_progress["state"] == "completed"
-                    else "current"
-                ),
-            ),
-        )
-        nodes.insert(
-            0,
-            MapNode(
-                topic="organizador_previo",
-                label="Escalera de la necesidad",
-                label_key="prealgebra.n1.b03.mapTitle",
-                node_id=STAIRCASE_NODE_ID,
-                node_type="concept_organizer",
-                elo=0,
-                rd=0,
-                item_count=1,
-                state=(
-                    "blocked"
-                    if not trigger_progress or trigger_progress["state"] != "completed"
-                    else "completed"
-                    if staircase_progress and staircase_progress["state"] == "completed"
-                    else "current"
-                ),
-            ),
-        )
-        nodes.insert(
-            0,
-            MapNode(
-                topic="conflicto_cognitivo_intro",
-                label="Pregunta detonadora",
-                label_key="prealgebra.n1.b02.mapTitle",
-                node_id=TRIGGER_NODE_ID,
-                node_type="safe_interaction",
-                elo=0,
-                rd=0,
-                item_count=2,
-                state=(
-                    "blocked"
-                    if welcome_progress["state"] != "completed"
-                    else "completed"
-                    if trigger_progress and trigger_progress["state"] == "completed"
-                    else "current"
-                ),
-            ),
-        )
-        nodes.insert(
-            0,
-            MapNode(
-                topic="orientacion_intro",
-                label="Bienvenida",
-                label_key="prealgebra.n1.b01.mapTitle",
-                node_id=WELCOME_NODE_ID,
-                node_type="content_intro",
-                elo=0,
-                rd=0,
-                item_count=0,
-                state=(
-                    "completed" if welcome_progress["state"] == "completed" else "current"
-                ),
-            ),
-        )
-        # B09 complejos: desvío opcional tras los reales, solo para banda
-        # intermedia/avanzada. Banda Básico salta de B08 (Reales) a B10.
-        if complex_visible:
-            nodes.insert(
-                8,
-                MapNode(
-                    topic="complejos",
-                    label="Complejos",
-                    label_key="prealgebra.n1.b09.mapTitle",
-                    node_id=COMPLEX_NODE_ID,
-                    node_type="optional_extension",
-                    elo=0,
-                    rd=0,
-                    item_count=3,
-                    state=(
-                        "blocked"
-                        if not reals_progress or reals_progress["state"] != "completed"
-                        else "completed"
-                        if complex_progress and complex_progress["state"] == "completed"
-                        else "available"
-                    ),
-                ),
-            )
-        # B10 clasificador básico: consolidación tras la ruta núcleo. Se desbloquea
-        # al completar los reales (la rama compleja B09 es opcional). Va justo
-        # después del prefijo (índice 9 si B09 está visible, 8 si no).
-        nodes.insert(
-            9 if complex_visible else 8,
-            MapNode(
-                topic="clasificacion_especifica",
-                label="El Clasificador I",
-                label_key="prealgebra.n1.b10.mapTitle",
-                node_id=CLASSIFIER_BASIC_NODE_ID,
-                node_type="guided_practice",
-                elo=0,
-                rd=0,
-                item_count=8,
-                state=(
-                    "blocked"
-                    if not reals_progress or reals_progress["state"] != "completed"
-                    else "completed"
-                    if classifier_basic_progress and classifier_basic_progress["state"] == "completed"
-                    else "current"
-                ),
-            ),
-        )
-        # B11 clasificador riguroso: pertenencia múltiple. Va tras B10.
-        nodes.insert(
-            10 if complex_visible else 9,
-            MapNode(
-                topic="clasificacion_multiple",
-                label="El Clasificador II",
-                label_key="prealgebra.n1.b11.mapTitle",
-                node_id=CLASSIFIER_RIGOROUS_NODE_ID,
-                node_type="guided_practice",
-                elo=0,
-                rd=0,
-                item_count=8,
-                state=(
-                    "blocked"
-                    if not classifier_basic_progress or classifier_basic_progress["state"] != "completed"
-                    else "completed"
-                    if classifier_rigorous_progress and classifier_rigorous_progress["state"] == "completed"
-                    else "available"
-                ),
-            ),
-        )
-        # B12 detective de falsedades: 14 afirmaciones V/F. Va tras B11.
-        nodes.insert(
-            11 if complex_visible else 10,
-            MapNode(
-                topic="evaluacion_conceptual",
-                label="El Detective de Falsedades",
-                label_key="prealgebra.n1.b12.mapTitle",
-                node_id=DETECTIVE_NODE_ID,
-                node_type="guided_practice",
-                elo=0,
-                rd=0,
-                item_count=14,
-                state=(
-                    "blocked"
-                    if not classifier_rigorous_progress or classifier_rigorous_progress["state"] != "completed"
-                    else "completed"
-                    if detective_progress and detective_progress["state"] == "completed"
-                    else "available"
-                ),
-            ),
-        )
-        # B13 cierre diagnóstico: resumen final del nivel. Va tras B12.
-        nodes.insert(
-            12 if complex_visible else 11,
-            MapNode(
-                topic="cierre_diagnostico",
-                label="Diagnóstico del nivel",
-                label_key="prealgebra.n1.b13.mapTitle",
-                node_id=CLOSING_NODE_ID,
-                node_type="diagnostic_summary",
-                elo=0,
-                rd=0,
-                item_count=0,
-                state=(
-                    "blocked"
-                    if not detective_progress or detective_progress["state"] != "completed"
-                    else "completed"
-                    if closing_progress and closing_progress["state"] == "completed"
-                    else "available"
-                ),
-            ),
-        )
-        n2_level_unlocked = closing_progress["state"] == "completed"
-        n2_hub_completed = n2_hub_progress["state"] == "completed"
-        n2_progress_by_node = {
-            N2_SUM_NODE_ID: n2_sum_progress,
-            N2_SUBTRACTION_NODE_ID: n2_subtraction_progress,
-            N2_MULTIPLICATION_NODE_ID: n2_multiplication_progress,
-            N2_DIVISION_NODE_ID: n2_division_progress,
-            N2_EXPONENTIATION_NODE_ID: n2_exponentiation_progress,
-            N2_RADICATION_NODE_ID: n2_radication_progress,
-        }
-        n2_specs = [
-            ("ciudad_operaciones", "Ciudad de operaciones", N2_HUB_NODE_ID, "level_hub_3d"),
-            ("suma", "Suma", N2_SUM_NODE_ID, "operation_building_manipulative"),
-            ("resta", "Resta", N2_SUBTRACTION_NODE_ID, "operation_building_situations"),
-            ("multiplicacion", "Multiplicacion", N2_MULTIPLICATION_NODE_ID, "operation_building_progressive"),
-            ("division", "Division", N2_DIVISION_NODE_ID, "operation_building_manipulative"),
-            ("potenciacion", "Potenciacion", N2_EXPONENTIATION_NODE_ID, "operation_building_growth_table"),
-            ("radicacion", "Radicacion", N2_RADICATION_NODE_ID, "operation_building_geometric_last"),
-        ]
-        first_open_operation = next(
-            (
-                node_id
-                for _, _, node_id, _ in n2_specs[1:]
-                if n2_progress_by_node[node_id]["state"] != "completed"
-            ),
-            None,
-        )
-        for index, (topic, label, node_id, node_type) in enumerate(n2_specs):
-            if index == 0:
-                state = (
-                    "blocked"
-                    if not n2_level_unlocked
-                    else "completed"
-                    if n2_hub_completed
-                    else "current"
-                )
-            else:
-                progress = n2_progress_by_node[node_id]
-                state = (
-                    "blocked"
-                    if not n2_level_unlocked or not n2_hub_completed
-                    else "completed"
-                    if progress["state"] == "completed"
-                    else "current"
-                    if node_id == first_open_operation
-                    else "available"
-                )
-            nodes.append(
-                MapNode(
-                    topic=topic,
-                    label=f"Nivel 2 · {label}",
-                    node_id=node_id,
-                    node_type=node_type,
-                    elo=0,
-                    rd=0,
-                    item_count=6 if index == 0 else 1,
-                    state=state,
-                )
-            )
-        n3_level_unlocked = all(
-            n2_progress_by_node[node_id]["state"] == "completed"
-            for node_id in N2_OPERATION_NODE_IDS
-        )
-        n3_hub_completed = n3_hub_progress["state"] == "completed"
-        n3_progress_by_node = {
-            N3_COMMUTATIVE_NODE_ID: n3_commutative_progress,
-            N3_ASSOCIATIVE_NODE_ID: n3_associative_progress,
-            N3_DISTRIBUTIVE_NODE_ID: n3_distributive_progress,
-            N3_IDENTITY_NODE_ID: n3_identity_progress,
-            N3_INVERSES_NODE_ID: n3_inverses_progress,
-        }
-        n3_specs = [
-            ("laboratorio_propiedades", "Laboratorio de propiedades", N3_HUB_NODE_ID, "level_hub_laboratory"),
-            ("conmutativa", "Conmutativa", N3_COMMUTATIVE_NODE_ID, "property_machine_guided_discovery"),
-            ("asociativa", "Asociativa", N3_ASSOCIATIVE_NODE_ID, "property_machine_guided_discovery"),
-            ("distributiva", "Distributiva", N3_DISTRIBUTIVE_NODE_ID, "property_machine_guided_discovery"),
-            ("elemento_neutro", "Elemento neutro", N3_IDENTITY_NODE_ID, "property_machine_guided_discovery"),
-            ("inversos", "Inversos", N3_INVERSES_NODE_ID, "property_machine_cancellation_last"),
-        ]
-        previous_completed = n3_hub_completed
-        for index, (topic, label, node_id, node_type) in enumerate(n3_specs):
-            if index == 0:
-                state = (
-                    "blocked"
-                    if not n3_level_unlocked
-                    else "completed"
-                    if n3_hub_completed
-                    else "current"
-                )
-            else:
-                progress = n3_progress_by_node[node_id]
-                state = (
-                    "blocked"
-                    if not n3_level_unlocked or not previous_completed
-                    else "completed"
-                    if progress["state"] == "completed"
-                    else "current"
-                )
-                previous_completed = progress["state"] == "completed"
-            nodes.append(
-                MapNode(
-                    topic=topic,
-                    label=f"Nivel 3 · {label}",
-                    node_id=node_id,
-                    node_type=node_type,
-                    elo=0,
-                    rd=0,
-                    item_count=5 if index == 0 else 1,
-                    state=state,
-                )
-            )
-
-        n4_level_unlocked = n3_inverses_progress["state"] == "completed"
-        n4_hub_completed = n4_hub_progress["state"] == "completed"
-        n4_specs = [
-            ("puerto_de_la_polis", "El Puerto de la Polis", N4_HUB_NODE_ID, "level_hub_port"),
-            ("divisibilidad", "Divisibilidad", N4_DIVISIBILITY_NODE_ID, "divisibility_concept_guided_discovery"),
-            ("multiplos", "Múltiplos", N4_MULTIPLES_NODE_ID, "divisibility_concept_guided_discovery"),
-            ("primos", "Números primos", N4_PRIMES_NODE_ID, "divisibility_concept_guided_discovery"),
-            ("factorizacion_prima", "Factorización prima", N4_FACTORIZATION_NODE_ID, "divisibility_concept_guided_discovery"),
-            ("mcd", "Máximo común divisor", N4_GCD_NODE_ID, "divisibility_concept_guided_discovery"),
-            ("mcm", "Mínimo común múltiplo", N4_LCM_NODE_ID, "divisibility_concept_guided_discovery"),
-        ]
-        previous_completed = n4_hub_completed
-        for index, (topic, label, node_id, node_type) in enumerate(n4_specs):
-            if index == 0:
-                state = (
-                    "blocked"
-                    if not n4_level_unlocked
-                    else "completed"
-                    if n4_hub_completed
-                    else "current"
-                )
-            else:
-                progress = n4_progress_by_node[node_id]
-                state = (
-                    "blocked"
-                    if not n4_level_unlocked or not previous_completed
-                    else "completed"
-                    if progress["state"] == "completed"
-                    else "current"
-                )
-                previous_completed = progress["state"] == "completed"
-            nodes.append(
-                MapNode(
-                    topic=topic,
-                    label=f"Nivel 4 · {label}",
-                    node_id=node_id,
-                    node_type=node_type,
-                    elo=0,
-                    rd=0,
-                    item_count=9 if index == 0 else 1,
-                    state=state,
-                )
-            )
 
     course_name = next((c["name"] for c in repo.get_courses() if c["id"] == course_id), course_id)
     return CourseMapResponse(

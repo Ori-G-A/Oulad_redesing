@@ -25,7 +25,7 @@ type Props = {
 const HUB_ID = "PREALG-N4-C00-PUERTO-DE-LA-POLIS";
 
 export function LevelFourLesson({ lesson, courseId, onBack, onFinish, finishing }: Props) {
-  if (lesson.content?.kind === "level_hub_port") {
+  if (lesson.content?.kind === "level_hub_port" || lesson.content?.kind === "level_hub_cards") {
     return (
       <LevelFourHub lesson={lesson} courseId={courseId} onBack={onBack} onFinish={onFinish} finishing={finishing} />
     );
@@ -85,7 +85,11 @@ function LevelFourHub({ lesson, courseId, onBack, onFinish, finishing }: Props) 
         </header>
 
         <div className="level-presentation-media" role="img" aria-label="Imagen de KatIA aquí">
-          <img src="/prealgebra/generated/n4-puerto/c00-hub-puerto-katia-canon-v10.png" alt="" loading="lazy" />
+          <img
+            src={content?.image ?? "/prealgebra/generated/n4-puerto/c00-hub-puerto-katia-canon-v10.png"}
+            alt=""
+            loading="lazy"
+          />
         </div>
 
         {content?.scene_text && <p className="n4-scene-text">{content.scene_text}</p>}
@@ -110,7 +114,7 @@ function LevelFourHub({ lesson, courseId, onBack, onFinish, finishing }: Props) 
         )}
 
         <p className="level-gating-hint">
-          Abre los 6 muelles para habilitar la ruta de divisibilidad · {opened.size}/{cards.length} abiertos
+          {content?.cards_hint ?? `Abre los ${cards.length} muelles para habilitar la ruta de divisibilidad`} · {opened.size}/{cards.length} abiertos
         </p>
 
         <section className="n4-port" aria-label="Muelles del puerto">
@@ -131,7 +135,7 @@ function LevelFourHub({ lesson, courseId, onBack, onFinish, finishing }: Props) 
                 </button>
                 <div className={`n4-card-copy ${isOpened ? "revealed" : ""}`}>
                   <span>{card.destination}</span>
-                  {isOpened ? <p>{card.teaser}</p> : <p className="n4-card-closed">Haz click en el muelle para ver su ruta.</p>}
+                  {isOpened ? <p>{card.teaser}</p> : <p className="n4-card-closed">{content?.card_closed_hint ?? "Haz click en el muelle para ver su ruta."}</p>}
                   {allOpened && (
                     <button
                       type="button"
@@ -151,7 +155,7 @@ function LevelFourHub({ lesson, courseId, onBack, onFinish, finishing }: Props) 
         <footer className="lesson-footer trigger-footer">
           <div>
             <span>Gating del puerto</span>
-            <p>Abre los seis muelles para habilitar la ruta de divisibilidad.</p>
+            <p>{content?.cards_hint ?? "Abre los seis muelles para habilitar la ruta de divisibilidad."}</p>
           </div>
           <Button size="lg" disabled={!allOpened} loading={finishing} onClick={onFinish}>
             Entrar al puerto
