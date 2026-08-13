@@ -179,7 +179,7 @@ function OptionRow({
  */
 function OptionLabel({ option }: { option: ItemOption }) {
   if (option.latex) return <MathFormula math={option.latex} ariaLabel={option.text} />;
-  return <span>{option.text ?? option.id}</span>;
+  return <MathText text={option.text ?? option.id} />;
 }
 
 function HintLadder({ item, engine }: { item: LessonItem; engine: ItemEngine }) {
@@ -317,7 +317,7 @@ export function DiagnosticBlock({
 }) {
   return (
     <div className="block-diagnostic">
-      <p className="block-lead">{intro}</p>
+      <p className="block-lead"><MathText text={intro} /></p>
       {items.map((item) => (
         <LessonItemCard
           key={item.id}
@@ -331,7 +331,7 @@ export function DiagnosticBlock({
           acknowledgeOnly
         />
       ))}
-      {outcome && <p className="block-outcome">{outcome}</p>}
+      {outcome && <p className="block-outcome"><MathText text={outcome} /></p>}
     </div>
   );
 }
@@ -354,7 +354,7 @@ export function GenuineAttempt({
   const [chosen, setChosen] = useState<string | null>(null);
   return (
     <div className="block-attempt">
-      <p className="block-lead">{attempt.prompt}</p>
+      <p className="block-lead"><MathText text={attempt.prompt} /></p>
       <div className="block-options" role="group" aria-label={attempt.prompt}>
         {attempt.options.map((option) => (
           <button
@@ -374,7 +374,7 @@ export function GenuineAttempt({
       </div>
       {chosen && (
         <p className="block-attempt-response" role="status" aria-live="polite">
-          {attempt.response}
+          <MathText text={attempt.response} />
         </p>
       )}
     </div>
@@ -405,8 +405,8 @@ export function WorkedExample({
   return (
     <article className="block-example">
       {example.eyebrow && <span>{example.eyebrow}</span>}
-      {example.title && <h3>{example.title}</h3>}
-      {example.statement && <p>{example.statement}</p>}
+      {example.title && <h3><MathText text={example.title} /></h3>}
+      {example.statement && <p><MathText text={example.statement} /></p>}
       {example.latex && <MathFormula math={example.latex} display />}
       <ol className="block-example-steps">
         {(example.steps ?? []).slice(0, shown).map((step, index) => {
@@ -417,7 +417,7 @@ export function WorkedExample({
               {example.self_explanation?.step_index === index && (
                 <div className="block-self-explanation">
                   <label htmlFor={`se-${example.title ?? index}`}>
-                    {example.self_explanation.prompt}
+                    <MathText text={example.self_explanation.prompt} />
                   </label>
                   {/* Local: no se persiste texto libre del estudiante. */}
                   <textarea
@@ -516,10 +516,10 @@ export function TrapExample({
         <span aria-hidden="true">⚠</span>
         <div>
           <span>{example.eyebrow ?? "Trampa común"}</span>
-          {example.title && <h3>{example.title}</h3>}
+          {example.title && <h3><MathText text={example.title} /></h3>}
         </div>
       </header>
-      {example.statement && <p>{example.statement}</p>}
+      {example.statement && <p><MathText text={example.statement} /></p>}
       {example.latex && <MathFormula math={example.latex} display />}
 
       {/* Paso 1 · calibración de confianza, obligatoria antes de revelar */}
@@ -529,7 +529,7 @@ export function TrapExample({
         </h4>
         <div className="block-confidence">
           <label htmlFor="trap-confidence">
-            {example.confidence_prompt ?? "¿Qué tan seguro estás de dónde falla?"}
+            <MathText text={example.confidence_prompt ?? "¿Qué tan seguro estás de dónde falla?"} />
           </label>
           <input
             id="trap-confidence"
@@ -559,7 +559,7 @@ export function TrapExample({
           {example.error_latex && (
             <div className="block-trap-signal">
               <MathFormula math={example.error_latex} display />
-              {example.error_note && <p>{example.error_note}</p>}
+              {example.error_note && <p><MathText text={example.error_note} /></p>}
             </div>
           )}
           <button
@@ -583,8 +583,8 @@ export function TrapExample({
               <ul>
                 {example.correct_version.rows.map((row, index) => (
                   <li key={index}>
-                    <span>{row.wrong}</span>
-                    <span>{row.right}</span>
+                    <span><MathText text={row.wrong} /></span>
+                    <span><MathText text={row.right} /></span>
                   </li>
                 ))}
               </ul>
@@ -601,7 +601,7 @@ export function TrapExample({
             <span aria-hidden="true">3</span> Ahora explícalo tú
           </h4>
           <div className="block-self-explanation">
-            <label htmlFor="trap-explain">{example.explain_prompt}</label>
+            <label htmlFor="trap-explain"><MathText text={example.explain_prompt} /></label>
             <textarea
               id="trap-explain"
               rows={2}
@@ -628,7 +628,7 @@ export function TrapExample({
           {explained && example.solution && (
             <div className="block-trap-resolution">
               <span>Lo que dice KatIA</span>
-              <p>{example.solution}</p>
+              <p><MathText text={example.solution} /></p>
             </div>
           )}
         </section>
@@ -666,10 +666,10 @@ export function BridgeBlock({
   );
   return (
     <div className="block-bridge">
-      <p className="block-lead">{bridge.intro}</p>
+      <p className="block-lead"><MathText text={bridge.intro} /></p>
       {visible.map((item) => (
         <article key={item.id} className="block-bridge-item">
-          <p>{item.statement}</p>
+          <p><MathText text={item.statement} /></p>
           <ol>
             {item.given_steps.map((step, index) => (
               <li key={index}>
@@ -726,7 +726,7 @@ export function MethodComparison({
   const [revealed, setRevealed] = useState(false);
   return (
     <div className="block-methods">
-      <h3>{comparison.title}</h3>
+      <h3><MathText text={comparison.title} /></h3>
       <p className="block-lead">
         <MathText text={comparison.intro} />
       </p>
@@ -743,14 +743,14 @@ export function MethodComparison({
                 </li>
               ))}
             </ol>
-            {method.note && <p>{method.note}</p>}
+            {method.note && <p><MathText text={method.note} /></p>}
           </article>
         ))}
       </div>
-      <blockquote>{comparison.question}</blockquote>
+      <blockquote><MathText text={comparison.question} /></blockquote>
       {comparison.insight &&
         (revealed ? (
-          <p className="block-methods-insight">{comparison.insight}</p>
+          <p className="block-methods-insight"><MathText text={comparison.insight} /></p>
         ) : (
           <button type="button" className="block-step-more" onClick={() => setRevealed(true)}>
             Ver la respuesta
@@ -782,7 +782,7 @@ export function AbstractionQuestion({
     });
   return (
     <div className="block-abstraction">
-      <h3>{question.prompt}</h3>
+      <h3><MathText text={question.prompt} /></h3>
       <div className="block-thumbnails" aria-hidden="true">
         {question.thumbnails.map((math) => (
           <MathFormula key={math} math={math} display />
@@ -803,7 +803,7 @@ export function AbstractionQuestion({
             disabled={checked}
             onClick={() => toggle(option.id)}
           >
-            <span>{option.text}</span>
+            <MathText text={option.text} />
           </button>
         ))}
       </div>
@@ -841,7 +841,7 @@ export function PolyaClosing({
   ] as const;
   return (
     <div className="block-polya">
-      <p className="block-lead">{item.statement}</p>
+      <p className="block-lead"><MathText text={item.statement} /></p>
       <ol className="block-polya-steps">
         {micro.slice(0, step).map(([label, text]) => (
           <li key={label}>
@@ -888,7 +888,7 @@ export function MasteryFooter({
       <div>
         <span>{footer.label}</span>
         <p className={`block-mastery is-${state}`}>{footer.states[state]}</p>
-        {footer.note && <small>{footer.note}</small>}
+        {footer.note && <small><MathText text={footer.note} /></small>}
       </div>
       {children}
     </footer>

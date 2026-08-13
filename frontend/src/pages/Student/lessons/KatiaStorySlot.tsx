@@ -1,4 +1,4 @@
-import { MathFormula } from "../../../components/Math/MathContent";
+import { MathFormula, MathText } from "../../../components/Math/MathContent";
 
 type FormulaCaption = { math: string; caption?: string };
 
@@ -38,12 +38,12 @@ export function KatiaStorySlot({
       </div>
       <div className="katia-story-copy">
         <span>{eyebrow}</span>
-        {title && <h2>{title}</h2>}
-        <p>{body}</p>
+        {title && <h2><MathText text={title} /></h2>}
+        <p><MathText text={body} /></p>
         {formulas?.map((item, index) => (
           <div className="katia-story-formula-line" key={index}>
             <MathFormula math={item.math} />
-            {item.caption && <small>{item.caption}</small>}
+            {item.caption && <small><MathText text={item.caption} /></small>}
           </div>
         ))}
         {formula && (
@@ -51,7 +51,11 @@ export function KatiaStorySlot({
             <MathFormula math={formula} />
           </div>
         )}
-        {question && <blockquote className="katia-story-question">{question}</blockquote>}
+        {question && (
+          <blockquote className="katia-story-question">
+            <MathText text={question} />
+          </blockquote>
+        )}
       </div>
     </section>
   );

@@ -104,8 +104,8 @@ function StaircaseExplorer({
 
       <aside className="step-explanation" aria-live="polite">
         <span>La necesidad que lo creó</span>
-        <h2>{step.question}</h2>
-        <p>{step.explanation}</p>
+        <h2><MathText text={step.question} /></h2>
+        <p><MathText text={step.explanation} /></p>
         {staircase.chain && (
           <div className="inclusion-chain">
             <MathFormula math={staircase.chain} />
@@ -187,8 +187,8 @@ export function ElevenBlockLesson({ lesson, courseId, onBack, onFinish, finishin
         <LessonZone zone="explore" label="Explorar">
           <header className="blk-heading">
             {content.kicker && <span className="lesson-kicker">{content.kicker}</span>}
-            <h1 id="lesson-title">{content.title}</h1>
-            <p>{content.intro}</p>
+            <h1 id="lesson-title"><MathText text={content.title} /></h1>
+            <p><MathText text={content.intro} /></p>
           </header>
 
           {content.scene && (
@@ -230,25 +230,25 @@ export function ElevenBlockLesson({ lesson, courseId, onBack, onFinish, finishin
           <section className="set-story">
             <article>
               <span>{content.discovery.eyebrow}</span>
-              <h2>{content.discovery.title}</h2>
-              <p>{content.discovery.body}</p>
+              <h2><MathText text={content.discovery.title} /></h2>
+              <p><MathText text={content.discovery.body} /></p>
               <div className="blk-cases">
                 {content.discovery.cases.map((c: Record<string, string>) => (
                   <div key={c.label}>
                     <span>{c.label}</span>
-                    <p>{c.context}</p>
+                    <p><MathText text={c.context} /></p>
                     {c.fraction && <MathFormula math={c.fraction} display />}
                     {c.division && <MathFormula math={c.division} />}
-                    <small>{c.note}</small>
+                    <small><MathText text={c.note} /></small>
                   </div>
                 ))}
               </div>
-              <p className="blk-resolution">{content.discovery.resolution}</p>
+              <p className="blk-resolution"><MathText text={content.discovery.resolution} /></p>
             </article>
 
             <article className="set-formal">
               <span>Definición formal</span>
-              <h2>{content.definition_title}</h2>
+              <h2><MathText text={content.definition_title} /></h2>
               <MathFormula math={content.definition_katex} display />
               <dl className="blk-symbols">
                 {(content.definition_symbols ?? []).map((s: Record<string, string>) => (
@@ -257,12 +257,12 @@ export function ElevenBlockLesson({ lesson, courseId, onBack, onFinish, finishin
                       <MathFormula math={s.symbol} ariaLabel={s.reads} />
                     </dt>
                     <dd>
-                      <b>{s.reads}</b> — {s.means}
+                      <b>{s.reads}</b> — <MathText text={s.means} />
                     </dd>
                   </div>
                 ))}
               </dl>
-              <p>{content.definition}</p>
+              <p><MathText text={content.definition} /></p>
             </article>
           </section>
 
@@ -309,8 +309,8 @@ export function ElevenBlockLesson({ lesson, courseId, onBack, onFinish, finishin
           {content.closure && (
             <section className="blk-closure">
               <span>{content.closure.eyebrow}</span>
-              <h2>{content.closure.title}</h2>
-              <p>{content.closure.intro}</p>
+              <h2><MathText text={content.closure.title} /></h2>
+              <p><MathText text={content.closure.intro} /></p>
               <table>
                 <tbody>
                   {content.closure.rows.map((row: Record<string, string>) => (
@@ -332,12 +332,12 @@ export function ElevenBlockLesson({ lesson, courseId, onBack, onFinish, finishin
                         </span>
                       </td>
                       <td>{row.latex && <MathFormula math={row.latex} />}</td>
-                      <td>{row.note}</td>
+                      <td><MathText text={row.note} /></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <p className="blk-resolution">{content.closure.outro}</p>
+              <p className="blk-resolution"><MathText text={content.closure.outro} /></p>
             </section>
           )}
 

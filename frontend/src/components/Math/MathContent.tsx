@@ -29,12 +29,20 @@ export function normalizeLatex(source: string): string {
     .replace(/○/g, "\\bigcirc");
 }
 
-export function MathFormula({
-  math,
-  display = false,
-  ariaLabel,
-  className = "",
-}: MathFormulaProps) {
+/**
+ * Un slot de fórmula al que le llega PROSA con `$...$` intercalado (pasa cuando
+ * el autor del nodo escribe "$12mx^{2}-12m$ tratado como…" en `cases.division`
+ * o en `methods.steps`) caía al fallback y el estudiante veía los delimitadores
+ * en crudo. Se delega en MathText, que sí sabe mezclar texto y matemática.
+ */
+export function MathFormula(props: MathFormulaProps) {
+  if (/(?<!\\)\$/.test(normalizeLatex(props.math))) {
+    return <MathText text={props.math} className={props.className} />;
+  }
+  return <Katex {...props} />;
+}
+
+function Katex({ math, display = false, ariaLabel, className = "" }: MathFormulaProps) {
   const normalized = normalizeLatex(math);
   const rendered = useMemo(() => {
     try {
@@ -113,7 +121,9 @@ export function MathText({ text, className = "" }: MathTextProps) {
         return math === null ? (
           <Fragment key={index}>{token}</Fragment>
         ) : (
-          <MathFormula key={index} math={math} display={display} />
+          // Katex y no MathFormula: el token ya viene sin delimitadores y
+          // delegar de vuelta sería recursión infinita.
+          <Katex key={index} math={math} display={display} />
         );
       })}
     </span>

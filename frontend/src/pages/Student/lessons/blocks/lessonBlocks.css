@@ -417,6 +417,16 @@
 .blk-cases > div > span { color: var(--accent-2); font: 800 10px var(--font-body); text-transform: uppercase; letter-spacing: .1em; }
 .blk-cases > div > p { margin: 6px 0 12px; color: var(--dim); font-size: 14px; }
 .blk-cases small { display: block; margin-top: 10px; color: var(--dim); font-size: 13px; line-height: 1.5; }
+/* Una fórmula suelta dentro de una tarjeta estrecha se lleva su propio scroll:
+   como hija directa empujaba el ancho del div y arrastraba consigo al texto,
+   que quedaba cortado a media palabra. `\text{}` de KaTeX no parte líneas. */
+.blk-cases > div > .math-rendered,
+.block-methods-grid li > .math-rendered,
+.block-bridge-item li > .math-rendered {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
 .blk-resolution { margin-top: 18px; color: var(--dim); line-height: 1.65; }
 /* Símbolo y significado van en la misma línea SOLO si al significado le quedan
    al menos 18 caracteres. Con `grid-template-columns: minmax(64px, auto) 1fr`

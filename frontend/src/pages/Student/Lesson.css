@@ -912,9 +912,13 @@ html.light .lesson-page {
 
 /* Patrón unificado de conjuntos numéricos: descubrimiento + definición formal + trampa.
    Compartido por todos los nodos N/Z/Q/Irr/R/C para mantener el mismo molde. */
+/* Una sola columna a propósito: con dos, el descubrimiento guiado se quedaba
+   en ~480px y las tarjetas de `cases` que van dentro caían a ~230px cada una,
+   donde cualquier igualdad se recortaba. Apilado, cada bloque dispone del
+   ancho completo del shell y las fórmulas caben sin scroll horizontal. */
 .set-story {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   margin-top: clamp(32px, 6vw, 56px);
 }
