@@ -7,7 +7,7 @@ de navegación con detalle mecánico puntual. Nivel de referencia (ya validado, 
 objetos sobreusados): ánforas de aceite, sacos de trigo, rollos de tela, cerámica, naranjas,
 tejas, columnas de mármol, postes con tablillas de ruta.
 
-**Línea gráfica obligatoria (`frontend/public/prealgebra/`):** usar como referencia directa
+**Línea gráfica obligatoria (`Implementacion/image-prompts/referencias/`):** usar como referencia directa
 `step-naturales.png`, `step-enteros.png`, `step-racionales.png`, `step-reales.png`,
 `escalera-conjuntos.png`, `katia-primer-plano-enteros.png` y `caso-enteros-recta.jpg`.
 Antes de generar, abrir/adjuntar esas imágenes como referencias visuales si la herramienta lo
@@ -15,7 +15,7 @@ permite; si no, copiar completa esta línea gráfica dentro del prompt final.
 
 **Método aprobado para KatIA en N4:** no regenerar a KatIA desde prompt libre. Para una escena
 con KatIA, generar primero un fondo SIN KatIA, sin gatos/personajes principales y con espacio
-libre para componerla; después montar encima `frontend/public/prealgebra/katia-canon-sprite-hard.png`.
+libre para componerla; después montar encima `Implementacion/image-prompts/referencias/katia-canon-sprite-hard.png`.
 El bloque canónico de abajo se usa para validar identidad, no para pedirle al modelo que invente
 una nueva versión del personaje.
 

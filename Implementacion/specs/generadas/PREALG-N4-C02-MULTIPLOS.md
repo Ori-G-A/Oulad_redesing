@@ -395,6 +395,6 @@ Ver `Implementacion/Fase_2/CITAS_EN_REMOJO.md`.
 
 > **PENDIENTE — se escribe a mano.** No es derivable del código.
 
-Imagen de apertura declarada: `/prealgebra/generated/n4-puerto/c02-multiplos-katia-v4.png`
+Imagen de apertura declarada: `/leccion/04-prealg-n4-puerto/c02-multiplos-katia-v4.png`
 
 Renderer: `frontend/src/pages/Student/lessons/blocks/ElevenBlockLesson.tsx` (genérico, 5 zonas de color).

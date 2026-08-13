@@ -2,7 +2,7 @@
 
 **Reemplaza a `n2-mercado.md`.** El nivel dejó de ser un mercado de puestos: son SEIS
 EDIFICIOS con nombre propio, y se entra a uno por nodo. El arte actual
-(`frontend/public/prealgebra/generated/n2-mercado/*-v4.png`) muestra puestos de tela y
+(`frontend/public/leccion/02-prealg-n2-mercado/*-v4.png`) muestra puestos de tela y
 mostradores — hay que regenerarlo. Los nombres de archivo se conservan para no romper las
 rutas del contenido.
 
@@ -21,7 +21,7 @@ servicio, poleas, herramienta de oficio. **Cero vocabulario de mercado**: nada d
 toldos de tela, mercaderes tras un mostrador ni cestas de fruta expuestas. Cada edificio se
 debe reconocer por su OFICIO, no por un cartel con el símbolo de la operación.
 
-**Línea gráfica obligatoria (`frontend/public/prealgebra/`):** usar como referencia directa
+**Línea gráfica obligatoria (`Implementacion/image-prompts/referencias/`):** usar como referencia directa
 `step-naturales.png`, `step-enteros.png`, `step-racionales.png`, `step-reales.png`,
 `escalera-conjuntos.png`, `katia-primer-plano-enteros.png` y `caso-enteros-recta.jpg`.
 Antes de generar, abrir/adjuntar esas imágenes como referencias visuales si la herramienta lo

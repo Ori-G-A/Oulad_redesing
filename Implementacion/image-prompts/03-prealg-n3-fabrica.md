@@ -6,7 +6,7 @@ industriales, engranajes, bloques, balanza de laboratorio, palancas, bancos de p
 espacio más "futurista" del catálogo — tecnológico por defecto, no un toque puntual. Cero
 vocabulario de ágora/mercado (nada de columnas de plaza pública ni puestos con toldos).
 
-**Línea gráfica obligatoria (`frontend/public/prealgebra/`):** usar como referencia directa
+**Línea gráfica obligatoria (`Implementacion/image-prompts/referencias/`):** usar como referencia directa
 `step-naturales.png`, `step-enteros.png`, `step-racionales.png`, `step-reales.png`,
 `escalera-conjuntos.png`, `katia-primer-plano-enteros.png` y `caso-enteros-recta.jpg`.
 Antes de generar, abrir/adjuntar esas imágenes como referencias visuales si la herramienta lo
@@ -14,7 +14,7 @@ permite; si no, copiar completa esta línea gráfica dentro del prompt final.
 
 **Método aprobado para KatIA en N3:** no regenerar a KatIA desde prompt libre. Para una escena
 con KatIA, generar primero un fondo SIN KatIA, sin gatos/personajes principales y con espacio
-libre para componerla; después montar encima `frontend/public/prealgebra/katia-canon-sprite-hard.png`.
+libre para componerla; después montar encima `Implementacion/image-prompts/referencias/katia-canon-sprite-hard.png`.
 El bloque canónico de abajo se usa para validar identidad, no para pedirle al modelo que invente
 una nueva versión del personaje.
 
@@ -70,7 +70,7 @@ completo, 16:9) — de `welcome_text`/`scene_text`: "El laboratorio tiene cinco 
 industriales... una demostración, una serie guiada y una formalización."
 
 > Interior de un laboratorio-taller griego retrofuturista, contenido como los assets de
-> `frontend/public/prealgebra`, con cinco máquinas distintas
+> `Implementacion/image-prompts/referencias/`, con cinco máquinas distintas
 > dispuestas en el espacio (una prensa, un horno de fundición, una cinta transportadora, un
 > calibre de banco y una prensa de contrapesos — siluetas reconocibles pero sin detalle de
 > primer plano de ninguna), tuberías de bronce recorriendo el techo, luz teal proveniente de

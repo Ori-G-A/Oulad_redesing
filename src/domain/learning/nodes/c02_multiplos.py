@@ -85,7 +85,7 @@ CONTENT = {
             "aprendiz no supo qué contestar."
         ),
         "question": "¿Cuántos números marca esa campana en total?",
-        "image": "/prealgebra/generated/n4-puerto/c02-multiplos-katia-v4.png",
+        "image": "/leccion/04-prealg-n4-puerto/c02-multiplos-katia-v4.png",
         "attempt": {
             "format": "acotado",
             "prompt": "Escoge lo que creas ahora. No se califica.",

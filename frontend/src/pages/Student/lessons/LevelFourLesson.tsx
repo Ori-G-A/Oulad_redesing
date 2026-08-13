@@ -86,7 +86,7 @@ function LevelFourHub({ lesson, courseId, onBack, onFinish, finishing }: Props) 
 
         <div className="level-presentation-media" role="img" aria-label="Imagen de KatIA aquí">
           <img
-            src={content?.image ?? "/prealgebra/generated/n4-puerto/c00-hub-puerto-katia-canon-v10.png"}
+            src={content?.image ?? "/leccion/04-prealg-n4-puerto/c00-hub-puerto-v4.png"}
             alt=""
             loading="lazy"
           />

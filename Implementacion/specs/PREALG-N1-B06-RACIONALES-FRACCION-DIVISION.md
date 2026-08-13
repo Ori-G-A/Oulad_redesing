@@ -595,7 +595,7 @@ Reglas duras de la segmentación:
 
 #### Requisitos visuales
 - **A3:** ilustración del monocordio con el puente móvil, en el hueco de `KatiaStorySlot`. Sin
-  `imageSrc` cae al placeholder existente. Estilo: revisar `frontend/public/prealgebra/` antes
+  `imageSrc` cae al placeholder existente. Estilo: revisar `Implementacion/image-prompts/referencias/` antes
   de encargar arte — no inventar estilo nuevo.
 - **A4:** diagrama CPA en tres franjas horizontales (barra repartida → recta con el punto →
   símbolo), contiguo a su texto. Prohibida la leyenda aparte (contigüidad espacial).

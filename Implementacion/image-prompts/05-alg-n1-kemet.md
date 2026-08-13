@@ -5,7 +5,7 @@
 cubre las **17 imágenes obligatorias** (1 header de hub + 16 aperturas de KatIA) y deja
 listadas las **16 opcionales** de las trampas.
 
-Destino: `frontend/public/algebra/generated/n1-kemet/`. Los nombres de archivo de este
+Destino: `frontend/public/leccion/05-alg-n1-kemet/`. Los nombres de archivo de este
 documento son los definitivos — el hub ya declara `a00-hub-papiro-katia.png`.
 
 ---
@@ -16,7 +16,7 @@ Es el mismo mundo y la misma KatIA, en otro sitio. Preálgebra transcurre en Gre
 ciudad, fábrica, puerto); aquí KatIA ha remontado el río hasta **Kemet**. La línea gráfica
 NO cambia: cambia la arquitectura, la luz y los materiales.
 
-**Línea gráfica obligatoria (`frontend/public/prealgebra/`):** usar como referencia directa
+**Línea gráfica obligatoria (`Implementacion/image-prompts/referencias/`):** usar como referencia directa
 `step-naturales.png`, `step-enteros.png`, `escalera-conjuntos.png`,
 `katia-primer-plano-enteros.png` y `caso-enteros-recta.jpg`. Antes de generar, adjuntarlas
 como referencias visuales si la herramienta lo permite; si no, copiar completa la línea
@@ -309,7 +309,7 @@ por sala, dentro de `CONTENT["katia"]`:
 ```python
 "katia": {
     "eyebrow": "...",
-    "image": "/algebra/generated/n1-kemet/l01-variables-katia.png",
+    "image": "/leccion/05-alg-n1-kemet/l01-variables-katia.png",
     ...
 }
 ```

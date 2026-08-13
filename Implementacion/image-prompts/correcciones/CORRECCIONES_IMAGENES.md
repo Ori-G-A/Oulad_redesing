@@ -1,6 +1,6 @@
 # Correcciones de imagenes generadas - Prealgebra
 
-Ruta base: `frontend/public/prealgebra/generated`
+Ruta base: `Implementacion/image-prompts/referencias/generated`
 
 Total inventariado: 70 imagenes.
 

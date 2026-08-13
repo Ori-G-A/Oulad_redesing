@@ -388,6 +388,6 @@ Ver `Implementacion/Fase_2/CITAS_EN_REMOJO.md`.
 
 > **PENDIENTE — se escribe a mano.** No es derivable del código.
 
-Imagen de apertura declarada: `/prealgebra/generated/n3-fabrica/m05-inversos-katia-v5.png`
+Imagen de apertura declarada: `/leccion/03-prealg-n3-fabrica/m05-inversos-katia-v5.png`
 
 Renderer: `frontend/src/pages/Student/lessons/blocks/ElevenBlockLesson.tsx` (genérico, 5 zonas de color).

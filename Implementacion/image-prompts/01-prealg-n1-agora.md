@@ -5,7 +5,7 @@ Vocabulario visual del espacio (Fase 0 / skill `prealgebra-narrative-style`): co
 mármol, tablillas, plaza pública, ciudadanos, escalinatas. Ningún toque mecánico forzado —
 KatIA (gata cyborg) es la única nota tecnológica del nivel.
 
-**Línea gráfica obligatoria (`frontend/public/prealgebra/`):** usar como referencia directa
+**Línea gráfica obligatoria (`Implementacion/image-prompts/referencias/`):** usar como referencia directa
 `escalera-conjuntos.png`, `step-naturales.png`, `step-enteros.png`, `step-racionales.png`,
 `step-reales.png`, `katia-primer-plano-enteros.png` y `caso-enteros-recta.jpg`.
 Antes de generar, abrir/adjuntar esas imágenes como referencias visuales si la herramienta lo
@@ -18,7 +18,7 @@ pintura digital hiperrealista. Composición contenida como los assets existentes
 legible en primer/medio plano, escalinatas o mesa de mármol como ancla, columnas/arcos
 griegos en segundo plano, pocos personajes secundarios desenfocados, sombras azul noche,
 mármol beige cálido, luz dorada de lámpara/antorcha y acentos teal pequeños. KatIA debe
-conservar la identidad visual de frontend/public/prealgebra: gata blanca con mancha
+conservar la identidad visual de Implementacion/image-prompts/referencias: gata blanca con mancha
 naranja/negra en la cabeza, ojo verde visible, ocular mecánico teal en el otro ojo,
 pata/brazo mecánico, túnica morada y ornamentos dorados.`
 

@@ -87,7 +87,7 @@ CONTENT = {
             "muchísimas menos raciones. Dividir siempre achica."
         ),
         "question": "Al repartir 12 hogazas en raciones de media hogaza, ¿salen más raciones o menos?",
-        "image": "/prealgebra/generated/n2-mercado/e04-division-katia-v4.png",
+        "image": "/leccion/02-prealg-n2-mercado/e04-division-katia-v4.png",
         "attempt": {
             "format": "acotado",
             "prompt": "Escoge lo que creas ahora. No se califica.",
@@ -160,7 +160,7 @@ CONTENT = {
             ),
             "latex": r"27\div 6",
             "image_slot": True,
-            "image": "/prealgebra/generated/n2-mercado/e04-reparto-residuo-v4.png",
+            "image": "/leccion/02-prealg-n2-mercado/e04-reparto-residuo-v4.png",
             "steps": [
                 "Reparto 27 entre 6. El múltiplo de 6 más cercano sin pasarse es 6 × 4 = 24.",
                 "Cada mesa lleva 4 hogazas enteras y sobran 27 − 24 = 3.",

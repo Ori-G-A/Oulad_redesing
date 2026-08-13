@@ -132,14 +132,14 @@ una espera. Los prompts están escritos y autocontenidos:
 
 | | Prompts | Destino | Estado del arte |
 |---|---|---|---|
-| **N2 · la ciudad** | 22, en `n2-ciudad-edificios.md` | `frontend/public/prealgebra/generated/n2-mercado/` | Los 22 PNG actuales siguen dibujando **puestos de mercado**, que es lo que se descartó |
-| **ALG-N1 · Kemet** | 36, en `alg-n1-kemet-PROMPTS.md` (hub + 17 obligatorias + 16 trampas) | `frontend/public/algebra/generated/n1-kemet/` | No existe |
+| **N2 · la ciudad** | 22, en `n2-ciudad-edificios.md` | `frontend/public/leccion/02-prealg-n2-mercado/` | Los 22 PNG actuales siguen dibujando **puestos de mercado**, que es lo que se descartó |
+| **ALG-N1 · Kemet** | 36, en `alg-n1-kemet-PROMPTS.md` (hub + 17 obligatorias + 16 trampas) | `frontend/public/leccion/05-alg-n1-kemet/` | No existe |
 
 Cuando lleguen los PNG de Kemet hay que añadir `katia.image` a cada módulo; el documento trae
 el snippet.
 
 **Efecto secundario mientras dure:** el hub de Kemet declara
-`/algebra/generated/n1-kemet/a00-hub-papiro-katia.png`, que no existe → **404 en cada carga
+`/leccion/05-alg-n1-kemet/a00-hub-papiro-katia.png`, que no existe → **404 en cada carga
 del hub**. Es el único asset roto conocido. Si el aplazamiento es largo, conviene quitarle esa
 línea al hub y devolverla con el PNG.
 

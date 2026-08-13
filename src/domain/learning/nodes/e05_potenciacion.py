@@ -87,7 +87,7 @@ CONTENT = {
             "una bandeja. Al décimo día tuvieron que abrir un ala nueva del invernadero."
         ),
         "question": "Un esqueje que se duplica cada día, ¿cuántos son al décimo día?",
-        "image": "/prealgebra/generated/n2-mercado/e05-potenciacion-katia-v4.png",
+        "image": "/leccion/02-prealg-n2-mercado/e05-potenciacion-katia-v4.png",
         "attempt": {
             "format": "acotado",
             "prompt": "Escoge lo que creas ahora. No se califica.",
@@ -158,7 +158,7 @@ CONTENT = {
             ),
             "latex": r"2^{10}",
             "image_slot": True,
-            "image": "/prealgebra/generated/n2-mercado/e05-crecimiento-niveles-v4.png",
+            "image": "/leccion/02-prealg-n2-mercado/e05-crecimiento-niveles-v4.png",
             "steps": [
                 "Día 1: 2. Día 2: 2 × 2 = 4. Día 3: 4 × 2 = 8. Cada día multiplico por 2, no sumo 2.",
                 "Al día n hay 2 multiplicado por sí mismo n veces: 2ⁿ.",
@@ -181,7 +181,7 @@ CONTENT = {
             ),
             "latex": r"2^{-3}",
             "image_slot": True,
-            "image": "/prealgebra/generated/n2-mercado/e05-exponente-negativo-v4.png",
+            "image": "/leccion/02-prealg-n2-mercado/e05-exponente-negativo-v4.png",
             "steps": [
                 "Ir hacia adelante multiplica por 2; ir hacia atrás hace lo contrario: divide entre 2.",
                 "Tres días atrás es dividir tres veces entre 2, y eso se escribe 2⁻³.",

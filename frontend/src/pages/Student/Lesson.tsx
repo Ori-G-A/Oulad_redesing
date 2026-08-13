@@ -261,7 +261,7 @@ export function Lesson() {
         <KatiaStorySlot
           eyebrow="KatIA"
           body={t("prealgebra.n1.b01.katiaMessage")}
-          imageSrc="/prealgebra/generated/n1-agora/b01-bienvenida-v4.png"
+          imageSrc="/leccion/01-prealg-n1-agora/b01-bienvenida-v4.png"
           imageAlt={t("prealgebra.n1.b01.katiaAlt")}
         />
 
@@ -397,7 +397,7 @@ function TriggerQuestionLesson({ lesson, courseId, onBack, onFinish, finishing }
           title={t("prealgebra.n1.b02.story.katiaTitle")}
           body={t("prealgebra.n1.b02.story.katiaBody")}
           question={t("prealgebra.n1.b02.story.katiaQuestion")}
-          imageSrc="/prealgebra/generated/n1-agora/b02-pregunta-detonadora-v4.png"
+          imageSrc="/leccion/01-prealg-n1-agora/b02-pregunta-detonadora-v4.png"
           imageAlt={t("prealgebra.n1.b02.story.katiaImageAlt")}
         />
 

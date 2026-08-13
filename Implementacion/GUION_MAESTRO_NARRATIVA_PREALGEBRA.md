@@ -236,7 +236,7 @@ como...":
 > instrumentos. + identidad de KatIA (§2) + cómo se lee el espacio del nivel (§1).
 
 Referencias de línea gráfica obligatorias (adjuntar o citar si la herramienta lo permite):
-`frontend/public/prealgebra/step-naturales.png`, `step-enteros.png`, `step-racionales.png`,
+`Implementacion/image-prompts/referencias/step-naturales.png`, `step-enteros.png`, `step-racionales.png`,
 `step-reales.png`, `escalera-conjuntos.png`, `katia-primer-plano-enteros.png`,
 `caso-enteros-recta.jpg`. **Antes de inventar un estilo nuevo para un nivel nuevo: mirar
 estas imágenes existentes** — es la lección aprendida ya guardada en memoria

@@ -5,10 +5,10 @@ personajes o los negativos, se edita el script y se regenera — así los 36 sig
 en todo lo que debe ser idéntico.
 
 Cada bloque es autocontenido y se pega tal cual en el generador de imágenes. Destino de los
-archivos: `frontend/public/algebra/generated/n1-kemet/`.
+archivos: `frontend/public/leccion/05-alg-n1-kemet/`.
 
 **Referencias visuales:** si la herramienta lo permite, adjuntar antes de generar
-`frontend/public/prealgebra/step-naturales.png`, `step-enteros.png`, `escalera-conjuntos.png`,
+`Implementacion/image-prompts/referencias/step-naturales.png`, `step-enteros.png`, `escalera-conjuntos.png`,
 `katia-primer-plano-enteros.png` y `caso-enteros-recta.jpg`. Son la línea gráfica que hay que
 mantener.
 
