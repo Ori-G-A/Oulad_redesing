@@ -53,10 +53,18 @@ export function MathFormula({
     }
   }, [display, normalized]);
 
+  // Un `aria-label` sobre un <span> pelado lo ignoran casi todos los lectores de
+  // pantalla: solo nombran elementos con rol que admita nombre de autor. Con
+  // role="img" la etiqueta SUSTITUYE al contenido, que es justo lo que se busca
+  // — leer «tres cuartos» en vez de deletrear el MathML de \dfrac{3}{4}.
+  // Sin `ariaLabel` no se pone rol: gana el MathML que emite KaTeX.
+  const named = ariaLabel ? { role: "img" as const, "aria-label": ariaLabel } : {};
+
   if (rendered.failed) {
     return (
       <span
         className={`math-fallback ${display ? "math-display" : ""} ${className}`.trim()}
+        role="img"
         aria-label={ariaLabel ?? normalized}
         data-math-error="true"
       >
@@ -68,7 +76,7 @@ export function MathFormula({
   return (
     <span
       className={`math-rendered ${display ? "math-display" : ""} ${className}`.trim()}
-      aria-label={ariaLabel}
+      {...named}
       dangerouslySetInnerHTML={{ __html: rendered.html }}
     />
   );

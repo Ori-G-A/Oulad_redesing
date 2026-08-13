@@ -201,10 +201,11 @@ export function ProcedureUpload() {
             </div>
           )}
 
-          {/* Dropzone */}
-          <div
+          {/* Dropzone. <label> en vez de <div onClick>: arrastrar no puede ser la
+              unica via, y con `hidden` el input tampoco entraba en el orden de
+              foco. El label abre el selector solo. */}
+          <label
             className={`sp-dropzone${file ? " active" : ""}`}
-            onClick={() => fileRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
@@ -234,13 +235,13 @@ export function ProcedureUpload() {
               ref={fileRef}
               type="file"
               accept={ALLOWED_TYPES.join(",")}
-              className="hidden"
+              className="sr-only"
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) handleFile(f);
               }}
             />
-          </div>
+          </label>
 
           {file && (
             <div className="sp-row">

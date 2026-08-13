@@ -67,7 +67,11 @@ html.light .lue-tc .sp-page::before, html.light .lue-tc .sp-page-wide::before { 
 .lue-tc .sp-badge .sub { font-size: 11px; color: var(--mute); }
 
 .lue-tc .sp-dropzone { border: 2px dashed var(--border-strong); border-radius: var(--radius); padding: 32px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; background: var(--surface); }
+.lue-tc .sp-dropzone { display: block; }
 .lue-tc .sp-dropzone:hover { border-color: var(--mute); }
+/* El input real es sr-only: su anillo de foco mediria 1px. El aro lo pinta
+   la zona entera para que el usuario de teclado vea donde esta. */
+.lue-tc .sp-dropzone:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
 .lue-tc .sp-dropzone.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
 
 .lue-tc .sp-field label { display: block; font-size: 12px; color: var(--dim); margin-bottom: 6px; }
