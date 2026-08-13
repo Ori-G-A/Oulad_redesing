@@ -168,7 +168,13 @@ export function Lesson() {
     );
   }
 
-  if (nodeId === ALG_HUB_ID || (N4_IDS as readonly string[]).includes(nodeId)) {
+  // Los hubs se eligen por tipo, no por id: el backend ya declara
+  // `level_hub_cards`, asi que un hub nuevo no toca este archivo.
+  if (
+    data.node_type === "level_hub_cards" ||
+    nodeId === ALG_HUB_ID ||
+    (N4_IDS as readonly string[]).includes(nodeId)
+  ) {
     return (
       <LevelFourLesson
         lesson={data}

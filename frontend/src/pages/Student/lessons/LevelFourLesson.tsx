@@ -117,7 +117,7 @@ function LevelFourHub({ lesson, courseId, onBack, onFinish, finishing }: Props) 
           {content?.cards_hint ?? `Abre los ${cards.length} muelles para habilitar la ruta de divisibilidad`} · {opened.size}/{cards.length} abiertos
         </p>
 
-        <section className="n4-port" aria-label="Muelles del puerto">
+        <section className="n4-port" aria-label={content?.cards_aria ?? "Muelles del puerto"}>
           {cards.map((card, index) => {
             const isOpened = opened.has(card.id);
             return (
@@ -141,7 +141,7 @@ function LevelFourHub({ lesson, courseId, onBack, onFinish, finishing }: Props) 
                       type="button"
                       onClick={() => navigate(`/student/course/${courseId}/lesson/${card.node_id}`)}
                     >
-                      Zarpar
+                      {content?.card_cta ?? "Zarpar"}
                     </button>
                   )}
                 </div>
@@ -154,11 +154,11 @@ function LevelFourHub({ lesson, courseId, onBack, onFinish, finishing }: Props) 
 
         <footer className="lesson-footer trigger-footer">
           <div>
-            <span>Gating del puerto</span>
+            <span>{content?.gating_label ?? "Gating del puerto"}</span>
             <p>{content?.cards_hint ?? "Abre los seis muelles para habilitar la ruta de divisibilidad."}</p>
           </div>
           <Button size="lg" disabled={!allOpened} loading={finishing} onClick={onFinish}>
-            Entrar al puerto
+            {content?.finish_label ?? "Entrar al puerto"}
           </Button>
         </footer>
       </div>

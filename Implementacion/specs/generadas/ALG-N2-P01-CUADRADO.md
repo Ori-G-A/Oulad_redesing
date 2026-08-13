@@ -11,7 +11,7 @@
 | Error focal | `binomio_cuadrado_falta_2ab` |
 | Sala / edificio | La matriz cuadrada |
 | Guía | Rayhana |
-| Entra después de | `ALG-N1-R04-VARIACION` |
+| Entra después de | `ALG-S00-CASA-DE-LA-SABIDURIA` |
 | Mueve ELO | no |
 | Ítems: diagnóstico / práctica / post | 3 / 7 / 3 |
 

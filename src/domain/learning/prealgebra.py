@@ -8,7 +8,7 @@ import re
 from copy import deepcopy
 
 from .nodes import NODE_MODULES
-from .nodes import a00_hub
+from .nodes import a00_hub, s00_hub_bagdad
 
 PREALGEBRA_COURSE_ID = "algebra_basica"
 WELCOME_NODE_ID = "PREALG-N1-B01-BIENVENIDA"
@@ -1282,14 +1282,17 @@ ALG_N1_NODE_IDS = [_row[0] for _row in _ALG_N1_SEQUENCE]
 # ── ALG-N2 · La sala de los troqueles (Casa de la Sabiduria, Bagdad) ─────────
 # Productos notables. Sub-espacio propio: "patio de los mosaicos" del mapa
 # chocaba con E03, El Taller de Mosaicos, asi que la sala estampa troqueles.
+ALG_BAGDAD_HUB_NODE_ID = s00_hub_bagdad.NODE_ID
 ALG_SQUARE_NODE_ID = "ALG-N2-P01-CUADRADO"
 ALG_CONJUGATE_NODE_ID = "ALG-N2-P02-CONJUGADOS"
 ALG_CUBE_NODE_ID = "ALG-N2-P03-CUBO"
 ALG_COMMON_TERM_NODE_ID = "ALG-N2-P04-TERMINO-COMUN"
 
 _ALG_N2_SEQUENCE = [
+    (ALG_BAGDAD_HUB_NODE_ID, "level_hub_cards", "casa_de_la_sabiduria",
+     "algebra.s00", ALG_VARIATION_NODE_ID),
     (ALG_SQUARE_NODE_ID, "algebra_concept_guided_discovery", "cuadrado_de_binomio",
-     "algebra.n5.p01", ALG_VARIATION_NODE_ID),
+     "algebra.n5.p01", ALG_BAGDAD_HUB_NODE_ID),
     (ALG_CONJUGATE_NODE_ID, "algebra_concept_guided_discovery", "binomios_conjugados",
      "algebra.n5.p02", ALG_SQUARE_NODE_ID),
     (ALG_CUBE_NODE_ID, "algebra_concept_guided_discovery", "cubo_de_binomio",
@@ -1327,11 +1330,17 @@ ALG_N3_NODE_IDS = [_row[0] for _row in _ALG_N3_SEQUENCE]
 # `unlock_after` del primer nodo de N2, que apunta al ultimo de N1.
 _ALG_SEQUENCE = _ALG_N1_SEQUENCE + _ALG_N2_SEQUENCE + _ALG_N3_SEQUENCE
 
+# Los dos hubs traen su contenido de su modulo; el resto lo inyecta NODE_MODULES.
+_ALG_HUB_CONTENT = {
+    ALG_HUB_NODE_ID: a00_hub.CONTENT,
+    ALG_BAGDAD_HUB_NODE_ID: s00_hub_bagdad.CONTENT,
+}
+
 for _index, (_node_id, _node_type, _topic, _prefix, _unlock_after) in enumerate(_ALG_SEQUENCE):
     # Las cuatro casas traen su contenido de `nodes/aNN_*.py`; el bucle genérico
     # de NODE_MODULES lo inyecta más abajo. Aquí solo se crea la ficha.
     _next = _ALG_SEQUENCE[_index + 1][0] if _index + 1 < len(_ALG_SEQUENCE) else None
-    _alg_content = a00_hub.CONTENT if _node_id == ALG_HUB_NODE_ID else {}
+    _alg_content = _ALG_HUB_CONTENT.get(_node_id, {})
     _LESSONS[_node_id] = {
         "node_id": _node_id,
         "node_type": _node_type,
@@ -1351,26 +1360,29 @@ for _index, (_node_id, _node_type, _topic, _prefix, _unlock_after) in enumerate(
 
 _LESSONS[N4_LCM_NODE_ID]["next_node_id"] = ALG_HUB_NODE_ID
 
-for _card in a00_hub.CARDS:
-    _interaction_id = f"{ALG_HUB_NODE_ID}-CARD-{_card['id']}"
-    _LESSONS[ALG_HUB_NODE_ID]["interactions"].append({
-        "interaction_id": _interaction_id,
-        "type": "single_select",
-        "prompt_key": _card["concept"],
-        "option_keys": ["opened"],
-        "can_retry": False,
-    })
-    _INTERACTION_RULES[_interaction_id] = {
-        "node_id": ALG_HUB_NODE_ID,
-        "valid_options": {"opened"},
-        "expected": "opened",
-        "misconception_by_option": {},
-        "feedback_by_option": {"opened": "card_opened"},
-    }
-
-_register_mixed_interactions(
-    ALG_HUB_NODE_ID, "papiro", a00_hub.CONTENT["icebreaker"]["items"], required=False,
-)
+for _hub_id, _hub_module, _hub_slug in (
+    (ALG_HUB_NODE_ID, a00_hub, "papiro"),
+    (ALG_BAGDAD_HUB_NODE_ID, s00_hub_bagdad, "sabiduria"),
+):
+    for _card in _hub_module.CARDS:
+        _interaction_id = f"{_hub_id}-CARD-{_card['id']}"
+        _LESSONS[_hub_id]["interactions"].append({
+            "interaction_id": _interaction_id,
+            "type": "single_select",
+            "prompt_key": _card["concept"],
+            "option_keys": ["opened"],
+            "can_retry": False,
+        })
+        _INTERACTION_RULES[_interaction_id] = {
+            "node_id": _hub_id,
+            "valid_options": {"opened"},
+            "expected": "opened",
+            "misconception_by_option": {},
+            "feedback_by_option": {"opened": "card_opened"},
+        }
+    _register_mixed_interactions(
+        _hub_id, _hub_slug, _hub_module.CONTENT["icebreaker"]["items"], required=False,
+    )
 
 for _card in _N4_CARDS:
     _interaction_id = f"{N4_HUB_NODE_ID}-CARD-{_card['id']}"
@@ -1510,6 +1522,7 @@ _MAP_PRESENTATION: dict[str, tuple[str, int, str | None]] = {
     ALG_RULE_OF_THREE_NODE_ID: ("Álgebra · El tinte de lino", 1, None),
     ALG_PERCENT_NODE_ID: ("Álgebra · El pan de oro", 1, None),
     ALG_VARIATION_NODE_ID: ("Álgebra · La sala de las lámparas", 1, None),
+    ALG_BAGDAD_HUB_NODE_ID: ("Álgebra · La Casa de la Sabiduría", 1, None),
     ALG_SQUARE_NODE_ID: ("Álgebra · La matriz cuadrada", 1, None),
     ALG_CONJUGATE_NODE_ID: ("Álgebra · El cuño de la cenefa", 1, None),
     ALG_CUBE_NODE_ID: ("Álgebra · El molde de tres capas", 1, None),

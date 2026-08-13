@@ -12,10 +12,13 @@ carpeta de arte en `frontend/public/leccion/`.
 | 03 | PREALG-N3 · La fábrica de propiedades | [03-prealg-n3-fabrica.md](03-prealg-n3-fabrica.md) | `leccion/03-prealg-n3-fabrica/` | 11 | 0 |
 | 04 | PREALG-N4 · El puerto de la polis | [04-prealg-n4-puerto.md](04-prealg-n4-puerto.md) | `leccion/04-prealg-n4-puerto/` | 10 | 0 |
 | 05 | ALG-N1 · El papiro de las cuatro casas (Kemet) | [05-alg-n1-kemet.md](05-alg-n1-kemet.md) · [pegable](05-alg-n1-kemet-PEGABLE.md) | `leccion/05-alg-n1-kemet/` | 0 | **17** (+16 opcionales) |
-| 06 | ALG-N2 · La sala de los troqueles (Bagdad) | [06-alg-n2-n3-bagdad.md](06-alg-n2-n3-bagdad.md) | `leccion/06-alg-n2-troqueles/` | 0 | **4** (+4 opcionales) |
+| 06 | ALG-N2 · La sala de los troqueles (Bagdad) | [06-alg-n2-n3-bagdad.md](06-alg-n2-n3-bagdad.md) | `leccion/06-alg-n2-troqueles/` | 0 | **5** (hub + 4 salas, +4 opcionales) |
 | 06 | ALG-N3 · El almacén de la caravana (Bagdad) | [06-alg-n2-n3-bagdad.md](06-alg-n2-n3-bagdad.md) | `leccion/07-alg-n3-caravana/` | 0 | **5** (+5 opcionales) |
 
-**Total pendiente: 26 imágenes obligatorias** (+25 opcionales de trampa).
+**Total pendiente: 27 imágenes obligatorias** (+25 opcionales de trampa).
+
+Los dos niveles de Bagdad **comparten hub** (`ALG-S00-CASA-DE-LA-SABIDURIA`): su header
+vive con los troqueles, en `leccion/06-alg-n2-troqueles/s00-hub-patio-katia.png`.
 
 ## Deudas conocidas
 

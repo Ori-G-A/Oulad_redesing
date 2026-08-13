@@ -64,6 +64,10 @@ CONTENT = {
     ),
     "image": "/leccion/05-alg-n1-kemet/a00-hub-papiro-katia.png",
     "cards_hint": "Abre las cuatro casas para desplegar el papiro",
+    "cards_aria": "Las cuatro casas del papiro",
+    "card_cta": "Entrar",
+    "gating_label": "Para desplegar el papiro",
+    "finish_label": "Entrar en la Casa de la Vida",
     "card_closed_hint": "Toca la casa para ver qué se restaura en ella.",
     "icebreaker": {
         "title": "Antes de entrar",

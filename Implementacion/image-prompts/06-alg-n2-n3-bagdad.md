@@ -4,11 +4,15 @@ Cierra el hueco de arte de los dos niveles nuevos de Álgebra. **No existe ni un
 Bagdad en `frontend/public/`:** las nueve salas renderizan hoy el marcador «Imagen de KatIA
 aquí».
 
-**9 imágenes obligatorias** (una apertura de KatIA por sala) y **9 opcionales** (la tarjeta
-de trampa de cada nodo). **No hay imagen de hub:** ni N2 ni N3 tienen nodo hub — P01
-encadena directamente tras `ALG-N1-R04-VARIACION` y G01 tras `ALG-N2-P04-TERMINO-COMUN`.
+**10 imágenes obligatorias** (1 header de hub + 9 aperturas de KatIA, una por sala) y
+**9 opcionales** (la tarjeta de trampa de cada nodo).
 
-Destino: `frontend/public/algebra/generated/n2-troqueles/` y `…/n3-caravana/`.
+**Los dos niveles comparten hub**, `ALG-S00-CASA-DE-LA-SABIDURIA`, porque comparten idea: en
+el taller se estampa y en el almacén se abre lo estampado. Es la misma operación en las dos
+direcciones, así que el hub tiene dos puertas y no nueve.
+
+Destino: `frontend/public/leccion/06-alg-n2-troqueles/` y `…/07-alg-n3-caravana/`. El header
+del hub va con los troqueles.
 
 ---
 
@@ -87,6 +91,32 @@ el precinto roto), nunca la cuenta correcta.
 | N3 · El almacén de la caravana | índigo y lana cruda | ámbar de lámpara |
 
 ---
+
+## S00 — Hub: La Casa de la Sabiduría
+`s00-hub-patio-katia.png` · **16:9**, header de nivel (`.level-presentation-media`).
+
+> Patio interior de una casa de estudio abasí al final de la tarde, vista contenida a media
+> distancia y ligeramente elevada. El patio es rectangular, de ladrillo cocido, con una
+> fuente baja apagada en el centro y una parra que da sombra a un lado. **Dos puertas
+> enfrentadas** en los muros largos, distintas entre sí: la de la izquierda es la boca de un
+> taller —se ve el resplandor naranja de una fragua y el brazo de una prensa de husillo— y
+> junto a ella espera una gata siamesa de porte recto con mandil de cuero quemado y punzón
+> tras la oreja (Rayhana). La de la derecha es un portón de almacén, más ancho y de madera
+> reforzada, con fardos de arpillera apilados a un lado; junto a él, un gato naranja robusto
+> y mayor con chaleco acolchado y llaves al cinto (Salim). Entre las dos puertas, en el
+> centro del patio y sin decidirse todavía, **KatIA acaba de llegar** —gata blanca con mancha
+> naranja y negra, ojo verde, ocular mecánico teal, brazo mecánico, túnica morada con
+> ornamentos dorados—, con el polvo del camino encima y una alforja al hombro. Al fondo, muy
+> secundario y sin detalle, el arco de entrada por el que sale la última mula de una
+> caravana. Luz de tarde en diagonal, ámbar cálido sobre el ladrillo y sombra azul fría bajo
+> la parra. Ningún texto, número ni símbolo legible en toda la imagen; los fardos están
+> apilados de forma irregular y no se pueden contar.
+
+**Opcionales del hub** (1:1, mismo patrón que `e00-ice*` de N2): `s00-ice1-sacos.png` (tres
+sacos de arpillera idénticos apoyados contra un muro de ladrillo, junto a una romana) ·
+`s00-ice2-fardo-cerrado.png` (un fardo atado y precintado sobre una losa, sin etiqueta) ·
+`s00-ice3-dos-puertas.png` (las dos puertas del patio vistas de frente, una con resplandor de
+fragua y la otra en penumbra, sin personajes).
 
 # ALG-N2 · La sala de los troqueles — Rayhana · cobre y ladrillo
 
