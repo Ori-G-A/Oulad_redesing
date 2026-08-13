@@ -21,7 +21,7 @@
     "tipo": "simbolico",
     "enunciado": "Halla la raíz cuadrada de $4x^2$ (verifica elevándola al cuadrado).",
     "expr": "(2*x)**2",
-    "respuesta": "4*x**2",
+    "respuesta": "2*x",
     "conjunto": "Z",
     "seccion": "Actividades — Factorización de la diferencia de cuadrados",
     "unidad": 5,
@@ -33,14 +33,15 @@
       "ejemplo_resuelto"
     ],
     "nota": "$\\sqrt{4x^2}=2x$.",
-    "dificultad": 1000
+    "dificultad": 1000,
+    "nota_correccion": "Respuesta corregida 2026-08-13: la extracción había dejado el radicando en vez de la raíz."
   },
   {
     "id": "HT8-U5-P108-A2b",
     "tipo": "simbolico",
     "enunciado": "Halla la raíz cuadrada de $121x^4y^2$ (verifica elevándola al cuadrado).",
     "expr": "(11*x**2*y)**2",
-    "respuesta": "121*x**4*y**2",
+    "respuesta": "11*x**2*y",
     "conjunto": "Z",
     "seccion": "Actividades — Factorización de la diferencia de cuadrados",
     "unidad": 5,
@@ -52,14 +53,15 @@
       "ejemplo_resuelto"
     ],
     "nota": "$\\sqrt{121x^4y^2}=11x^2y$: se saca la raíz del coeficiente y se parten a la mitad los exponentes.",
-    "dificultad": 1100
+    "dificultad": 1100,
+    "nota_correccion": "Respuesta corregida 2026-08-13: la extracción había dejado el radicando en vez de la raíz."
   },
   {
     "id": "HT8-U5-P108-A2c",
     "tipo": "simbolico",
     "enunciado": "Halla la raíz cuadrada de $25y^6$ (verifica elevándola al cuadrado).",
     "expr": "(5*y**3)**2",
-    "respuesta": "25*y**6",
+    "respuesta": "5*y**3",
     "conjunto": "Z",
     "seccion": "Actividades — Factorización de la diferencia de cuadrados",
     "unidad": 5,
@@ -71,14 +73,15 @@
       "ejemplo_resuelto"
     ],
     "nota": "$\\sqrt{25y^6}=5y^3$.",
-    "dificultad": 1050
+    "dificultad": 1050,
+    "nota_correccion": "Respuesta corregida 2026-08-13: la extracción había dejado el radicando en vez de la raíz."
   },
   {
     "id": "HT8-U5-P108-A2d",
     "tipo": "simbolico",
     "enunciado": "Halla la raíz cuadrada de $\\dfrac{36}{25}x^4y^6$ (verifica elevándola al cuadrado).",
     "expr": "(6/5*x**2*y**3)**2",
-    "respuesta": "36/25*x**4*y**6",
+    "respuesta": "Rational(6,5)*x**2*y**3",
     "conjunto": "Q",
     "seccion": "Actividades — Factorización de la diferencia de cuadrados",
     "unidad": 5,
@@ -90,14 +93,15 @@
       "ejemplo_resuelto"
     ],
     "nota": "$\\sqrt{\frac{36}{25}x^4y^6}=\frac65x^2y^3$: la raíz de una fracción es la fracción de las raíces.",
-    "dificultad": 1200
+    "dificultad": 1200,
+    "nota_correccion": "Respuesta corregida 2026-08-13: la extracción había dejado el radicando en vez de la raíz."
   },
   {
     "id": "HT8-U5-P108-A2e",
     "tipo": "simbolico",
     "enunciado": "Halla la raíz cuadrada de $169z^8$ (verifica elevándola al cuadrado).",
     "expr": "(13*z**4)**2",
-    "respuesta": "169*z**8",
+    "respuesta": "13*z**4",
     "conjunto": "Z",
     "seccion": "Actividades — Factorización de la diferencia de cuadrados",
     "unidad": 5,
@@ -109,14 +113,15 @@
       "ejemplo_resuelto"
     ],
     "nota": "$\\sqrt{169z^8}=13z^4$. Conviene saberse los cuadrados hasta $15^2$.",
-    "dificultad": 1150
+    "dificultad": 1150,
+    "nota_correccion": "Respuesta corregida 2026-08-13: la extracción había dejado el radicando en vez de la raíz."
   },
   {
     "id": "HT8-U5-P108-A2f",
     "tipo": "simbolico",
     "enunciado": "Halla la raíz cuadrada de $\\dfrac{1}{49}x^4$ (verifica elevándola al cuadrado).",
     "expr": "(1/7*x**2)**2",
-    "respuesta": "1/49*x**4",
+    "respuesta": "Rational(1,7)*x**2",
     "conjunto": "Q",
     "seccion": "Actividades — Factorización de la diferencia de cuadrados",
     "unidad": 5,
@@ -128,7 +133,8 @@
       "ejemplo_resuelto"
     ],
     "nota": "$\\sqrt{\frac{1}{49}x^4}=\frac17x^2$.",
-    "dificultad": 1100
+    "dificultad": 1100,
+    "nota_correccion": "Respuesta corregida 2026-08-13: la extracción había dejado el radicando en vez de la raíz."
   },
   {
     "id": "HT8-U5-P108-A3a",

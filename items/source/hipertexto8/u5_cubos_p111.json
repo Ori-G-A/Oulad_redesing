@@ -36,7 +36,7 @@
     "tipo": "simbolico",
     "enunciado": "Completa la tabla: el monomio es $8x^6$. ¿Cuál es su raíz cúbica?",
     "expr": "(2*x**2)**3",
-    "respuesta": "8*x**6",
+    "respuesta": "2*x**2",
     "conjunto": "Q",
     "seccion": "Suma o diferencia de cubos perfectos",
     "unidad": 5,
@@ -47,7 +47,8 @@
       "practica_seleccion"
     ],
     "nota": "La respuesta es $2x^2$ para el monomio $8x^6$. Se verifica al revés: $2x^2$ elevado al cubo debe dar $8x^6$. La raíz cúbica de un monomio se saca por partes: raíz cúbica del coeficiente y exponentes divididos entre $3$.",
-    "dificultad": 900
+    "dificultad": 900,
+    "nota_correccion": "Respuesta corregida 2026-08-13: la extracción había dejado el radicando en vez de la raíz."
   },
   {
     "id": "HT8-U5-P111-A2b",
@@ -72,7 +73,7 @@
     "tipo": "simbolico",
     "enunciado": "Completa la tabla: el monomio es $125a^9b^3$. ¿Cuál es su raíz cúbica?",
     "expr": "(5*a**3*b)**3",
-    "respuesta": "125*a**9*b**3",
+    "respuesta": "5*a**3*b",
     "conjunto": "Q",
     "seccion": "Suma o diferencia de cubos perfectos",
     "unidad": 5,
@@ -83,7 +84,8 @@
       "practica_seleccion"
     ],
     "nota": "La respuesta es $5a^3b$ para el monomio $125a^9b^3$. Se verifica al revés: $5a^3b$ elevado al cubo debe dar $125a^9b^3$. La raíz cúbica de un monomio se saca por partes: raíz cúbica del coeficiente y exponentes divididos entre $3$.",
-    "dificultad": 1000
+    "dificultad": 1000,
+    "nota_correccion": "Respuesta corregida 2026-08-13: la extracción había dejado el radicando en vez de la raíz."
   },
   {
     "id": "HT8-U5-P111-A2d",
@@ -108,7 +110,7 @@
     "tipo": "simbolico",
     "enunciado": "Completa la tabla: el monomio es $216n^{15}m^{12}$. ¿Cuál es su raíz cúbica?",
     "expr": "(6*n**5*m**4)**3",
-    "respuesta": "216*n**15*m**12",
+    "respuesta": "6*n**5*m**4",
     "conjunto": "Q",
     "seccion": "Suma o diferencia de cubos perfectos",
     "unidad": 5,
@@ -119,7 +121,8 @@
       "practica_seleccion"
     ],
     "nota": "La respuesta es $6n^5m^4$ para el monomio $216n^{15}m^{12}$. Se verifica al revés: $6n^5m^4$ elevado al cubo debe dar $216n^{15}m^{12}$. La raíz cúbica de un monomio se saca por partes: raíz cúbica del coeficiente y exponentes divididos entre $3$.",
-    "dificultad": 1050
+    "dificultad": 1050,
+    "nota_correccion": "Respuesta corregida 2026-08-13: la extracción había dejado el radicando en vez de la raíz."
   },
   {
     "id": "HT8-U5-P111-A2f",
@@ -144,7 +147,7 @@
     "tipo": "simbolico",
     "enunciado": "Completa la tabla: el monomio es $\\dfrac{1}{27}a^{12}b^9c^6$. ¿Cuál es su raíz cúbica?",
     "expr": "(Rational(1,3)*a**4*b**3*c**2)**3",
-    "respuesta": "Rational(1,27)*a**12*b**9*c**6",
+    "respuesta": "Rational(1,3)*a**4*b**3*c**2",
     "conjunto": "Q",
     "seccion": "Suma o diferencia de cubos perfectos",
     "unidad": 5,
@@ -155,7 +158,8 @@
       "practica_seleccion"
     ],
     "nota": "La respuesta es $\\dfrac{1}{3}a^4b^3c^2$ para el monomio $\\dfrac{1}{27}a^{12}b^9c^6$. Se verifica al revés: $\\dfrac{1}{3}a^4b^3c^2$ elevado al cubo debe dar $\\dfrac{1}{27}a^{12}b^9c^6$. La raíz cúbica de un monomio se saca por partes: raíz cúbica del coeficiente y exponentes divididos entre $3$.",
-    "dificultad": 1200
+    "dificultad": 1200,
+    "nota_correccion": "Respuesta corregida 2026-08-13: la extracción había dejado el radicando en vez de la raíz."
   },
   {
     "id": "HT8-U5-P111-A2h",
@@ -180,7 +184,7 @@
     "tipo": "simbolico",
     "enunciado": "Completa la tabla: el monomio es $\\dfrac{1.000}{729}x^{6n}y^{3n+6}$. ¿Cuál es su raíz cúbica?",
     "expr": "(Rational(10,9)*x**(2*n)*y**(n+2))**3",
-    "respuesta": "Rational(1000,729)*x**(6*n)*y**(3*n+6)",
+    "respuesta": "Rational(10,9)*x**(2*n)*y**(n+2)",
     "conjunto": "Q",
     "seccion": "Suma o diferencia de cubos perfectos",
     "unidad": 5,
@@ -191,7 +195,8 @@
       "practica_seleccion"
     ],
     "nota": "La respuesta es $\\dfrac{10}{9}x^{2n}y^{n+2}$ para el monomio $\\dfrac{1.000}{729}x^{6n}y^{3n+6}$. Se verifica al revés: $\\dfrac{10}{9}x^{2n}y^{n+2}$ elevado al cubo debe dar $\\dfrac{1.000}{729}x^{6n}y^{3n+6}$. La raíz cúbica de un monomio se saca por partes: raíz cúbica del coeficiente y exponentes divididos entre $3$. Con exponentes literales el reparto es el mismo: $\\dfrac{6n}{3}=2n$ y $\\dfrac{3n+6}{3}=n+2$.",
-    "dificultad": 1450
+    "dificultad": 1450,
+    "nota_correccion": "Respuesta corregida 2026-08-13: la extracción había dejado el radicando en vez de la raíz."
   },
   {
     "id": "HT8-U5-P111-A2j",
