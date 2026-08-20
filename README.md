@@ -12,9 +12,13 @@
 > **Este repo es el playground del rediseño**, no producción. Aquí se
 > reestructura el frontend y se construye contenido nuevo antes de portarlo al
 > repo de producción (`LuisJRubioH/LevelUp-ELO`, donde la plataforma todavía se
-> llama LevelUp-ELO). **Nada de lo que se empuja aquí despliega en ningún sitio**
-> — no hay Vercel ni Render conectados. El port a producción está **bloqueado
-> hasta el visto bueno del equipo**.
+> llama LevelUp-ELO). El port a producción está **bloqueado hasta el visto bueno
+> del equipo**.
+>
+> Lo que sí hay es un **sandbox de UX testing**: `main` despliega el frontend en
+> un proyecto propio de Vercel y el backend en Render (`render.yaml`), contra una
+> base de Supabase **separada de la de producción**. Es desechable — los datos de
+> ahí no valen nada y se pueden borrar. Ver [Despliegue del sandbox](#despliegue-del-sandbox).
 
 ---
 
@@ -29,6 +33,7 @@
 - [Roles](#roles)
 - [Instalación local](#instalación-local)
 - [Variables de entorno](#variables-de-entorno)
+- [Despliegue del sandbox](#despliegue-del-sandbox)
 - [Tests y CI](#tests-y-ci)
 - [Usuarios de prueba](#usuarios-de-prueba)
 - [Documentación](#documentación)
@@ -338,6 +343,49 @@ Prioridad por request: key del usuario > key de función > key general
 > **Supabase:** usar el connection pooler (puerto 6543). El pool interno es
 > `SimpleConnectionPool(1, 5)`; no subir `maxconn` en el free tier. Y nunca
 > `conn.close()` — siempre `put_connection(conn)`, o el pool se agota.
+
+---
+
+## Despliegue del sandbox
+
+Solo para **UX testing**. No es producción y no comparte base con producción.
+
+| Pieza | Dónde | Qué sirve |
+|---|---|---|
+| Frontend | Vercel, *Root Directory* = `frontend` | El SPA. Config en `frontend/vercel.json` |
+| Backend | Render, blueprint `render.yaml` | FastAPI. Plan free |
+| Base + Storage | Proyecto Supabase propio | PostgreSQL y el bucket `procedimientos` |
+
+**Por qué Render y no Vercel Functions para el backend:** cada invocación
+serverless abriría su propio `SimpleConnectionPool(1, 5)` y agotaría el free
+tier de Supabase en minutos. Render mantiene un proceso vivo, y con él el pool
+singleton y el WebSocket del PvP.
+
+**El coste:** en plan free Render duerme el servicio tras 15 min sin tráfico y
+el primer request tarda ~50 s. Antes de una sesión de testing, despertarlo:
+
+```bash
+curl https://<servicio>.onrender.com/api/health
+```
+
+### Puesta en marcha
+
+1. **Supabase** — crear proyecto nuevo. De *Settings → Database* copiar la URI
+   del **connection pooler (puerto 6543)**, no la del 5432. Crear el bucket
+   `procedimientos` como **privado**.
+2. **Render** — *New → Blueprint*, apuntar a este repo. Toma `render.yaml` y
+   pide los valores marcados `sync: false`: `DATABASE_URL`, `SUPABASE_URL`,
+   `SUPABASE_KEY`, `ADMIN_PASSWORD`, `SYSTEM_AI_API_KEY` y `CORS_ORIGINS`.
+   `JWT_SECRET_KEY` lo genera Render solo.
+3. **Vercel** — importar el repo, *Root Directory* = `frontend`. Añadir
+   `VITE_API_URL` = `https://<servicio>.onrender.com`.
+4. **Cerrar el círculo** — con el dominio que Vercel asigne, volver a Render y
+   poner `CORS_ORIGINS` en formato JSON:
+   `["https://<proyecto>.vercel.app","http://localhost:5173"]`. Sin este paso el
+   navegador bloquea cada llamada. Redesplegar el backend.
+
+Las tablas se crean solas en el primer arranque (`init_db()` → `_migrate_db()` →
+seeds). Los usuarios de prueba de más abajo quedan disponibles de inmediato.
 
 ---
 

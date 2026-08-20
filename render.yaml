@@ -1,9 +1,11 @@
-## render.yaml — Configuración del servicio backend en Render.com
+## render.yaml — Backend del sandbox de UX testing (repo Oulad_redesing)
+## No es el servicio de producción: ese vive en el repo LuisJRubioH/LevelUp-ELO.
 ## Documentación: https://render.com/docs/blueprint-spec
 
 services:
   - type: web
-    name: levelup-elo-api
+    name: oulad-sandbox-api
+    plan: free
     runtime: python
     pythonVersion: "3.11.9"
     buildCommand: pip install -r requirements-api.txt
@@ -13,16 +15,17 @@ services:
 
     envVars:
       # ── Base de datos (Supabase) ──────────────────────────────────────────
+      # Usar el connection pooler, puerto 6543 — no el puerto directo 5432.
       - key: DATABASE_URL
         sync: false  # Valor secreto — pegar en el dashboard de Render
 
-      # ── Supabase Storage (procedimientos) ────────────────────────────────
+      # ── Supabase Storage (bucket privado `procedimientos`) ───────────────
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_KEY
         sync: false
 
-      # ── JWT — generar con: python -c "import secrets; print(secrets.token_hex(32))"
+      # ── JWT ──────────────────────────────────────────────────────────────
       - key: JWT_SECRET_KEY
         generateValue: true  # Render genera uno seguro automáticamente
 
@@ -32,7 +35,13 @@ services:
       - key: ADMIN_PASSWORD
         sync: false  # Valor secreto
 
-      # ── CORS — debe incluir el dominio exacto de Vercel ──────────────────
-      # Formato JSON: '["https://levelup-elo.vercel.app","https://tu-dominio.com"]'
+      # ── IA (KatIA socrática + revisión de procedimientos) ────────────────
+      # Sin esta key la IA degrada con gracia; el resto de la app funciona.
+      - key: SYSTEM_AI_API_KEY
+        sync: false
+
+      # ── CORS ─────────────────────────────────────────────────────────────
+      # Formato JSON. Pegar el dominio exacto que Vercel asigne al sandbox:
+      #   '["https://<proyecto>.vercel.app","http://localhost:5173"]'
       - key: CORS_ORIGINS
-        value: '["https://levelup-elo.vercel.app","http://localhost:5173"]'
+        sync: false
