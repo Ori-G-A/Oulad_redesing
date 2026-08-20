@@ -352,9 +352,9 @@ Solo para **UX testing**. No es producción y no comparte base con producción.
 
 | Pieza | Dónde | Qué sirve |
 |---|---|---|
-| Frontend | Vercel, *Root Directory* = `frontend` | El SPA. Config en `frontend/vercel.json` |
-| Backend | Render, blueprint `render.yaml` | FastAPI. Plan free |
 | Base + Storage | Proyecto Supabase propio | PostgreSQL y el bucket `procedimientos` |
+| Backend | Render, blueprint `render.yaml` | FastAPI. Plan free |
+| Frontend | Vercel, *Root Directory* = `frontend` | El SPA. Config en `frontend/vercel.json` |
 
 **Por qué Render y no Vercel Functions para el backend:** cada invocación
 serverless abriría su propio `SimpleConnectionPool(1, 5)` y agotaría el free
@@ -368,24 +368,76 @@ el primer request tarda ~50 s. Antes de una sesión de testing, despertarlo:
 curl https://<servicio>.onrender.com/api/health
 ```
 
-### Puesta en marcha
+### El orden importa
 
-1. **Supabase** — crear proyecto nuevo. De *Settings → Database* copiar la URI
-   del **connection pooler (puerto 6543)**, no la del 5432. Crear el bucket
-   `procedimientos` como **privado**.
-2. **Render** — *New → Blueprint*, apuntar a este repo. Toma `render.yaml` y
-   pide los valores marcados `sync: false`: `DATABASE_URL`, `SUPABASE_URL`,
-   `SUPABASE_KEY`, `ADMIN_PASSWORD`, `SYSTEM_AI_API_KEY` y `CORS_ORIGINS`.
-   `JWT_SECRET_KEY` lo genera Render solo.
-3. **Vercel** — importar el repo, *Root Directory* = `frontend`. Añadir
-   `VITE_API_URL` = `https://<servicio>.onrender.com`.
-4. **Cerrar el círculo** — con el dominio que Vercel asigne, volver a Render y
-   poner `CORS_ORIGINS` en formato JSON:
-   `["https://<proyecto>.vercel.app","http://localhost:5173"]`. Sin este paso el
-   navegador bloquea cada llamada. Redesplegar el backend.
+Cada capa necesita la URL de la anterior. Saltarse el orden obliga a volver
+atrás: **Supabase → Render → Vercel → CORS**.
 
-Las tablas se crean solas en el primer arranque (`init_db()` → `_migrate_db()` →
-seeds). Los usuarios de prueba de más abajo quedan disponibles de inmediato.
+#### 1. Supabase
+
+Proyecto nuevo, aparte del de producción.
+
+- *Settings → Database* → copiar la URI del **connection pooler, puerto 6543**.
+  La del puerto 5432 es conexión directa y agota el free tier.
+- *Storage* → crear el bucket `procedimientos` como **privado** (R9: las
+  imágenes se sirven por bytes, nunca por URL pública).
+- *Settings → API* → copiar `Project URL` y la `service_role key`.
+
+No hay migraciones que correr a mano: las tablas se crean solas en el primer
+arranque del backend (`init_db()` → `_migrate_db()` → seeds).
+
+#### 2. Render
+
+*New → Blueprint* apuntando a este repo. Lee `render.yaml` y pide los valores
+marcados `sync: false`:
+
+| Variable | De dónde sale |
+|---|---|
+| `DATABASE_URL` | La URI del pooler (6543) del paso 1 |
+| `SUPABASE_URL` / `SUPABASE_KEY` | *Settings → API* del paso 1 |
+| `ADMIN_PASSWORD` | La eliges tú |
+| `SYSTEM_AI_API_KEY` | Opcional — sin ella la IA degrada con gracia |
+| `CORS_ORIGINS` | Todavía no se sabe. Poner `["http://localhost:5173"]` y corregir en el paso 4 |
+
+`JWT_SECRET_KEY` lo genera Render solo.
+
+> **Verificar antes de seguir.** `init_db()` captura sus propias excepciones: si
+> la `DATABASE_URL` está mal, el servicio arranca igual, sin tablas, y responde
+> 200 en `/api/health`. La única señal está en los logs de Render, que deben
+> decir `Base de datos inicializada.` — si en su lugar hay `Error inicializando
+> DB`, arreglarlo ahora, no después.
+
+#### 3. Vercel
+
+Importar el repo y, **en la pantalla de import**, desplegar *Root Directory* y
+ponerlo en `frontend`.
+
+> Si se deja en la raíz, Vercel encuentra `.python-version` y `requirements.txt`,
+> concluye que esto es un proyecto Python y falla con
+> `No interpreter found for Python 3.11.9`. Nunca llega al frontend. **Root
+> Directory es un ajuste de proyecto: no se puede fijar desde `vercel.json`.**
+
+Variable de entorno: `VITE_API_URL` = `https://<servicio>.onrender.com`.
+
+> **La integración Vercel–Supabase no sirve aquí** y confunde: inyecta
+> `POSTGRES_URL` y las keys en el proyecto de Vercel, que solo sirve el SPA.
+> Quien necesita esas variables es el backend en Render. Y nunca renombrar
+> ninguna a `VITE_*`: Vite empaqueta todo lo que lleve ese prefijo, así que la
+> key acabaría publicada en el JavaScript que descarga cualquiera.
+
+#### 4. Cerrar el círculo
+
+Con el dominio que Vercel asigne, volver a Render y poner `CORS_ORIGINS` en
+formato JSON:
+
+```
+["https://<proyecto>.vercel.app","http://localhost:5173"]
+```
+
+Redesplegar el backend. Sin este paso el navegador bloquea cada llamada y
+parece que el backend está caído.
+
+Los usuarios de prueba de más abajo quedan disponibles desde el primer arranque.
 
 ---
 
