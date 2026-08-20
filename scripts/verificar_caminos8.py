@@ -18,7 +18,20 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from sympy import And, Eq, cancel, div, expand, gcd_list, lcm_list, symbols, sympify
+from sympy import (
+    And,
+    Eq,
+    cancel,
+    div,
+    expand,
+    gcd_list,
+    lcm_list,
+    simplify,
+    solve,
+    symbols,
+    sympify,
+    together,
+)
 
 from verificar_hipertexto8 import (
     TIPOS_VERIFICABLES as TIPOS_BASE,
@@ -36,7 +49,9 @@ TIPOS_VERIFICABLES = TIPOS_BASE | {
     "cuadro_magico_multiplicativo",
     "conjunto_natural",
     "decimal_a_fraccion",
+    "despeje",
     "division_polinomios",
+    "ecuacion_real",
     "inecuacion_lineal",
     "mcd_polinomios",
     "mcm_polinomios",
@@ -72,9 +87,55 @@ def verificar(item: dict) -> str | None:
             return error
         expresion = sympify(item["expr"], rational=True)
         afirmacion = sympify(item["afirmacion"], rational=True)
-        veredicto = "V" if expand(cancel(expresion - afirmacion)) == 0 else "F"
+        diferencia = simplify(cancel(together(expresion - afirmacion)))
+        veredicto = "V" if diferencia == 0 else "F"
         if item["veredicto"] != veredicto:
             return f"la igualdad propuesta da {veredicto}, no {item['veredicto']}"
+        return None
+
+    if item["tipo"] == "ecuacion_real":
+        nombre = item.get("incognita", "x")
+        incognita = symbols(nombre, real=True)
+        locales = {nombre: incognita}
+        izq, der = item["ecuacion"].split("=")
+        obtenidas = solve(
+            Eq(
+                sympify(izq, locals=locales, rational=True),
+                sympify(der, locals=locales, rational=True),
+            ),
+            incognita,
+        )
+        esperadas = [sympify(solucion, rational=True) for solucion in item["soluciones"]]
+        if len(obtenidas) != len(esperadas):
+            return f"ecuacion real {item['ecuacion']} da {obtenidas}, se esperaba {esperadas}"
+        libres = list(obtenidas)
+        for esperada in esperadas:
+            pareja = next((valor for valor in libres if simplify(valor - esperada) == 0), None)
+            if pareja is None:
+                return (
+                    f"ecuacion real {item['ecuacion']} da {obtenidas}, "
+                    f"y ninguna solución equivale a {esperada}"
+                )
+            libres.remove(pareja)
+        return None
+
+    if item["tipo"] == "despeje":
+        nombre = item.get("incognita", "x")
+        incognita = symbols(nombre)
+        izq, der = item["ecuacion"].split("=")
+        obtenidas = solve(
+            Eq(sympify(izq, rational=True), sympify(der, rational=True)),
+            incognita,
+        )
+        esperada = sympify(item["solucion"], rational=True)
+        if not any(
+            simplify(cancel(together(obtenida - esperada))) == 0
+            for obtenida in obtenidas
+        ):
+            return (
+                f"al despejar {nombre} en {item['ecuacion']} se obtiene {obtenidas}, "
+                f"no {esperada}"
+            )
         return None
 
     if item["tipo"] in {"mcd_polinomios", "mcm_polinomios"}:
@@ -148,7 +209,7 @@ def verificar(item: dict) -> str | None:
         for etiqueta, expresion in expresiones.items():
             obtenido = sympify(expresion, rational=True)
             esperado = sympify(respuestas[etiqueta], rational=True)
-            diferencia = expand(obtenido - esperado)
+            diferencia = simplify(cancel(together(obtenido - esperado)))
             if diferencia != 0:
                 return (
                     f"{etiqueta}: {expresion} no equivale a {esperado}; "

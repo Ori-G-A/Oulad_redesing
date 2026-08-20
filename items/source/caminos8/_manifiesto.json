@@ -106,6 +106,10 @@
     {
       "pagina": 120,
       "motivo": "Página teórica sobre suma o diferencia de potencias de igual exponente, con reglas y un ejemplo completamente resuelto; no contiene consignas para responder."
+    },
+    {
+      "pagina": 222,
+      "motivo": "Página teórica de introducción a las funciones y sus elementos, con un ejemplo completamente resuelto; no contiene consignas impresas para responder."
     }
   ],
   "paginas": [
@@ -643,11 +647,6 @@
       "pagina": 220,
       "unidad": 8,
       "clase": "lo_que_sabes"
-    },
-    {
-      "pagina": 222,
-      "unidad": 8,
-      "clase": "afianzo"
     },
     {
       "pagina": 224,
