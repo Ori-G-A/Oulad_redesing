@@ -44,6 +44,15 @@ type Props = {
 
 // Desvanecimiento del ejemplo resuelto según banda de presentación
 // (Sweller & Cooper, 1985). La trampa NO se desvanece en ningún nivel.
+type ClosingItem = {
+  id: string;
+  statement: string;
+  prompt?: string;
+  polya: { comprender: string; planear: string; ejecutar: string; comprobar: string };
+  answer: string;
+  hints?: { n1: string; n2: string; n3: string };
+};
+
 const FADED_STEPS: Record<string, number> = { basico: 0, intermedio: 2, avanzado: 3 };
 
 // Marcos de los peldaños sobre la ilustración de la escalera. Solo los usa el
@@ -152,7 +161,9 @@ export function ElevenBlockLesson({ lesson, courseId, onBack, onFinish, finishin
   const practice: LessonItem[] = content.practice ?? [];
   const [exampleA, exampleB, trap] = content.worked_examples ?? [];
   const faded = FADED_STEPS[lesson.presentation] ?? 0;
-  const closingItem: LessonItem | undefined = content.closing_item;
+  // No es un LessonItem: el cierre de Polya trae `statement` y los cuatro
+  // pasos, y no trae `kind` — el motor lo resuelve siempre por respuesta escrita.
+  const closingItem: ClosingItem | undefined = content.closing_item;
 
   const practiceDone = practice.filter((item) => engine.isCorrect(item.id)).length;
   const closingDone = !closingItem || engine.isCorrect(closingItem.id);

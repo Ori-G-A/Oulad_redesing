@@ -167,6 +167,7 @@ export interface LessonDetail {
       | "property_laboratory_hub"
       | "property_machine"
       | "level_hub_port"
+      | "level_hub_cards"
       | "divisibility_concept";
     level?: string;
     title: string;
@@ -209,6 +210,15 @@ export interface LessonDetail {
     validation_status?: string;
     operation?: string;
     gating?: { rule: string; cards_required?: number; machines_required?: number };
+    // Textos del hub, parametrizados: sin estos el renderer cae al vocabulario
+    // del puerto de la Polis, que es de donde salio.
+    image?: string;
+    cards_hint?: string;
+    cards_aria?: string;
+    card_closed_hint?: string;
+    card_cta?: string;
+    gating_label?: string;
+    finish_label?: string;
     buildings?: Array<{
       id: string;
       operation: string;

@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -21,16 +20,6 @@ import "./Lesson.css";
 
 const B01_ID = "PREALG-N1-B01-BIENVENIDA";
 const B02_ID = "PREALG-N1-B02-PREGUNTA-DETONADORA";
-const B03_ID = "PREALG-N1-B03-ESCALERA-NECESIDAD";
-const B04_ID = "PREALG-N1-B04-NATURALES-CONTAR";
-const B05_ID = "PREALG-N1-B05-ENTEROS-DEUDA";
-const B06_ID = "PREALG-N1-B06-RACIONALES-FRACCION-DIVISION";
-const B07_ID = "PREALG-N1-B07-IRRACIONALES-DECIMALES";
-const B08_ID = "PREALG-N1-B08-REALES-RECTA";
-const B09_ID = "PREALG-N1-B09-COMPLEJOS-PLANO";
-const B10_ID = "PREALG-N1-B10-CLASIFICADOR-BASICO";
-const B11_ID = "PREALG-N1-B11-CLASIFICADOR-RIGUROSO";
-const B12_ID = "PREALG-N1-B12-DETECTIVE-FALSEDADES";
 const B13_ID = "PREALG-N1-B13-CIERRE-DIAGNOSTICO";
 const N2_IDS = [
   "PREALG-N2-E00-CIUDAD",
@@ -58,28 +47,7 @@ const N4_IDS = [
   "PREALG-N4-C05-MCD",
   "PREALG-N4-C06-MCM",
 ] as const;
-// ALG-N1 · El Papiro de las Cuatro Casas. Módulo narrativo nuevo (Kemet), misma
-// arquitectura de 11 bloques: se pintan con el renderer genérico de más abajo.
 const ALG_HUB_ID = "ALG-A00-PAPIRO-CUATRO-CASAS";
-const ALG_N1_IDS = [
-  ALG_HUB_ID,
-  "ALG-N1-L01-VARIABLES",
-  "ALG-N1-L02-CONSTANTES",
-  "ALG-N1-L03-TRADUCCION",
-  "ALG-N1-L04-VALOR-NUMERICO",
-  "ALG-N1-O01-SEMEJANTES",
-  "ALG-N1-O02-SIGNOS",
-  "ALG-N1-O03-PRODUCTO",
-  "ALG-N1-O04-COCIENTE",
-  "ALG-N1-F01-SIMPLIFICAR",
-  "ALG-N1-F02-SUMA",
-  "ALG-N1-F03-PRODUCTO",
-  "ALG-N1-F04-DIVISION",
-  "ALG-N1-R01-RAZONES",
-  "ALG-N1-R02-REGLA-DE-TRES",
-  "ALG-N1-R03-PORCENTAJES",
-  "ALG-N1-R04-VARIACION",
-] as const;
 
 export function Lesson() {
   const { courseId = "", nodeId = "" } = useParams();
