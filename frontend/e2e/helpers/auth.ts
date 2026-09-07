@@ -20,8 +20,7 @@ export const MOCK_TEACHER = {
 
 /** Inject Zustand auth state directly into localStorage to skip the login UI. */
 export async function injectAuth(page: Page, user = MOCK_STUDENT) {
-  await page.goto("/");
-  await page.evaluate((authData) => {
+  await page.addInitScript((authData) => {
     localStorage.setItem(
       "levelup-auth",
       JSON.stringify({
@@ -34,6 +33,7 @@ export async function injectAuth(page: Page, user = MOCK_STUDENT) {
         version: 0,
       })
     );
+    localStorage.setItem("levelup-lang", "es");
   }, user);
 }
 
@@ -68,6 +68,9 @@ export async function mockLoginEndpoint(page: Page, user = MOCK_STUDENT) {
 
 /** Mock the common student endpoints used in most tests. */
 export async function mockStudentApi(page: Page) {
+  await page.route("**/api/student/map/*", async (route) => {
+    await route.fulfill({ json: { course_id: "calculo", course_name: "Cálculo Diferencial", diagnostic_done: true, nodes: [] } });
+  });
   await page.route("**/api/student/courses", async (route) => {
     await route.fulfill({
       status: 200,
@@ -134,7 +137,7 @@ export async function mockStudentApi(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify([]),
+      body: JSON.stringify({ attempts: [] }),
     });
   });
 
@@ -142,7 +145,7 @@ export async function mockStudentApi(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify([]),
+      body: JSON.stringify({ activity: {} }),
     });
   });
 
@@ -150,7 +153,7 @@ export async function mockStudentApi(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify([]),
+      body: JSON.stringify({ achievements: [], catalog: [] }),
     });
   });
 
@@ -158,7 +161,7 @@ export async function mockStudentApi(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify([]),
+      body: JSON.stringify({ ranking: [], my_rank: null }),
     });
   });
 
@@ -167,6 +170,30 @@ export async function mockStudentApi(page: Page) {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ available: false, provider: null }),
+    });
+  });
+
+  await page.route("**/api/student/exam/history", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+  });
+
+  await page.route("**/api/student/diagnostic/*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        completed: true,
+        course_id: "calculo",
+        result: {
+          initial_elo: 1050,
+          score_pct: 60,
+          league: { name: "Aprendiz", min: 1000, color: "#6C63FF", rank: "I" },
+          themes: [],
+          correct_total: 3,
+          answered: 5,
+          completed: true,
+        },
+      }),
     });
   });
 }

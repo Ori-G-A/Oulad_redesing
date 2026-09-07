@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { PageTransition } from "../components/ui/PageTransition";
 import { authApi } from "../api/auth";
 import { api } from "../api/client";
@@ -20,6 +21,7 @@ import { useNotifications } from "../hooks/useNotifications";
 import { ReportProblemButton } from "../components/ReportProblem/ReportProblemButton";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { LanguageToggle } from "../components/ui/LanguageToggle";
+import { clearAccountCaches } from "../lib/accountCleanup";
 
 interface NavItem {
   path: string;
@@ -73,6 +75,7 @@ function useSessionTimer(sessionStartTime: number | null) {
 }
 
 export function Layout({ children }: LayoutProps) {
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { user, sessionStartTime, clearAuth } = useAuthStore();
   const { apiKey, provider, model, setApiKey, setProvider, setModel } = useSettingsStore();
@@ -161,6 +164,9 @@ export function Layout({ children }: LayoutProps) {
     } catch {
       /* ignorar */
     }
+    await clearAccountCaches();
+    queryClient.clear();
+    setApiKey("");
     clearAuth();
     navigate("/login");
   };

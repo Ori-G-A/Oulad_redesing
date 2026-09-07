@@ -20,9 +20,11 @@ import os
 import sys
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 # ── Path setup (ejecutar desde raíz del repo) ─────────────────────────────────
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,6 +32,7 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 from api.config import settings
+from api.rate_limit import limiter
 from api.routers import admin, ai, auth, student, teacher
 from api.websocket.notifications import ws_router
 from api.websocket.pvp import pvp_router
@@ -50,13 +53,15 @@ async def lifespan(app: FastAPI):
     """Inicializa la DB al arrancar y libera recursos al parar."""
     logger.info("=== LevelUp-ELO API v%s iniciando ===", settings.app_version)
     try:
+        settings.validate_runtime()
         from api.dependencies import get_repository
 
         repo = get_repository()
         repo.init_db()
         logger.info("Base de datos inicializada.")
     except Exception as exc:
-        logger.error("Error inicializando DB: %s", exc)
+        logger.exception("No se pudo inicializar la base de datos: %s", exc)
+        raise
 
     yield
 
@@ -77,6 +82,8 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     lifespan=lifespan,
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
@@ -123,16 +130,25 @@ def health():
 
         repo = get_repository()
         conn = repo.get_connection()
-        if hasattr(repo, "put_connection"):
-            repo.put_connection(conn)
-        else:
-            conn.close()
-        db_status = "ok"
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            if cursor.fetchone() is None:
+                raise RuntimeError("La consulta de readiness no devolvió resultado")
+        finally:
+            if hasattr(repo, "put_connection"):
+                repo.put_connection(conn)
+            else:
+                conn.close()
     except Exception as exc:
-        db_status = f"error: {exc}"
+        logger.error("Readiness de base de datos falló: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Base de datos no disponible.",
+        ) from exc
 
     return {
-        "status": "ok" if db_status == "ok" else "degraded",
-        "db": db_status,
+        "status": "ok",
+        "db": "ok",
         "version": settings.app_version,
     }

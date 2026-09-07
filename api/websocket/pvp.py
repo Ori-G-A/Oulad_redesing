@@ -151,7 +151,7 @@ async def _timer(match: ActiveMatch, repo) -> None:
 
 @pvp_router.websocket("/pvp/{course_id}")
 async def pvp_ws(websocket: WebSocket, course_id: str):
-    from api.dependencies import decode_token, get_repository
+    from api.dependencies import authenticate_access_token, get_repository
 
     await websocket.accept()
 
@@ -159,15 +159,19 @@ async def pvp_ws(websocket: WebSocket, course_id: str):
     try:
         raw = await asyncio.wait_for(websocket.receive_text(), timeout=10.0)
         msg = json.loads(raw)
-        payload = decode_token(msg.get("token", ""))
-        user_id = int(payload["sub"])
-        username = payload.get("username", f"user_{user_id}")
+        repo = get_repository()
+        user = authenticate_access_token(msg.get("token", ""), repo)
+        if user["role"] != "student":
+            raise ValueError("Solo estudiantes pueden entrar a PvP")
+        user_id = user["user_id"]
+        username = user["username"]
+        enrollments = {row["course_id"] for row in repo.get_user_enrollments(user_id)}
+        if course_id not in enrollments:
+            raise ValueError("El estudiante no está inscrito en el curso")
     except Exception as exc:
         await websocket.close(code=4001, reason="Auth failed")
         logger.warning("PvP auth failed: %s", exc)
         return
-
-    repo = get_repository()
 
     # Obtener ELO actual del jugador
     try:

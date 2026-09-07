@@ -14,6 +14,8 @@ import { useCallback } from "react";
 import { studentApi } from "../api/student";
 import { usePracticeStore } from "../stores/practiceStore";
 
+const pendingAnswerKeys = new Map<string, string>();
+
 export function useStudentSession() {
   // Solo lecturas reactivas para el render — no pasan como deps a useCallback
   const currentItem = usePracticeStore((s) => s.currentItem);
@@ -60,16 +62,18 @@ export function useStudentSession() {
         : undefined;
 
       try {
+        const requestKey = pendingAnswerKeys.get(store.currentItem.id) ?? crypto.randomUUID();
+        pendingAnswerKeys.set(store.currentItem.id, requestKey);
         const res = await studentApi.answer({
           item_id: store.currentItem.id,
-          item_data: store.currentItem,
           selected_option: selectedOption,
           reasoning,
           time_taken: timeTaken,
           // En refuerzo desde el mapa, la ELO se actualiza bajo el tópico
           // (así avanza el nodo); en práctica de curso, bajo el courseId.
           elo_topic: store.topic ?? store.courseId ?? undefined,
-        });
+        }, requestKey);
+        pendingAnswerKeys.delete(store.currentItem.id);
 
         usePracticeStore.getState().recordAnswer(
           store.currentItem.id,

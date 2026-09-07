@@ -62,8 +62,11 @@ celular, docentes desde el escritorio.
   (K=40 → 32 → 16/24), acelerando la convergencia.
 - **Rating Deviation tipo Glicko** — incertidumbre por tópico (RD inicial 350,
   mínimo 30). K efectivo = `K_base × (RD / 350)`.
-- **Selector con Fisher Information** — maximiza `P×(1−P)` dentro del rango ZDP
-  [0,40 – 0,75], expandiéndolo ±0,05 por paso si no hay candidatos.
+- **Selector con Fisher Information** — sortea entre preguntas con al menos el
+  95 % de la mejor información ponderada `P×(1−P)×peso` dentro del rango ZDP
+  [0,40 – 0,75], expandiéndolo ±0,05 por paso si no hay candidatos. Conserva la
+  prioridad de preguntas no vistas y las exclusiones de la sesión; los empates
+  de dificultad no fuerzan a elegir siempre la primera pregunta.
 
 ### Flujo del estudiante
 - **Diagnóstico de entrada** — 10 preguntas por materia que fijan el ELO inicial

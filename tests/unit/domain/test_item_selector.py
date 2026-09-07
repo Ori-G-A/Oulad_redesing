@@ -11,6 +11,8 @@ API real:
 Nota: select_optimal_item recibe objetos Item(difficulty=...), no dicts.
 """
 
+import random
+
 import pytest
 from src.domain.elo.model import Item, expected_score
 from src.domain.selector.item_selector import AdaptiveItemSelector
@@ -99,3 +101,34 @@ class TestZDPPreFiltering:
         # El ítem seleccionado debe estar en la ventana ZDP o ser el fallback
         # (en este caso, difficulty=1000 está en [750, 1250])
         assert result.difficulty == pytest.approx(1000.0, abs=1.0)
+
+
+class TestControlledVariety:
+    def test_equal_difficulty_items_are_all_reachable(self):
+        items = _make_items(1000, 1000, 1000, 1000)
+        selector = AdaptiveItemSelector(rng=random.Random(7))
+        selected = {id(selector.select_optimal_item(1000, items)) for _ in range(100)}
+        assert selected == {id(item) for item in items}
+
+    def test_variety_stays_near_best_information_and_inside_zdp(self):
+        items = _make_items(600, 820, 950, 1000, 1050, 1100, 1800)
+        selector = AdaptiveItemSelector(rng=random.Random(11))
+        selected = [selector.select_optimal_item(1000, items) for _ in range(100)]
+        assert {item.difficulty for item in selected} == {950, 1000, 1050}
+        for item in selected:
+            p = expected_score(1000, item.difficulty)
+            assert 0.4 <= p <= 0.75
+            assert selector.information(p) >= 0.95 * selector.information(0.5)
+
+    def test_weight_is_respected(self):
+        items = [Item(1000, weight=1), Item(1000, weight=2)]
+        selector = AdaptiveItemSelector(rng=random.Random(1))
+        assert all(selector.select_optimal_item(1000, items) is items[1] for _ in range(20))
+
+    def test_seed_can_reproduce_a_selection_sequence(self):
+        items = _make_items(950, 1000, 1050)
+        first = AdaptiveItemSelector(rng=random.Random(19))
+        second = AdaptiveItemSelector(rng=random.Random(19))
+        assert [id(first.select_optimal_item(1000, items)) for _ in range(20)] == [
+            id(second.select_optimal_item(1000, items)) for _ in range(20)
+        ]

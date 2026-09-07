@@ -32,7 +32,9 @@ class IStudentRepository(Protocol):
         item_difficulty_new: float,
         item_rd_new: float,
         attempt_data: dict,
-    ) -> None: ...
+        request_id: Optional[str] = None,
+        request_fingerprint: Optional[str] = None,
+    ) -> bool: ...
     def save_katia_interaction(
         self,
         user_id: int,

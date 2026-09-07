@@ -61,10 +61,27 @@ async def websocket_notifications(websocket: WebSocket, room: str):
             await websocket.close(code=4001, reason="Token requerido.")
             return
 
-        from api.dependencies import decode_token
+        from api.dependencies import authenticate_access_token, get_repository
 
-        payload = decode_token(token)
-        user_id = payload.get("sub")
+        repo = get_repository()
+        user = authenticate_access_token(token, repo)
+        user_id = user["user_id"]
+        allowed = user["role"] == "admin"
+        if room.startswith("student_"):
+            allowed = allowed or (user["role"] == "student" and room == f"student_{user_id}")
+        elif room.startswith("teacher_"):
+            allowed = allowed or (user["role"] == "teacher" and room == f"teacher_{user_id}")
+        elif room.startswith("group_"):
+            group_id = int(room.removeprefix("group_"))
+            profile = repo.get_user_by_id(user_id)
+            teacher_groups = (
+                {g["group_id"] for g in repo.get_groups_by_teacher(user_id)}
+                if user["role"] == "teacher" else set()
+            )
+            allowed = allowed or profile.get("group_id") == group_id or group_id in teacher_groups
+        if not allowed:
+            await websocket.close(code=4003, reason="Sala no autorizada.")
+            return
         logger.info("WS conectado: user=%s sala=%s", user_id, room)
     except asyncio.TimeoutError:
         await websocket.close(code=4002, reason="Timeout de autenticación.")

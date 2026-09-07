@@ -1,4 +1,5 @@
 from src.infrastructure.external_api.ai_client import get_pedagogical_analysis
+from src.domain.elo.model import procedure_elo_delta
 
 
 class TeacherService:
@@ -48,19 +49,30 @@ class TeacherService:
         }
 
     def validate_procedure(
-        self, submission_id: int, teacher_score: float, feedback: str = ""
-    ) -> None:
+        self,
+        submission_id: int,
+        teacher_score: float,
+        feedback: str = "",
+        teacher_id: int | None = None,
+    ) -> float:
         """Valida la calificación de un procedimiento y persiste la nota final oficial.
 
         teacher_score (0.0-100.0) se copia a final_score; el status pasa a
         VALIDATED_BY_TEACHER. Desde ese momento, solo final_score puede usarse
         en analytics y ELO (nunca ai_proposed_score).
         """
-        if not (0.0 <= teacher_score <= 100.0):
-            raise ValueError(
-                f"teacher_score fuera de rango: {teacher_score}. Debe estar entre 0.0 y 100.0."
+        delta = procedure_elo_delta(teacher_score)
+        if teacher_id is None:
+            updated = self.repository.validate_procedure_submission(
+                submission_id, teacher_score, feedback
             )
-        self.repository.validate_procedure_submission(submission_id, teacher_score, feedback)
+        else:
+            updated = self.repository.validate_procedure_submission(
+                submission_id, teacher_score, feedback, teacher_id=teacher_id
+            )
+        if updated is False:
+            raise LookupError("Procedimiento pendiente no encontrado.")
+        return delta
 
     def generate_ai_analysis(
         self,

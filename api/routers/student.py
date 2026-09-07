@@ -17,10 +17,17 @@ Endpoints del flujo de práctica del estudiante:
 
 import hashlib
 import random
+import uuid
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, Form, Header, HTTPException, Request, UploadFile, status
 
-from api.dependencies import CurrentUser, RepoDep, build_vector_rating
+from api.dependencies import (
+    CurrentUser, RepoDep, build_vector_rating, create_procedure_review_token, decode_token,
+)
+from api.rate_limit import limiter
+from api.config import settings
+from api.upload_validation import read_validated_upload
 from api.schemas.student import (
     AnswerRequest,
     AnswerResponse,
@@ -92,7 +99,9 @@ def _make_service(repo) -> StudentService:
 def next_question(body: NextQuestionRequest, user: CurrentUser, repo: RepoDep):
     """Selecciona la siguiente pregunta adaptativa (ZDP) para el estudiante."""
     service = _make_service(repo)
-    vector = build_vector_rating(user["user_id"], repo)
+    vector = build_vector_rating(
+        user["user_id"], repo, course_id=body.course_id if not body.topic else None
+    )
 
     topic = body.topic or body.course_id  # fallback: usar curso como tópico ELO
 
@@ -129,22 +138,65 @@ def next_question(body: NextQuestionRequest, user: CurrentUser, repo: RepoDep):
 
 
 @router.post("/answer", response_model=AnswerResponse)
-def answer(body: AnswerRequest, user: CurrentUser, repo: RepoDep):
+def answer(
+    body: AnswerRequest,
+    user: CurrentUser,
+    repo: RepoDep,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+):
     """Procesa una respuesta: actualiza ELO y persiste el intento de forma atómica."""
     service = _make_service(repo)
-    vector = build_vector_rating(user["user_id"], repo)
 
-    # Recuperar correct_option desde DB — el cliente no la envía (seguridad)
+    # El cliente identifica el ítem; todos los datos académicos son canónicos.
     item_db = repo.get_item_by_id(body.item_id)
     if not item_db:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Ítem '{body.item_id}' no encontrado.",
         )
-    # Fusionar datos del cliente con datos canónicos de la DB
-    item_data = {**body.item_data, "correct_option": item_db["correct_option"]}
+    item_data = item_db
+    # Mantener los dos modos existentes: tópico (mapa) o curso (práctica general).
+    # No permitir escribir ratings bajo claves arbitrarias enviadas por el cliente.
+    valid_topics = {item_db["topic"], item_db.get("course_id")} - {None, ""}
+    elo_topic = body.elo_topic if body.elo_topic is not None else item_db["topic"]
+    if elo_topic not in valid_topics:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El tópico de práctica no corresponde al ítem.",
+        )
+    if body.selected_option not in item_db["options"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La opción seleccionada no pertenece al ítem.",
+        )
+    if idempotency_key is not None and not 1 <= len(idempotency_key) <= 128:
+        raise HTTPException(status_code=400, detail="Clave de idempotencia inválida.")
+    fingerprint = hashlib.sha256(
+        "\0".join((body.item_id, body.selected_option, elo_topic)).encode("utf-8")
+    ).hexdigest()
 
-    elo_topic = body.elo_topic or item_data.get("topic", body.item_id)
+    def replay(saved: dict) -> AnswerResponse:
+        if saved["request_fingerprint"] != fingerprint:
+            raise HTTPException(
+                status_code=409, detail="La clave de idempotencia pertenece a otra respuesta."
+            )
+        before = float(saved["elo_before"])
+        after = float(saved["elo_after"])
+        return AnswerResponse(
+            is_correct=bool(saved["is_correct"]), elo_before=round(before, 2),
+            elo_after=round(after, 2), rd_after=round(float(saved["rating_deviation"]), 2),
+            delta_elo=round(after - before, 2), cog_data={"idempotent_replay": True},
+        )
+
+    if idempotency_key:
+        saved = repo.get_answer_by_request_id(user["user_id"], idempotency_key)
+        if saved:
+            return replay(saved)
+    vector = build_vector_rating(
+        user["user_id"],
+        repo,
+        course_id=item_db.get("course_id") if elo_topic == item_db.get("course_id") else None,
+    )
     elo_before = vector.get(elo_topic)
 
     is_correct, cog_data = service.process_answer(
@@ -155,7 +207,14 @@ def answer(body: AnswerRequest, user: CurrentUser, repo: RepoDep):
         time_taken=body.time_taken,
         vector_rating=vector,
         elo_topic=elo_topic,
+        request_id=idempotency_key,
+        request_fingerprint=fingerprint if idempotency_key else None,
     )
+
+    if cog_data.get("idempotent_replay") and idempotency_key:
+        saved = repo.get_answer_by_request_id(user["user_id"], idempotency_key)
+        if saved:
+            return replay(saved)
 
     elo_after = vector.get(elo_topic)
     rd_after = vector.get_rd(elo_topic)
@@ -381,8 +440,7 @@ async def submit_procedure(
     item_id: str = Form(...),
     item_content: str = Form(default=""),
     file: UploadFile = File(...),
-    ai_proposed_score: float | None = Form(default=None),
-    ai_feedback: str | None = Form(default=None),
+    analysis_token: str | None = Form(default=None),
 ):
     """Recibe y persiste un procedimiento manuscrito del estudiante.
 
@@ -390,24 +448,26 @@ async def submit_procedure(
     se guardan en la submission para que el docente los vea como sugerencia.
     El score de IA (ai_proposed_score) NO afecta el ELO — solo teacher_score lo hace.
     """
-    allowed = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
-    mime = file.content_type or "image/jpeg"
-    if mime not in allowed:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"Tipo de archivo no soportado: {mime}. Usa JPEG, PNG, WebP o PDF.",
-        )
-
-    image_data = await file.read()
-    if len(image_data) > 10 * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="El archivo excede el límite de 10 MB.",
-        )
-
+    image_data, mime = await read_validated_upload(file)
     file_hash = hashlib.sha256(image_data).hexdigest()
+    if repo.check_file_hash_duplicate(item_id, user["user_id"], file_hash):
+        raise HTTPException(status_code=409, detail="Este archivo ya fue enviado por otro estudiante.")
 
-    repo.save_procedure_submission(
+    ai_proposed_score = None
+    ai_feedback = None
+    if analysis_token:
+        review = decode_token(analysis_token)
+        if (
+            review.get("type") != "procedure_review"
+            or int(review.get("sub", -1)) != user["user_id"]
+            or review.get("item_id") != item_id
+            or review.get("file_hash") != file_hash
+        ):
+            raise HTTPException(status_code=400, detail="El análisis IA no corresponde al archivo.")
+        ai_proposed_score = review.get("score")
+        ai_feedback = review.get("feedback") or ""
+
+    submission_id = repo.save_procedure_submission(
         student_id=user["user_id"],
         item_id=item_id,
         item_content=item_content,
@@ -428,7 +488,7 @@ async def submit_procedure(
             pass
 
     return ProcedureSubmitResponse(
-        submission_id=0,
+        submission_id=submission_id,
         ai_score=ai_proposed_score,
         ai_feedback=ai_feedback,
         status="pending" if ai_proposed_score is None else "PENDING_TEACHER_VALIDATION",
@@ -449,7 +509,9 @@ def ai_status():
 
 
 @router.post("/procedure/analyze")
+@limiter.limit(settings.rate_limit_review)
 async def analyze_procedure(
+    request: Request,
     user: CurrentUser,
     item_id: str = Form(...),
     item_content: str = Form(default=""),
@@ -476,20 +538,9 @@ async def analyze_procedure(
     if settings.system_ai_provider and not api_key.strip():
         provider = settings.system_ai_provider
 
-    allowed = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
-    mime = file.content_type or "image/jpeg"
-    if mime not in allowed:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"Tipo de archivo no soportado: {mime}.",
-        )
-
-    image_data = await file.read()
-    if len(image_data) > 10 * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="El archivo excede el límite de 10 MB.",
-        )
+    original_data, mime = await read_validated_upload(file)
+    image_data = original_data
+    file_hash = hashlib.sha256(original_data).hexdigest()
 
     if mime == "application/pdf":
         try:
@@ -526,7 +577,13 @@ async def analyze_procedure(
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Error al revisar procedimiento: {exc}")
 
-        return {"item_id": item_id, "provider": "groq", "review": review}
+        return {
+            "item_id": item_id, "provider": "groq", "review": review,
+            "analysis_token": create_procedure_review_token(
+                user["user_id"], item_id, file_hash, review.get("score_procedimiento"),
+                review.get("evaluacion_global") or "",
+            ),
+        }
 
     else:
         from src.infrastructure.external_api.ai_client import analyze_procedure_image
@@ -549,19 +606,23 @@ async def analyze_procedure(
                 detail="El modelo configurado no soporta visión. Usa Groq o un modelo con visión.",
             )
 
+        review = {
+            "score_procedimiento": None,
+            "evaluacion_global": result,
+            "transcripcion": None,
+            "pasos": [],
+            "errores_detectados": [],
+            "saltos_logicos": [],
+            "resultado_correcto": None,
+            "corresponde_a_pregunta": None,
+        }
         return {
             "item_id": item_id,
             "provider": provider or "unknown",
-            "review": {
-                "score_procedimiento": None,
-                "evaluacion_global": result,
-                "transcripcion": None,
-                "pasos": [],
-                "errores_detectados": [],
-                "saltos_logicos": [],
-                "resultado_correcto": None,
-                "corresponde_a_pregunta": None,
-            },
+            "review": review,
+            "analysis_token": create_procedure_review_token(
+                user["user_id"], item_id, file_hash, None, result or "",
+            ),
         }
 
 
@@ -722,18 +783,26 @@ def exam_start(body: ExamStartRequest, user: CurrentUser, repo: RepoDep):
     En ambos casos, NO afecta el ELO del estudiante.
     """
     if body.template_id is not None:
-        template = repo.get_exam_template(body.template_id)
-        if not template or template.get("archived"):
+        visible = repo.list_active_templates_for_student(
+            user_id=user["user_id"], course_id=body.course_id
+        )
+        template = next((t for t in visible if t["id"] == body.template_id), None)
+        if not template:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Plantilla no encontrada o archivada.",
+                detail="Plantilla no disponible para el estudiante en este momento.",
             )
-        if template["course_id"] != body.course_id:
+        if len(template["item_ids"]) != len(set(template["item_ids"])):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="La plantilla no corresponde al curso indicado.",
+                detail="La plantilla contiene preguntas duplicadas.",
             )
         selected = _items_from_template(repo, template)
+        if len(selected) != len(template["item_ids"]):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="La plantilla contiene preguntas que ya no están disponibles.",
+            )
         time_limit_seconds = template["time_limit_min"] * 60
     else:
         n = min(body.n_questions, 30)
@@ -759,7 +828,19 @@ def exam_start(body: ExamStartRequest, user: CurrentUser, repo: RepoDep):
         for it in selected
     ]
 
+    session_id = uuid.uuid4().hex
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=time_limit_seconds)
+    repo.create_active_exam_session(
+        session_id=session_id,
+        user_id=user["user_id"],
+        course_id=body.course_id,
+        template_id=body.template_id,
+        item_ids=[it["id"] for it in selected],
+        expires_at=expires_at.isoformat(),
+    )
+
     return ExamStartResponse(
+        session_id=session_id,
         items=items,
         n_questions=len(items),
         time_limit_seconds=time_limit_seconds,
@@ -778,6 +859,26 @@ def exam_submit(body: ExamSubmitRequest, user: CurrentUser, repo: RepoDep):
 
     El ELO solo cambia en la sala de práctica.
     """
+    run = repo.get_active_exam_session(body.session_id, user["user_id"])
+    if not run:
+        raise HTTPException(status_code=404, detail="Sesión de examen no encontrada.")
+    if run.get("result") is not None:
+        return ExamSubmitResponse(**run["result"])
+    if body.course_id and body.course_id != run["course_id"]:
+        raise HTTPException(status_code=400, detail="El curso no corresponde a la sesión.")
+    if body.template_id is not None and body.template_id != run["template_id"]:
+        raise HTTPException(status_code=400, detail="La plantilla no corresponde a la sesión.")
+
+    expected_ids = run["item_ids"]
+    submitted_ids = [answer.item_id for answer in body.answers]
+    if len(submitted_ids) != len(set(submitted_ids)):
+        raise HTTPException(status_code=400, detail="Hay preguntas duplicadas en el envío.")
+    if submitted_ids != expected_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="Las respuestas no corresponden exactamente a la sesión iniciada.",
+        )
+
     results = []
     correct_count = 0
     responses = []  # por pregunta, para análisis del docente
@@ -785,7 +886,9 @@ def exam_submit(body: ExamSubmitRequest, user: CurrentUser, repo: RepoDep):
     for ans in body.answers:
         item_db = repo.get_item_by_id(ans.item_id)
         if not item_db:
-            continue
+            raise HTTPException(status_code=409, detail="Una pregunta ya no está disponible.")
+        if ans.selected_option and ans.selected_option not in item_db["options"]:
+            raise HTTPException(status_code=400, detail="Una opción seleccionada no es válida.")
 
         is_correct = ans.selected_option == item_db["correct_option"]
         if is_correct:
@@ -809,31 +912,24 @@ def exam_submit(body: ExamSubmitRequest, user: CurrentUser, repo: RepoDep):
 
     # ELO global actual (sin modificación, solo para mostrar en results)
     vector = build_vector_rating(user["user_id"], repo)
-    score_pct = round(correct_count / len(body.answers) * 100, 1) if body.answers else 0.0
+    score_pct = round(correct_count / len(expected_ids) * 100, 1)
     global_elo = round(aggregate_global_elo(vector), 2)
-
-    try:
-        repo.save_exam_session(
-            user_id=user["user_id"],
-            course_id=body.course_id,
-            course_name=body.course_name,
-            n_questions=len(body.answers),
-            correct_count=correct_count,
-            score_pct=score_pct,
-            global_elo_after=global_elo,
-            template_id=body.template_id,
-            responses=responses,
-        )
-    except Exception:
-        pass
-
-    return ExamSubmitResponse(
-        results=results,
-        correct_count=correct_count,
-        total_questions=len(body.answers),
-        score_pct=score_pct,
-        global_elo_after=global_elo,
+    result = {
+        "results": results,
+        "correct_count": correct_count,
+        "total_questions": len(expected_ids),
+        "score_pct": score_pct,
+        "global_elo_after": global_elo,
+    }
+    saved = repo.complete_active_exam_session(
+        body.session_id, user["user_id"], body.course_name, result, responses
     )
+    if not saved:
+        current = repo.get_active_exam_session(body.session_id, user["user_id"])
+        if current and current.get("result") is not None:
+            return ExamSubmitResponse(**current["result"])
+        raise HTTPException(status_code=409, detail="La sesión de examen expiró.")
+    return ExamSubmitResponse(**result)
 
 
 @router.get("/exam/history")
@@ -912,11 +1008,17 @@ def diagnostic_submit(
     by_topic: dict[str, dict] = {}
     correct_total = 0
     answered = 0
+    seen_item_ids: set[str] = set()
 
     for ans in body.answers:
+        if ans.item_id in seen_item_ids:
+            raise HTTPException(status_code=400, detail="El diagnóstico contiene ítems repetidos.")
+        seen_item_ids.add(ans.item_id)
         item_db = repo.get_item_by_id(ans.item_id)
-        if not item_db:
-            continue
+        if not item_db or item_db.get("course_id") != course_id:
+            raise HTTPException(status_code=400, detail="Ítem ajeno al curso diagnosticado.")
+        if ans.selected_option and ans.selected_option not in item_db.get("options", []):
+            raise HTTPException(status_code=400, detail="Opción inválida en el diagnóstico.")
         topic = item_db.get("topic") or course_id
         tier = _diff_tier(float(item_db.get("difficulty", 1000)))
         t = by_topic.setdefault(topic, {"elo": BASE, "correct": 0, "total": 0})
@@ -937,7 +1039,10 @@ def diagnostic_submit(
     for topic, t in by_topic.items():
         elo = max(760.0, round(t["elo"], 2))
         elos.append(elo)
-        repo.set_topic_elo_baseline(user["user_id"], topic, elo)
+        # Un nuevo diagnóstico puede medir progreso, pero nunca reinicia una
+        # línea ELO que ya contiene práctica real del alumno.
+        if not repo.has_practice_attempts(user["user_id"], topic, course_id):
+            repo.set_topic_elo_baseline(user["user_id"], topic, elo)
         ratio = t["correct"] / t["total"] if t["total"] else 0.0
         status = "strong" if ratio >= 0.67 else "mid" if ratio >= 0.34 else "gap"
         themes.append(

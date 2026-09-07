@@ -404,12 +404,13 @@ export const studentApi = {
 
   answer: (body: {
     item_id: string;
-    item_data: Item;
     selected_option: string;
     reasoning?: string;
     time_taken?: number;
     elo_topic?: string;
-  }) => api.post<AnswerResponse>("/api/student/answer", body),
+  }, idempotencyKey: string) => api.postWithHeaders<AnswerResponse>(
+    "/api/student/answer", body, { "Idempotency-Key": idempotencyKey },
+  ),
 
   stats: () => api.get<StudentStats>("/api/student/stats"),
 
@@ -480,7 +481,7 @@ export const studentApi = {
     item_content: string;
     api_key?: string;
     file: File;
-  }): Promise<{ review: ProcedureReview; provider: string }> => {
+  }): Promise<{ review: ProcedureReview; provider: string; analysisToken: string }> => {
     const fd = new FormData();
     fd.append("item_id", params.item_id);
     fd.append("item_content", params.item_content);
@@ -490,8 +491,9 @@ export const studentApi = {
       item_id: string;
       provider: string;
       review: ProcedureReview;
+      analysis_token: string;
     }>("/api/student/procedure/analyze", fd);
-    return { review: res.review, provider: res.provider };
+    return { review: res.review, provider: res.provider, analysisToken: res.analysis_token };
   },
 
   history: () => api.get<{ attempts: unknown[] }>("/api/student/history"),

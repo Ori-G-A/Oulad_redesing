@@ -19,10 +19,12 @@ class SQLiteRepository:
         self.init_db()
         self._migrate_db()
         self._seed_admin()
-        self._seed_demo_data()
+        if os.environ.get("ENVIRONMENT", "development").lower() != "production":
+            self._seed_demo_data()
         self._backfill_prob_failure()
         self.sync_items_from_bank_folder()
-        self._seed_test_students()
+        if os.environ.get("ENVIRONMENT", "development").lower() != "production":
+            self._seed_test_students()
         self._backfill_current_elo()
 
     def get_connection(self, timeout: float = 30.0):
@@ -322,6 +324,13 @@ class SQLiteRepository:
         # 1 = intento con tiempo válido (3-600s) → actualiza ELO
         # 0 = adivinanza (<3s) o sesión abandonada (>600s) → no actualiza ELO
         self._add_column_if_not_exists(cursor, "attempts", "elo_valid", "INTEGER DEFAULT 1")
+        self._add_column_if_not_exists(cursor, "attempts", "elo_before", "REAL")
+        self._add_column_if_not_exists(cursor, "attempts", "request_id", "TEXT")
+        self._add_column_if_not_exists(cursor, "attempts", "request_fingerprint", "TEXT")
+        cursor.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_attempts_user_request_id "
+            "ON attempts(user_id, request_id) WHERE request_id IS NOT NULL"
+        )
 
         # Asegurar tabla items
         cursor.execute(
@@ -409,6 +418,13 @@ class SQLiteRepository:
                 FOREIGN KEY(group_id) REFERENCES groups(id) ON DELETE SET NULL
             )
         """
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_enrollments_user_id ON enrollments(user_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_procedure_submissions_student_id "
+            "ON procedure_submissions(student_id)"
         )
 
         # Migración: asociar matrícula a un grupo (nullable — inscripciones previas
@@ -623,6 +639,26 @@ class SQLiteRepository:
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS active_exam_sessions (
+                id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                course_id TEXT NOT NULL,
+                exam_template_id INTEGER,
+                item_ids TEXT NOT NULL,
+                started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at TEXT NOT NULL,
+                submitted_at DATETIME,
+                result_json TEXT,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+            """
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_active_exam_sessions_user "
+            "ON active_exam_sessions(user_id, submitted_at)"
         )
 
         # ── Tabla exam_templates (plantillas de examen del docente) ──────────
@@ -1082,7 +1118,7 @@ class SQLiteRepository:
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, username, role, group_id, education_level, current_elo "
+            "SELECT id, username, role, group_id, education_level, current_elo, active, approved "
             "FROM users WHERE id = ?",
             (user_id,),
         )
@@ -1097,6 +1133,8 @@ class SQLiteRepository:
             "group_id": row[3],
             "education_level": row[4],
             "current_elo": row[5],
+            "active": bool(row[6]),
+            "approved": bool(row[7]),
         }
 
     def login_user(self, username, password):
@@ -1236,7 +1274,9 @@ class SQLiteRepository:
         item_difficulty_new: float,
         item_rd_new: float,
         attempt_data: dict,
-    ) -> None:
+        request_id: str | None = None,
+        request_fingerprint: str | None = None,
+    ) -> bool:
         """
         Persiste el resultado de una respuesta de forma atómica.
         El intento siempre se guarda. La actualización de ELO (ítem +
@@ -1254,8 +1294,10 @@ class SQLiteRepository:
                 """INSERT INTO attempts
                    (user_id, item_id, is_correct, difficulty, topic, elo_after,
                     prob_failure, expected_score, time_taken, confidence_score,
-                    error_type, rating_deviation, elo_valid)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    error_type, rating_deviation, elo_valid, elo_before,
+                    request_id, request_fingerprint)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(user_id, request_id) WHERE request_id IS NOT NULL DO NOTHING""",
                 (
                     user_id,
                     item_id,
@@ -1270,21 +1312,41 @@ class SQLiteRepository:
                     attempt_data.get("error_type"),
                     attempt_data.get("rating_deviation"),
                     elo_valid,
+                    attempt_data.get("elo_before"),
+                    request_id,
+                    request_fingerprint,
                 ),
             )
+            inserted = cursor.rowcount == 1
             # Solo actualizar ELO si el tiempo de respuesta es válido
-            if elo_valid:
+            if inserted and elo_valid:
                 cursor.execute(
                     "UPDATE items SET difficulty = ?, rating_deviation = ? WHERE id = ?",
                     (item_difficulty_new, item_rd_new, item_id),
                 )
                 self._update_current_elo(cursor, user_id)
             conn.commit()
+            return inserted
         except Exception:
             conn.rollback()
             raise
         finally:
             conn.close()
+
+    def get_answer_by_request_id(self, user_id: int, request_id: str) -> dict | None:
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT item_id, is_correct, elo_before, elo_after, rating_deviation, "
+            "request_fingerprint FROM attempts WHERE user_id=? AND request_id=?",
+            (user_id, request_id),
+        )
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return None
+        return {"item_id": row[0], "is_correct": bool(row[1]), "elo_before": row[2],
+                "elo_after": row[3], "rating_deviation": row[4], "request_fingerprint": row[5]}
 
     def get_all_attempts_for_calibration(
         self,
@@ -2098,6 +2160,15 @@ class SQLiteRepository:
         elo_map = {}
         for topic, elo, rd in cursor.fetchall():
             elo_map[topic] = (elo, rd if rd is not None else 350.0)
+
+        # El diagnóstico no genera attempts. Recuperar sus tópicos todavía sin
+        # práctica, sin reemplazar un rating que ya tenga historial de respuestas.
+        cursor.execute(
+            "SELECT topic, current_elo, rd FROM student_topic_elo WHERE user_id = ?",
+            (user_id,),
+        )
+        for topic, elo, rd in cursor.fetchall():
+            elo_map.setdefault(topic, (elo, rd if rd is not None else 350.0))
 
         # 2. Sumar deltas ELO de procedimientos validados por el docente (agrupados por tópico)
         cursor.execute(
@@ -3815,7 +3886,10 @@ class SQLiteRepository:
         """
         import time as _time
 
-        ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}.get(mime_type, "jpg")
+        ext = {
+            "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp",
+            "application/pdf": "pdf",
+        }.get(mime_type, "bin")
         os.makedirs(os.path.join("data", "uploads", "procedures"), exist_ok=True)
         img_filename = f"{student_id}_{item_id}_{int(_time.time())}.{ext}"
         img_path = os.path.join("data", "uploads", "procedures", img_filename)
@@ -3848,6 +3922,7 @@ class SQLiteRepository:
             """,
                 (image_data, mime_type, img_path, file_hash, student_id, item_id),
             )
+            submission_id = existing[0]
         else:
             cursor.execute(
                 """
@@ -3857,8 +3932,10 @@ class SQLiteRepository:
             """,
                 (student_id, item_id, item_content, image_data, mime_type, img_path, file_hash),
             )
+            submission_id = cursor.lastrowid
         conn.commit()
         conn.close()
+        return submission_id
 
     def save_ai_proposed_score(
         self, student_id: int, item_id: str, ai_score: float, ai_feedback: str = None
@@ -3901,7 +3978,7 @@ class SQLiteRepository:
             SELECT id, status, teacher_feedback, feedback_image,
                    feedback_mime_type, submitted_at, reviewed_at,
                    procedure_score, feedback_image_path,
-                   ai_proposed_score, teacher_score, final_score
+                   ai_proposed_score, ai_feedback, teacher_score, final_score
             FROM procedure_submissions
             WHERE student_id=? AND item_id=?
         """,
@@ -3921,6 +3998,7 @@ class SQLiteRepository:
                 "procedure_score",
                 "feedback_image_path",
                 "ai_proposed_score",
+                "ai_feedback",
                 "teacher_score",
                 "final_score",
             ]
@@ -4076,8 +4154,12 @@ class SQLiteRepository:
         }
 
     def validate_procedure_submission(
-        self, submission_id: int, teacher_score: float, feedback: str = ""
-    ):
+        self,
+        submission_id: int,
+        teacher_score: float,
+        feedback: str = "",
+        teacher_id: int | None = None,
+    ) -> bool:
         """Valida la calificación de un procedimiento y establece la nota final oficial.
 
         Reglas de negocio:
@@ -4092,12 +4174,26 @@ class SQLiteRepository:
         """
         # ELO delta: independiente del ELO base del estudiante (es un ajuste aditivo)
         # Formula idéntica a apply_procedure_elo_adjustment: (score - 50) * 0.2
-        elo_delta = round((teacher_score - 50.0) * 0.2, 4)
+        from src.domain.elo.model import procedure_elo_delta
+
+        elo_delta = procedure_elo_delta(teacher_score)
 
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute(
+        ownership = ""
+        params = [teacher_score, teacher_score, feedback or None, elo_delta, submission_id]
+        if teacher_id is not None:
+            ownership = """
+                AND EXISTS (
+                    SELECT 1 FROM users u
+                    JOIN groups g ON g.id = u.group_id
+                    WHERE u.id = procedure_submissions.student_id
+                      AND g.teacher_id = ?
+                )
             """
+            params.append(teacher_id)
+        cursor.execute(
+            f"""
             UPDATE procedure_submissions
             SET teacher_score    = ?,
                 final_score      = ?,
@@ -4106,19 +4202,24 @@ class SQLiteRepository:
                 status           = 'VALIDATED_BY_TEACHER',
                 reviewed_at      = CURRENT_TIMESTAMP
             WHERE id = ?
+              AND status IN ('pending', 'PENDING_TEACHER_VALIDATION')
+              {ownership}
         """,
-            (teacher_score, teacher_score, feedback or None, elo_delta, submission_id),
+            tuple(params),
         )
+        updated = cursor.rowcount == 1
         # Recalcular current_elo del estudiante
-        cursor.execute(
-            "SELECT student_id FROM procedure_submissions WHERE id = ?",
-            (submission_id,),
-        )
-        row = cursor.fetchone()
-        if row:
-            self._update_current_elo(cursor, row[0])
+        if updated:
+            cursor.execute(
+                "SELECT student_id FROM procedure_submissions WHERE id = ?",
+                (submission_id,),
+            )
+            row = cursor.fetchone()
+            if row:
+                self._update_current_elo(cursor, row[0])
         conn.commit()
         conn.close()
+        return updated
 
     def save_teacher_feedback(
         self,
@@ -4219,6 +4320,84 @@ class SQLiteRepository:
         conn.commit()
         conn.close()
         return row_id
+
+    def create_active_exam_session(
+        self, session_id: str, user_id: int, course_id: str,
+        template_id: int | None, item_ids: list[str], expires_at: str,
+    ) -> None:
+        conn = self.get_connection()
+        conn.execute(
+            """INSERT INTO active_exam_sessions
+               (id, user_id, course_id, exam_template_id, item_ids, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (session_id, user_id, course_id, template_id, json.dumps(item_ids), expires_at),
+        )
+        conn.commit()
+        conn.close()
+
+    def get_active_exam_session(self, session_id: str, user_id: int) -> dict | None:
+        conn = self.get_connection()
+        row = conn.execute(
+            """SELECT id, course_id, exam_template_id, item_ids, expires_at,
+                      submitted_at, result_json
+               FROM active_exam_sessions WHERE id=? AND user_id=?""",
+            (session_id, user_id),
+        ).fetchone()
+        conn.close()
+        if not row:
+            return None
+        return {
+            "id": row[0], "course_id": row[1], "template_id": row[2],
+            "item_ids": json.loads(row[3]), "expires_at": str(row[4]),
+            "submitted_at": row[5],
+            "result": json.loads(row[6]) if row[6] else None,
+        }
+
+    def complete_active_exam_session(
+        self, session_id: str, user_id: int, course_name: str,
+        result: dict, responses: list[dict],
+    ) -> bool:
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """UPDATE active_exam_sessions SET submitted_at=CURRENT_TIMESTAMP, result_json=?
+                   WHERE id=? AND user_id=? AND submitted_at IS NULL
+                     AND datetime(expires_at) >= datetime('now')""",
+                (json.dumps(result), session_id, user_id),
+            )
+            if cursor.rowcount != 1:
+                conn.rollback()
+                return False
+            run = cursor.execute(
+                "SELECT course_id, exam_template_id FROM active_exam_sessions WHERE id=?",
+                (session_id,),
+            ).fetchone()
+            cursor.execute(
+                """INSERT INTO exam_sessions
+                   (user_id, course_id, course_name, n_questions, correct_count, score_pct,
+                    global_elo_after, exam_template_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (user_id, run[0], course_name, result["total_questions"],
+                 result["correct_count"], result["score_pct"],
+                 result["global_elo_after"], run[1]),
+            )
+            history_id = cursor.lastrowid
+            if responses:
+                cursor.executemany(
+                    """INSERT INTO exam_responses
+                       (session_id, template_id, user_id, item_id, topic, is_correct)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    [(history_id, run[1], user_id, r["item_id"], r.get("topic"),
+                      1 if r.get("is_correct") else 0) for r in responses],
+                )
+            conn.commit()
+            return True
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def get_diagnostic(self, user_id: int, course_id: str) -> dict | None:
         """Devuelve el diagnóstico de un estudiante en una materia, o None."""
@@ -4416,6 +4595,22 @@ class SQLiteRepository:
         )
         conn.commit()
         conn.close()
+
+    def has_practice_attempts(
+        self, user_id: int, topic: str, course_id: str | None = None
+    ) -> bool:
+        """Indica si una línea ELO ya tiene práctica y no debe reiniciarse."""
+        keys = [topic] if not course_id or course_id == topic else [topic, course_id]
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        placeholders = ", ".join("?" for _ in keys)
+        cursor.execute(
+            f"SELECT 1 FROM attempts WHERE user_id = ? AND topic IN ({placeholders}) LIMIT 1",
+            (user_id, *keys),
+        )
+        found = cursor.fetchone() is not None
+        conn.close()
+        return found
 
     def get_exam_template_results(self, template_id: int) -> dict:
         """Análisis agregado de resultados de una plantilla de examen.
@@ -4707,10 +4902,18 @@ class SQLiteRepository:
         conn.close()
         return int(row[0])
 
-    def delete_exam_assignment(self, assignment_id: int) -> bool:
+    def delete_exam_assignment(
+        self, assignment_id: int, template_id: int | None = None
+    ) -> bool:
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM exam_assignments WHERE id = ?", (assignment_id,))
+        if template_id is None:
+            cursor.execute("DELETE FROM exam_assignments WHERE id = ?", (assignment_id,))
+        else:
+            cursor.execute(
+                "DELETE FROM exam_assignments WHERE id = ? AND template_id = ?",
+                (assignment_id, template_id),
+            )
         conn.commit()
         affected = cursor.rowcount
         conn.close()

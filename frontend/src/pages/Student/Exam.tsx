@@ -42,6 +42,7 @@ const DRAFT_KEY = "levelup-exam-draft";
 const DRAFT_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6 horas
 
 interface ExamDraft {
+  sessionId: string;
   courseId: string;
   courseName: string;
   nQuestions: number;
@@ -60,7 +61,14 @@ function readDraft(): ExamDraft | null {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
     const d = JSON.parse(raw) as ExamDraft;
-    if (!d || typeof d !== "object" || !Array.isArray(d.items)) return null;
+    if (
+      !d ||
+      typeof d !== "object" ||
+      typeof d.sessionId !== "string" ||
+      !d.sessionId ||
+      !Array.isArray(d.items)
+    )
+      return null;
     if (Date.now() - d.savedAt > DRAFT_MAX_AGE_MS) {
       localStorage.removeItem(DRAFT_KEY);
       return null;
@@ -420,6 +428,7 @@ export function Exam() {
   const [courseName, setCourseName] = useState(courseIdParam);
   const [nQuestions, setNQuestions] = useState(nParam);
   const [timeLimitMin, setTimeLimitMin] = useState(tParam);
+  const [sessionId, setSessionId] = useState("");
 
   const [items, setItems] = useState<ExamItem[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -446,6 +455,7 @@ export function Exam() {
       setNQuestions(n);
       setTimeLimitMin(t);
       setTemplateId(tplId ?? null);
+      setSessionId("");
       setItems([]);
       setCurrentIdx(0);
       setAnswers({});
@@ -458,6 +468,7 @@ export function Exam() {
   );
 
   const handleResume = useCallback((draft: ExamDraft) => {
+    setSessionId(draft.sessionId);
     setCourseId(draft.courseId);
     setCourseName(draft.courseName);
     setNQuestions(draft.nQuestions);
@@ -484,6 +495,7 @@ export function Exam() {
 
     api
       .post<{
+        session_id: string;
         items: ExamItem[];
         n_questions: number;
         time_limit_seconds: number;
@@ -495,6 +507,7 @@ export function Exam() {
         template_id: templateId ?? undefined,
       })
       .then((data) => {
+        setSessionId(data.session_id);
         setItems(data.items);
         setTimeLeft(data.time_limit_seconds);
         itemStartTime.current = Date.now();
@@ -512,6 +525,7 @@ export function Exam() {
   useEffect(() => {
     if (phase !== "answering" || items.length === 0) return;
     writeDraft({
+      sessionId,
       courseId,
       courseName,
       nQuestions,
@@ -524,7 +538,18 @@ export function Exam() {
       timeLimitSeconds: timeLimitSecondsRef.current,
       savedAt: Date.now(),
     });
-  }, [phase, items, answers, currentIdx, courseId, courseName, nQuestions, timeLimitMin, templateId]);
+  }, [
+    phase,
+    items,
+    answers,
+    currentIdx,
+    sessionId,
+    courseId,
+    courseName,
+    nQuestions,
+    timeLimitMin,
+    templateId,
+  ]);
 
   // ── Enviar examen ──────────────────────────────────────────────────────────
 
@@ -541,6 +566,7 @@ export function Exam() {
     itemStartTime.current = Date.now();
 
     const payload = {
+      session_id: sessionId,
       course_id: courseId,
       course_name: courseName,
       template_id: templateId ?? undefined,
@@ -593,7 +619,7 @@ export function Exam() {
     setSubmitError(t("exam.submitErrorDetail"));
     setSubmitAttempt(0);
     setPhase("answering");
-  }, [items, currentIdx, answers, courseId, courseName, t]);
+  }, [items, currentIdx, answers, sessionId, courseId, courseName, templateId, t]);
 
   // Mantener ref estable para el timer
   useEffect(() => {

@@ -103,7 +103,11 @@ class StudentService:
         target_item_obj = selector.select_optimal_item(current_elo, items_objs)
 
         if target_item_obj:
-            item_data = next(i for i in filtered if i["difficulty"] == target_item_obj.difficulty)
+            # Dos ítems pueden tener la misma dificultad: conservar la identidad
+            # sorteada, sin volver a escoger el primero que tenga ese valor.
+            item_data = next(
+                data for obj, data in zip(items_objs, filtered) if obj is target_item_obj
+            )
             return item_data, "ok"
         return None, "empty"
 
@@ -116,6 +120,8 @@ class StudentService:
         time_taken,
         vector_rating,
         elo_topic=None,
+        request_id=None,
+        request_fingerprint=None,
     ):
         """Orquesta el procesamiento de una respuesta.
 
@@ -164,14 +170,19 @@ class StudentService:
             "confidence_score": cog_data["confidence_score"],
             "error_type": cog_data["error_type"],
             "rating_deviation": new_rd,
+            "elo_before": current_elo,
         }
-        self.repository.save_answer_transaction(
-            user_id=user_id,
-            item_id=item_data["id"],
-            item_difficulty_new=new_item_difficulty,
-            item_rd_new=item_rd_current,
+        save_kwargs = dict(
+            user_id=user_id, item_id=item_data["id"],
+            item_difficulty_new=new_item_difficulty, item_rd_new=item_rd_current,
             attempt_data=attempt_data,
         )
+        if request_id is not None:
+            save_kwargs.update(request_id=request_id, request_fingerprint=request_fingerprint)
+        inserted = self.repository.save_answer_transaction(**save_kwargs)
+        if inserted is False:
+            cog_data["idempotent_replay"] = True
+            return is_correct, cog_data
 
         # 5. Verificar y otorgar logros (no bloquea si falla)
         try:

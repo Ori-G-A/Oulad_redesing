@@ -88,8 +88,9 @@ class TestCreateNewGroup:
 class TestValidateProcedure:
     def test_valid_score_calls_repo(self, service, repo):
         """Score en [0, 100] → llama a validate_procedure_submission."""
-        service.validate_procedure(submission_id=5, teacher_score=85.0, feedback="Bien")
+        delta = service.validate_procedure(submission_id=5, teacher_score=85.0, feedback="Bien")
         repo.validate_procedure_submission.assert_called_once_with(5, 85.0, "Bien")
+        assert delta == 7.0
 
     def test_score_below_zero_raises_value_error(self, service):
         """Score < 0 → ValueError."""

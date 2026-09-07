@@ -49,6 +49,7 @@ export function ProcedureUpload() {
   const [error, setError] = useState<string | null>(null);
   const [review, setReview] = useState<ProcedureReview | null>(null);
   const [usedProvider, setUsedProvider] = useState<string>("");
+  const [analysisToken, setAnalysisToken] = useState("");
 
   const { data: courses } = useQuery({
     queryKey: ["student-courses"],
@@ -74,6 +75,7 @@ export function ProcedureUpload() {
   const handleFile = (f: File) => {
     setError(null);
     setReview(null);
+    setAnalysisToken("");
     if (!ALLOWED_TYPES.includes(f.type)) {
       setError(t("procedure.typeNotSupported", { type: f.type }));
       return;
@@ -94,6 +96,7 @@ export function ProcedureUpload() {
     setItemContent("");
     setStage("idle");
     setReview(null);
+    setAnalysisToken("");
     setError(null);
   };
 
@@ -102,7 +105,7 @@ export function ProcedureUpload() {
     setError(null);
     setStage("analyzing");
     try {
-      const { review: r, provider } = await studentApi.analyzeProcedure({
+      const { review: r, provider, analysisToken: token } = await studentApi.analyzeProcedure({
         item_id: selectedItem,
         item_content: itemContent,
         api_key: apiKey || undefined,
@@ -110,6 +113,7 @@ export function ProcedureUpload() {
       });
       setReview(r);
       setUsedProvider(provider);
+      setAnalysisToken(token);
       setStage("result");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : t("procedure.unknownError");
@@ -126,10 +130,7 @@ export function ProcedureUpload() {
       fd.append("item_id", selectedItem);
       fd.append("item_content", itemContent);
       fd.append("file", file);
-      if (opts?.withAI && review?.score_procedimiento !== undefined) {
-        fd.append("ai_proposed_score", String(review.score_procedimiento));
-        fd.append("ai_feedback", review.evaluacion_global ?? "");
-      }
+      if (opts?.withAI && analysisToken) fd.append("analysis_token", analysisToken);
       await apiClient.postForm("/api/student/procedure", fd);
       setStage("sent");
     } catch (e: unknown) {

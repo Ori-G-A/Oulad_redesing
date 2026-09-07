@@ -159,6 +159,42 @@ class TestProcessAnswer:
 
 
 class TestGetNextQuestion:
+    def test_preserves_selected_identity_when_difficulties_match(
+        self, service, mock_repository, student_vector, monkeypatch
+    ):
+        first = {"id": "first", "difficulty": 1000}
+        second = {"id": "second", "difficulty": 1000}
+        mock_repository.get_items_from_db.return_value = [first, second]
+        monkeypatch.setattr(
+            "src.application.services.student_service.AdaptiveItemSelector.select_optimal_item",
+            lambda self, rating, items: items[-1],
+        )
+        result, status = service.get_next_question(1, "algebra", student_vector)
+        assert status == "ok"
+        assert result is second
+
+    @pytest.mark.parametrize("blocked", ["historical", "correct", "cooldown"])
+    def test_variety_preserves_unseen_priority_and_session_exclusions(
+        self, service, mock_repository, student_vector, blocked
+    ):
+        mock_repository.get_items_from_db.return_value = [
+            {"id": "blocked", "difficulty": 1000},
+            {"id": "unseen", "difficulty": 1050},
+        ]
+        mock_repository.get_answered_item_ids.return_value = (
+            ["blocked"] if blocked == "historical" else []
+        )
+        result, status = service.get_next_question(
+            1,
+            "algebra",
+            student_vector,
+            session_correct_ids={"blocked"} if blocked == "correct" else set(),
+            session_wrong_timestamps={"blocked": 1} if blocked == "cooldown" else {},
+            session_questions_count=2,
+        )
+        assert status == "ok"
+        assert result["id"] == "unseen"
+
     def test_returns_none_when_no_items(self, service, mock_repository, student_vector):
         """Sin ítems disponibles → retorna (None, status)."""
         mock_repository.get_items_from_db.return_value = []

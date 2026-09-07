@@ -11,10 +11,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
+    environment: str = "development"
+
     # ── JWT ───────────────────────────────────────────────────────────────────
     jwt_secret_key: str = "CHANGE_ME_IN_PRODUCTION_USE_A_LONG_RANDOM_STRING"
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
 
     # ── Base de datos ─────────────────────────────────────────────────────────
@@ -58,11 +60,31 @@ class Settings(BaseSettings):
     # ── Rate limiting (slowapi) ───────────────────────────────────────────────
     rate_limit_socratic: str = "10/minute"  # peticiones IA socrática por usuario
     rate_limit_review: str = "3/minute"  # revisión de procedimientos
+    rate_limit_auth: str = "20/minute"  # login/registro por origen
     rate_limit_default: str = "60/minute"  # endpoints normales
+    rate_limit_storage_uri: str = "memory://"  # producción: Redis compartido entre instancias
 
     # ── Admin ─────────────────────────────────────────────────────────────────
     admin_user: str = "admin"
     admin_password: str = ""  # solo si se quiere seed automático
+
+    def validate_runtime(self) -> None:
+        """Impide arrancar producción con defaults locales o secretos débiles."""
+        if self.environment.lower() != "production":
+            return
+        if not self.database_url.strip():
+            raise RuntimeError("DATABASE_URL es obligatoria en producción.")
+        if (
+            self.jwt_secret_key == "CHANGE_ME_IN_PRODUCTION_USE_A_LONG_RANDOM_STRING"
+            or len(self.jwt_secret_key) < 32
+        ):
+            raise RuntimeError("JWT_SECRET_KEY debe ser un secreto de al menos 32 caracteres.")
+        if not self.cors_origins or any(
+            origin.startswith("http://localhost") for origin in self.cors_origins
+        ):
+            raise RuntimeError("CORS_ORIGINS de producción no puede incluir localhost.")
+        if self.rate_limit_storage_uri.strip().lower() == "memory://":
+            raise RuntimeError("RATE_LIMIT_STORAGE_URI compartida es obligatoria en producción.")
 
     # ── Versión ───────────────────────────────────────────────────────────────
     @property

@@ -14,7 +14,7 @@
  * deshabilitados/no operativos para no prometer lo que no existe.
  */
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../api/auth";
@@ -92,17 +92,19 @@ function Field({
   hideLabel,
   lang,
 }: FieldProps) {
+  const inputId = useId();
   const [show, setShow] = useState(false);
   const isPw = type === "password";
   return (
     <div className="field">
-      <label>
+      <label htmlFor={inputId}>
         {label}
         {optional ? <span className="opt">· {optional}</span> : null}
       </label>
       <div className="input-wrap">
         {lead ? <span className="lead">{lead}</span> : null}
         <input
+          id={inputId}
           type={isPw && show ? "text" : type}
           placeholder={placeholder}
           value={value}

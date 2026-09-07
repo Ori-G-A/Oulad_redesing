@@ -18,6 +18,114 @@ import pytest
 
 _COURSE_ID = "algebra_basica"  # Colegio — presente en el banco de preguntas
 _COURSE_UNIV = "calculo_diferencial"  # Universidad
+
+
+@pytest.mark.parametrize("from_map", [False, True])
+def test_first_practice_uses_diagnostic_rating(api_client, monkeypatch, from_map):
+    from api.dependencies import get_repository
+    from src.application.services.student_service import StudentService
+
+    repo = get_repository()
+    username = f"diagnostic_practice_{int(from_map)}"
+    registered = api_client.post(
+        "/api/auth/register",
+        json={"username": username, "password": "test-local-123", "role": "student"},
+    )
+    assert registered.status_code == 201
+    login = api_client.post(
+        "/api/auth/login", json={"username": username, "password": "test-local-123"}
+    )
+    headers = {"Authorization": "Bearer " + login.json()["access_token"]}
+    items = repo.get_items_from_db(course_id=_COURSE_UNIV)[:10]
+    diagnostic = api_client.post(
+        f"/api/student/diagnostic/{_COURSE_UNIV}/submit",
+        headers=headers,
+        json={
+            "answers": [
+                {"item_id": item["id"], "selected_option": item["correct_option"]}
+                for item in items
+            ]
+        },
+    )
+    assert diagnostic.status_code == 200
+    initial = diagnostic.json()["initial_elo"]
+    assert initial != 1000
+    topic = items[0]["topic"]
+    rating_key = topic if from_map else _COURSE_UNIV
+    observed = []
+    original = StudentService.get_next_question
+
+    def capture(self, *args, **kwargs):
+        observed.append(kwargs["vector_rating"].get(kwargs["topic"]))
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(StudentService, "get_next_question", capture)
+    request = {"course_id": _COURSE_UNIV}
+    if from_map:
+        request["topic"] = topic
+    question = api_client.post("/api/student/next-question", headers=headers, json=request)
+    assert question.status_code == 200
+    assert observed[-1] == pytest.approx(initial)
+    item = question.json()["item"]
+    canonical = repo.get_item_by_id(item["id"])
+    response = api_client.post(
+        "/api/student/answer",
+        headers=headers,
+        json={
+            "item_id": item["id"],
+            "item_data": item,
+            "selected_option": canonical["correct_option"],
+            "time_taken": 30,
+            "elo_topic": rating_key,
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["elo_before"] == pytest.approx(initial)
+    assert response.json()["elo_after"] > initial
+    api_client.post("/api/student/next-question", headers=headers, json=request)
+    assert observed[-1] == pytest.approx(response.json()["elo_after"], abs=0.01)
+
+    wrong = next(option for option in canonical["options"] if option != canonical["correct_option"])
+    redone = api_client.post(
+        f"/api/student/diagnostic/{_COURSE_UNIV}/submit",
+        headers=headers,
+        json={"answers": [{"item_id": canonical["id"], "selected_option": wrong}]},
+    )
+    assert redone.status_code == 200
+    # El resultado diagnóstico se actualiza, pero el progreso de práctica no retrocede.
+    api_client.post("/api/student/next-question", headers=headers, json=request)
+    assert observed[-1] == pytest.approx(response.json()["elo_after"], abs=0.01)
+
+
+@pytest.mark.parametrize(
+    "answers",
+    [
+        lambda own, other: [
+            {"item_id": own["id"], "selected_option": own["correct_option"]},
+            {"item_id": own["id"], "selected_option": own["correct_option"]},
+        ],
+        lambda own, other: [
+            {"item_id": other["id"], "selected_option": other["correct_option"]}
+        ],
+        lambda own, other: [{"item_id": own["id"], "selected_option": "inventada"}],
+    ],
+)
+def test_diagnostic_rejects_noncanonical_payload(api_client, student_headers, answers):
+    from api.dependencies import decode_token, get_repository
+
+    repo = get_repository()
+    own = repo.get_items_from_db(course_id=_COURSE_UNIV)[0]
+    other = repo.get_items_from_db(course_id=_COURSE_ID)[0]
+    token = student_headers["Authorization"].removeprefix("Bearer ")
+    student_id = int(decode_token(token)["sub"])
+    before = repo.get_diagnostic(student_id, _COURSE_UNIV)
+    response = api_client.post(
+        f"/api/student/diagnostic/{_COURSE_UNIV}/submit",
+        headers=student_headers,
+        json={"answers": answers(own, other)},
+    )
+    assert response.status_code == 400
+    assert repo.get_diagnostic(student_id, _COURSE_UNIV) == before
 _B03 = "PREALG-N1-B03-ESCALERA-NECESIDAD"
 _B04 = "PREALG-N1-B04-NATURALES-CONTAR"
 _B05 = "PREALG-N1-B05-ENTEROS-DEUDA"
@@ -155,6 +263,103 @@ class TestNextQuestion:
 
 
 class TestAnswer:
+    def test_ignores_tampered_item_data(self, api_client, student_headers):
+        from api.dependencies import get_repository
+        from src.domain.elo.model import expected_score
+
+        repo = get_repository()
+        pool = repo.get_items_from_db(course_id=_COURSE_ID)
+        canonical = repo.get_item_by_id(pool[0]["id"])
+        other = repo.get_item_by_id(pool[1]["id"])
+        response = api_client.post(
+            "/api/student/answer",
+            headers=student_headers,
+            json={
+                "item_id": canonical["id"],
+                "item_data": {
+                    "id": other["id"],
+                    "difficulty": 1777,
+                    "topic": "forged-topic",
+                    "rating_deviation": 1,
+                    "correct_option": "forged-answer",
+                    "options": ["forged-answer"],
+                },
+                "selected_option": canonical["correct_option"],
+                "time_taken": 30,
+            },
+        )
+        assert response.status_code == 200
+        result = response.json()
+        assert result["is_correct"] is True
+        assert "correct_option" not in result
+        conn = repo.get_connection()
+        try:
+            attempt = conn.execute(
+                "SELECT item_id, difficulty, topic FROM attempts ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        finally:
+            conn.close()
+        assert attempt == (canonical["id"], canonical["difficulty"], canonical["topic"])
+        updated = repo.get_item_by_id(canonical["id"])
+        p = expected_score(result["elo_before"], canonical["difficulty"])
+        assert updated["difficulty"] == pytest.approx(
+            canonical["difficulty"] + 32 * (p - 1), abs=0.001
+        )
+        assert updated["rating_deviation"] == canonical["rating_deviation"]
+        assert repo.get_item_by_id(other["id"]) == other
+
+    @pytest.mark.parametrize(
+        "override",
+        [{"elo_topic": "another-course"}, {"elo_topic": ""}, {"selected_option": "forged"}],
+    )
+    def test_invalid_answer_context_has_no_side_effects(
+        self, api_client, student_headers, override
+    ):
+        from api.dependencies import get_repository
+
+        repo = get_repository()
+        item = repo.get_items_from_db(course_id=_COURSE_ID)[0]
+        before = repo.get_item_by_id(item["id"])
+        conn = repo.get_connection()
+        try:
+            count_before = conn.execute("SELECT COUNT(*) FROM attempts").fetchone()[0]
+        finally:
+            conn.close()
+        response = api_client.post(
+            "/api/student/answer",
+            headers=student_headers,
+            json={
+                "item_id": item["id"],
+                "selected_option": item["correct_option"],
+                "time_taken": 30,
+                **override,
+            },
+        )
+        assert response.status_code == 400
+        assert repo.get_item_by_id(item["id"]) == before
+        conn = repo.get_connection()
+        try:
+            assert conn.execute("SELECT COUNT(*) FROM attempts").fetchone()[0] == count_before
+        finally:
+            conn.close()
+
+    def test_answer_without_legacy_item_data(self, api_client, student_headers):
+        from api.dependencies import get_repository
+
+        item = get_repository().get_items_from_db(course_id=_COURSE_ID)[0]
+        response = api_client.post(
+            "/api/student/answer",
+            headers=student_headers,
+            json={
+                "item_id": item["id"],
+                "selected_option": item["correct_option"],
+                "elo_topic": _COURSE_ID,
+                "time_taken": 30,
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["is_correct"] is True
+
     def test_submit_answer_correct(self, api_client, student_headers):
         """POST /student/answer con respuesta correcta → delta_elo positivo."""
         # Primero obtener una pregunta
@@ -314,6 +519,7 @@ class TestExamMode:
         assert r.status_code == 200
         data = r.json()
         assert "items" in data
+        assert data["session_id"]
         assert "n_questions" in data
         assert "time_limit_seconds" in data
         assert data["time_limit_seconds"] == 600  # 10 * 60
@@ -364,7 +570,7 @@ class TestExamMode:
         ]
         r = api_client.post(
             "/api/student/exam/submit",
-            json={"answers": answers},
+            json={"session_id": start["session_id"], "answers": answers},
             headers=student_headers,
         )
         assert r.status_code == 200
@@ -378,16 +584,18 @@ class TestExamMode:
         assert data["total_questions"] == len(items)
 
     def test_exam_submit_empty(self, api_client, student_headers):
-        """Enviar examen sin respuestas → score 0%."""
+        """No se puede enviar una sesión sin su composición exacta."""
+        start = api_client.post(
+            "/api/student/exam/start",
+            json={"course_id": _COURSE_ID, "n_questions": 1},
+            headers=student_headers,
+        ).json()
         r = api_client.post(
             "/api/student/exam/submit",
-            json={"answers": []},
+            json={"session_id": start["session_id"], "answers": []},
             headers=student_headers,
         )
-        assert r.status_code == 200
-        data = r.json()
-        assert data["score_pct"] == 0.0
-        assert data["total_questions"] == 0
+        assert r.status_code == 400
 
     def test_exam_unauthenticated(self, api_client):
         """Examen sin autenticación → 401."""

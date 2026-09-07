@@ -45,7 +45,11 @@ class NextQuestionResponse(BaseModel):
 
 class AnswerRequest(BaseModel):
     item_id: str = Field(..., description="ID del ítem respondido")
-    item_data: dict = Field(..., description="Datos completos del ítem (desde /next-question)")
+    item_data: dict | None = Field(
+        default=None,
+        description="Compatibilidad con clientes anteriores; el servidor ignora estos datos.",
+        deprecated=True,
+    )
     selected_option: str = Field(..., description="Opción elegida por el estudiante")
     reasoning: str | None = Field(
         default="", description="Razonamiento del estudiante (para KatIA)"
@@ -53,7 +57,7 @@ class AnswerRequest(BaseModel):
     time_taken: float | None = Field(default=None, ge=0, description="Segundos en responder")
     elo_topic: str | None = Field(
         default=None,
-        description="Clave ELO del VectorRating (si difiere del topic del ítem)",
+        description="Tópico del ítem o su course_id; validado contra la base de datos.",
     )
 
 
@@ -157,6 +161,7 @@ class PendingExam(BaseModel):
 
 
 class ExamStartResponse(BaseModel):
+    session_id: str
     items: list[ItemResponse]
     n_questions: int
     time_limit_seconds: int
@@ -170,6 +175,7 @@ class ExamAnswerItem(BaseModel):
 
 
 class ExamSubmitRequest(BaseModel):
+    session_id: str = Field(..., min_length=1, max_length=64)
     answers: list[ExamAnswerItem] = Field(..., description="Respuestas del estudiante")
     total_time_taken: float | None = Field(None, description="Tiempo total en segundos")
     course_id: str = Field(default="", description="ID del curso examinado")

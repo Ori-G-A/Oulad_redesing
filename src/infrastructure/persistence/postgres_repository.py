@@ -174,13 +174,16 @@ class PostgresRepository:
         if not m:
             raise RuntimeError(f"Cannot parse DATABASE_URL: {self.database_url[:20]}…")
         user, password, host, port, dbname = m.groups()
+        sslmode = os.environ.get("DATABASE_SSLMODE", "require")
+        if sslmode not in {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}:
+            raise RuntimeError(f"DATABASE_SSLMODE no válido: {sslmode}")
         self._conn_kwargs = dict(
             host=host,
             port=int(port),
             dbname=dbname,
             user=user,
             password=password,
-            sslmode="require",
+            sslmode=sslmode,
             options="-c statement_timeout=60000",
         )
         _is_pooler = "pooler" in host
@@ -212,18 +215,20 @@ class PostgresRepository:
         print("Iniciando _seed_admin...")
         self._seed_admin()
         print("_seed_admin OK")
-        print("Iniciando _seed_demo_data...")
-        self._seed_demo_data()
-        print("_seed_demo_data OK")
+        if os.environ.get("ENVIRONMENT", "development").lower() != "production":
+            print("Iniciando _seed_demo_data...")
+            self._seed_demo_data()
+            print("_seed_demo_data OK")
         print("Iniciando _backfill_prob_failure...")
         self._backfill_prob_failure()
         print("_backfill_prob_failure OK")
         print("Iniciando sync_items_from_bank_folder...")
         self.sync_items_from_bank_folder()
         print("sync_items_from_bank_folder OK")
-        print("Iniciando _seed_test_students...")
-        self._seed_test_students()
-        print("_seed_test_students OK")
+        if os.environ.get("ENVIRONMENT", "development").lower() != "production":
+            print("Iniciando _seed_test_students...")
+            self._seed_test_students()
+            print("_seed_test_students OK")
         print("Iniciando _backfill_current_elo...")
         self._backfill_current_elo()
         print("_backfill_current_elo OK")
@@ -375,13 +380,7 @@ class PostgresRepository:
                 "CREATE INDEX IF NOT EXISTS idx_attempts_user_topic_ts "
                 "ON attempts(user_id, topic, timestamp DESC)"
             )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_enrollments_user_id ON enrollments(user_id)"
-            )
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_groups_teacher_id ON groups(teacher_id)")
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_procedure_submissions_student_id ON procedure_submissions(student_id)"
-            )
 
             conn.commit()
         finally:
@@ -424,7 +423,7 @@ class PostgresRepository:
             cursor.execute(
                 """
                 SELECT id AS submission_id, item_id, item_content, status,
-                       ai_proposed_score, teacher_score, final_score,
+                       ai_proposed_score, ai_feedback, teacher_score, final_score,
                        teacher_feedback, elo_delta, submitted_at, reviewed_at
                 FROM procedure_submissions
                 WHERE student_id = %s
@@ -619,6 +618,13 @@ class PostgresRepository:
             # 1 = intento con tiempo válido (3-600s) → actualiza ELO
             # 0 = adivinanza (<3s) o sesión abandonada (>600s) → no actualiza ELO
             self._add_column_if_not_exists(cursor, "attempts", "elo_valid", "INTEGER DEFAULT 1")
+            self._add_column_if_not_exists(cursor, "attempts", "elo_before", "REAL")
+            self._add_column_if_not_exists(cursor, "attempts", "request_id", "TEXT")
+            self._add_column_if_not_exists(cursor, "attempts", "request_fingerprint", "TEXT")
+            cursor.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_attempts_user_request_id "
+                "ON attempts(user_id, request_id) WHERE request_id IS NOT NULL"
+            )
 
             # Asegurar tabla items
             cursor.execute(
@@ -678,9 +684,6 @@ class PostgresRepository:
             self._add_column_if_not_exists(cursor, "procedure_submissions", "ai_feedback", "TEXT")
             # v6 — hash SHA-256 del archivo subido para detección anti-plagio
             self._add_column_if_not_exists(cursor, "procedure_submissions", "file_hash", "TEXT")
-            # v7 — Sprint C: examen manual del docente (exam_templates)
-            # Vincula sesiones de examen con la plantilla usada (NULL = examen estándar).
-            self._add_column_if_not_exists(cursor, "exam_sessions", "exam_template_id", "INTEGER")
             # v7 — URL de Supabase Storage (reemplaza BYTEA para nuevos registros)
             self._add_column_if_not_exists(cursor, "procedure_submissions", "storage_url", "TEXT")
             # v7b — image_data ya no es obligatorio (NULL cuando se usa Storage)
@@ -721,6 +724,16 @@ class PostgresRepository:
                     PRIMARY KEY (user_id, course_id)
                 )
             """
+            )
+            # Estas tablas se crean durante la migración, no en init_db().
+            # Crear sus índices solo después de que ambas existan permite
+            # inicializar una base PostgreSQL completamente vacía.
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_enrollments_user_id ON enrollments(user_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_procedure_submissions_student_id "
+                "ON procedure_submissions(student_id)"
             )
 
             # Migración: asociar matrícula a un grupo (nullable)
@@ -930,6 +943,30 @@ class PostgresRepository:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """
+            )
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS active_exam_sessions (
+                    id TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    course_id TEXT NOT NULL,
+                    exam_template_id INTEGER,
+                    item_ids TEXT NOT NULL,
+                    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP NOT NULL,
+                    submitted_at TIMESTAMP,
+                    result_json TEXT
+                )
+                """
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_active_exam_sessions_user "
+                "ON active_exam_sessions(user_id, submitted_at)"
+            )
+            # v7 — Vincula sesiones históricas con la plantilla usada. Debe
+            # ejecutarse después del CREATE para soportar una base vacía.
+            self._add_column_if_not_exists(
+                cursor, "exam_sessions", "exam_template_id", "INTEGER"
             )
             # ── Tabla exam_templates (plantillas de examen del docente) ──────
             cursor.execute(
@@ -1416,7 +1453,7 @@ class PostgresRepository:
         try:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             cursor.execute(
-                "SELECT id, username, role, group_id, education_level, current_elo "
+                "SELECT id, username, role, group_id, education_level, current_elo, active, approved "
                 "FROM users WHERE id = %s",
                 (user_id,),
             )
@@ -1432,6 +1469,8 @@ class PostgresRepository:
             "group_id": row["group_id"],
             "education_level": row["education_level"],
             "current_elo": row["current_elo"],
+            "active": bool(row["active"]),
+            "approved": bool(row["approved"]),
         }
 
     @_timing
@@ -1587,7 +1626,9 @@ class PostgresRepository:
         item_difficulty_new: float,
         item_rd_new: float,
         attempt_data: dict,
-    ) -> None:
+        request_id: str | None = None,
+        request_fingerprint: str | None = None,
+    ) -> bool:
         """
         Persiste el resultado de una respuesta de forma atómica.
         El intento siempre se guarda. La actualización de ELO (ítem +
@@ -1605,8 +1646,10 @@ class PostgresRepository:
                 """INSERT INTO attempts
                    (user_id, item_id, is_correct, difficulty, topic, elo_after,
                     prob_failure, expected_score, time_taken, confidence_score,
-                    error_type, rating_deviation, elo_valid)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    error_type, rating_deviation, elo_valid, elo_before,
+                    request_id, request_fingerprint)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   ON CONFLICT(user_id, request_id) WHERE request_id IS NOT NULL DO NOTHING""",
                 (
                     user_id,
                     item_id,
@@ -1621,16 +1664,21 @@ class PostgresRepository:
                     attempt_data.get("error_type"),
                     attempt_data.get("rating_deviation"),
                     elo_valid,
+                    attempt_data.get("elo_before"),
+                    request_id,
+                    request_fingerprint,
                 ),
             )
+            inserted = cursor.rowcount == 1
             # Solo actualizar ELO si el tiempo de respuesta es válido
-            if elo_valid:
+            if inserted and elo_valid:
                 cursor.execute(
                     "UPDATE items SET difficulty = %s, rating_deviation = %s WHERE id = %s",
                     (item_difficulty_new, item_rd_new, item_id),
                 )
                 self._update_current_elo(cursor, user_id)
             conn.commit()
+            return inserted
         except Exception:
             conn.rollback()
             raise
@@ -2472,6 +2520,18 @@ class PostgresRepository:
                 elo = row["elo_after"]
                 rd = row["rating_deviation"]
                 elo_map[topic] = (elo, rd if rd is not None else 350.0)
+
+            # El diagnóstico no genera attempts: recuperar tópicos sin práctica
+            # sin reemplazar los ratings que ya proceden de respuestas.
+            cursor.execute(
+                "SELECT topic, current_elo, rd FROM student_topic_elo WHERE user_id = %s",
+                (user_id,),
+            )
+            for row in cursor.fetchall():
+                rd = row["rd"]
+                elo_map.setdefault(
+                    row["topic"], (row["current_elo"], rd if rd is not None else 350.0)
+                )
 
             # 2. Sumar deltas ELO de procedimientos validados por el docente
             cursor.execute(
@@ -4478,7 +4538,10 @@ class PostgresRepository:
             f"[SAVE_PROC] Recibido: student_id={student_id}, item_id={item_id}, "
             f"image_data={'bytes:'+str(len(image_data)) if image_data else 'None'}, mime_type={mime_type}"
         )
-        ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}.get(mime_type, "jpg")
+        ext = {
+            "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp",
+            "application/pdf": "pdf",
+        }.get(mime_type, "bin")
 
         # ── Intentar subir a Supabase Storage ────────────────────────────
         storage_path = f"{student_id}/{item_id}/{file_hash or int(_time.time())}.{ext}"
@@ -4540,9 +4603,11 @@ class PostgresRepository:
                         procedure_score=NULL, teacher_score=NULL, final_score=NULL,
                         submitted_at=CURRENT_TIMESTAMP, reviewed_at=NULL
                     WHERE student_id=%s AND item_id=%s
+                    RETURNING id
                 """,
                     (bytea_value, mime_type, img_path, file_hash, storage_url, student_id, item_id),
                 )
+                submission_id = cursor.fetchone()["id"]
             else:
                 cursor.execute(
                     """
@@ -4550,6 +4615,7 @@ class PostgresRepository:
                         (student_id, item_id, item_content, image_data, mime_type,
                          procedure_image_path, file_hash, storage_url)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
                 """,
                     (
                         student_id,
@@ -4562,7 +4628,9 @@ class PostgresRepository:
                         storage_url,
                     ),
                 )
+                submission_id = cursor.fetchone()["id"]
             conn.commit()
+            return submission_id
         finally:
             self.put_connection(conn)
 
@@ -4599,7 +4667,7 @@ class PostgresRepository:
                 SELECT id, status, teacher_feedback, feedback_image,
                        feedback_mime_type, submitted_at, reviewed_at,
                        procedure_score, feedback_image_path,
-                       ai_proposed_score, teacher_score, final_score,
+                       ai_proposed_score, ai_feedback, teacher_score, final_score,
                        storage_url
                 FROM procedure_submissions
                 WHERE student_id=%s AND item_id=%s
@@ -4774,16 +4842,34 @@ class PostgresRepository:
 
     @_timing
     def validate_procedure_submission(
-        self, submission_id: int, teacher_score: float, feedback: str = ""
-    ):
+        self,
+        submission_id: int,
+        teacher_score: float,
+        feedback: str = "",
+        teacher_id: int | None = None,
+    ) -> bool:
         """Valida la calificación de un procedimiento y establece la nota final oficial."""
-        elo_delta = round((teacher_score - 50.0) * 0.2, 4)
+        from src.domain.elo.model import procedure_elo_delta
+
+        elo_delta = procedure_elo_delta(teacher_score)
 
         conn = self.get_connection()
         try:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
-            cursor.execute(
+            ownership = ""
+            params = [teacher_score, teacher_score, feedback or None, elo_delta, submission_id]
+            if teacher_id is not None:
+                ownership = """
+                    AND EXISTS (
+                        SELECT 1 FROM users u
+                        JOIN groups g ON g.id = u.group_id
+                        WHERE u.id = procedure_submissions.student_id
+                          AND g.teacher_id = %s
+                    )
                 """
+                params.append(teacher_id)
+            cursor.execute(
+                f"""
                 UPDATE procedure_submissions
                 SET teacher_score    = %s,
                     final_score      = %s,
@@ -4792,14 +4878,17 @@ class PostgresRepository:
                     status           = 'VALIDATED_BY_TEACHER',
                     reviewed_at      = CURRENT_TIMESTAMP
                 WHERE id = %s
+                  AND status IN ('pending', 'PENDING_TEACHER_VALIDATION')
+                  {ownership}
                 RETURNING student_id
             """,
-                (teacher_score, teacher_score, feedback or None, elo_delta, submission_id),
+                tuple(params),
             )
             row = cursor.fetchone()
             if row:
                 self._update_current_elo(cursor, row["student_id"])
             conn.commit()
+            return row is not None
         finally:
             self.put_connection(conn)
 
@@ -5140,6 +5229,128 @@ class PostgresRepository:
         finally:
             self.put_connection(conn)
 
+    def create_active_exam_session(
+        self, session_id: str, user_id: int, course_id: str,
+        template_id: int | None, item_ids: list[str], expires_at: str,
+    ) -> None:
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """INSERT INTO active_exam_sessions
+                       (id, user_id, course_id, exam_template_id, item_ids, expires_at)
+                       VALUES (%s, %s, %s, %s, %s, %s)""",
+                    (session_id, user_id, course_id, template_id,
+                     json.dumps(item_ids), expires_at),
+                )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+
+    def get_active_exam_session(self, session_id: str, user_id: int) -> dict | None:
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """SELECT id, course_id, exam_template_id, item_ids, expires_at,
+                              submitted_at, result_json
+                       FROM active_exam_sessions WHERE id=%s AND user_id=%s""",
+                    (session_id, user_id),
+                )
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                return {
+                    "id": row["id"], "course_id": row["course_id"],
+                    "template_id": row["exam_template_id"],
+                    "item_ids": json.loads(row["item_ids"]),
+                    "expires_at": str(row["expires_at"]),
+                    "submitted_at": row["submitted_at"],
+                    "result": json.loads(row["result_json"]) if row["result_json"] else None,
+                }
+        finally:
+            self.put_connection(conn)
+
+    def complete_active_exam_session(
+        self, session_id: str, user_id: int, course_name: str,
+        result: dict, responses: list[dict],
+    ) -> bool:
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """UPDATE active_exam_sessions
+                       SET submitted_at=CURRENT_TIMESTAMP, result_json=%s
+                       WHERE id=%s AND user_id=%s AND submitted_at IS NULL
+                         AND expires_at >= CURRENT_TIMESTAMP
+                       RETURNING course_id, exam_template_id""",
+                    (json.dumps(result), session_id, user_id),
+                )
+                run = cursor.fetchone()
+                if not run:
+                    conn.rollback()
+                    return False
+                cursor.execute(
+                    """INSERT INTO exam_sessions
+                       (user_id, course_id, course_name, n_questions, correct_count, score_pct,
+                        global_elo_after, exam_template_id)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                    (user_id, run["course_id"], course_name, result["total_questions"],
+                     result["correct_count"], result["score_pct"],
+                     result["global_elo_after"], run["exam_template_id"]),
+                )
+                history_id = cursor.fetchone()["id"]
+                if responses:
+                    cursor.executemany(
+                        """INSERT INTO exam_responses
+                           (session_id, template_id, user_id, item_id, topic, is_correct)
+                           VALUES (%s, %s, %s, %s, %s, %s)""",
+                        [(history_id, run["exam_template_id"], user_id, r["item_id"],
+                          r.get("topic"), 1 if r.get("is_correct") else 0)
+                         for r in responses],
+                    )
+            conn.commit()
+            return True
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.put_connection(conn)
+
+    def get_answer_by_request_id(self, user_id: int, request_id: str) -> dict | None:
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT item_id, is_correct, elo_before, elo_after, rating_deviation, "
+                "request_fingerprint FROM attempts WHERE user_id=%s AND request_id=%s",
+                (user_id, request_id),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+        finally:
+            self.put_connection(conn)
+
+    def has_practice_attempts(
+        self, user_id: int, topic: str, course_id: str | None = None
+    ) -> bool:
+        """Indica si una línea ELO ya tiene práctica y no debe reiniciarse."""
+        keys = [topic] if not course_id or course_id == topic else [topic, course_id]
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(
+                "SELECT 1 AS found FROM attempts "
+                "WHERE user_id = %s AND topic = ANY(%s) LIMIT 1",
+                (user_id, keys),
+            )
+            return cursor.fetchone() is not None
+        finally:
+            self.put_connection(conn)
+
     def get_exam_template_results(self, template_id: int) -> dict:
         """Análisis agregado de resultados de una plantilla (ver SQLite)."""
         conn = self.get_connection()
@@ -5425,14 +5636,22 @@ class PostgresRepository:
         finally:
             self.put_connection(conn)
 
-    def delete_exam_assignment(self, assignment_id: int) -> bool:
+    def delete_exam_assignment(
+        self, assignment_id: int, template_id: int | None = None
+    ) -> bool:
         conn = self.get_connection()
         try:
             with conn.cursor() as cursor:
-                cursor.execute(
-                    "DELETE FROM exam_assignments WHERE id = %s",
-                    (assignment_id,),
-                )
+                if template_id is None:
+                    cursor.execute(
+                        "DELETE FROM exam_assignments WHERE id = %s",
+                        (assignment_id,),
+                    )
+                else:
+                    cursor.execute(
+                        "DELETE FROM exam_assignments WHERE id = %s AND template_id = %s",
+                        (assignment_id, template_id),
+                    )
                 conn.commit()
                 return cursor.rowcount > 0
         except Exception:

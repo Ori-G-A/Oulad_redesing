@@ -121,7 +121,16 @@ export function Stats() {
       };
     });
 
-  const earnedIds = new Set((achievementsData?.achievements ?? []).map((a) => a.badge_id));
+  const topicElos = Array.isArray(stats.topic_elos) ? stats.topic_elos : [];
+  const ranking = Array.isArray(rankingData?.ranking) ? rankingData.ranking : [];
+  const earnedAchievements = Array.isArray(achievementsData?.achievements)
+    ? achievementsData.achievements
+    : [];
+  const achievementCatalog = Array.isArray(achievementsData?.catalog)
+    ? achievementsData.catalog
+    : [];
+  const safeExamHistory = Array.isArray(examHistory) ? examHistory : [];
+  const earnedIds = new Set(earnedAchievements.map((a) => a.badge_id));
 
   return (
     <div className="sp-page">
@@ -158,27 +167,27 @@ export function Stats() {
       {activityData && (
         <div className="sp-card">
           <h3>{t("stats.weeklyActivity")}</h3>
-          <ActivityHeatmap data={activityData.activity} />
+          <ActivityHeatmap data={activityData.activity ?? {}} />
         </div>
       )}
 
       {/* Radar chart de tópicos */}
-      {stats.topic_elos.length >= 3 && (
+      {topicElos.length >= 3 && (
         <div className="sp-card">
           <h3>{t("stats.topicPerformance")}</h3>
           <p className="sp-card-hint">{t("stats.topicPerformanceHint")}</p>
-          <TopicRadarChart topics={stats.topic_elos} />
+          <TopicRadarChart topics={topicElos} />
         </div>
       )}
 
       {/* ELO por tópico (barras) */}
       <div className="sp-card">
         <h3>{t("stats.topicElo")}</h3>
-        {stats.topic_elos.length === 0 ? (
+        {topicElos.length === 0 ? (
           <p className="sp-empty-text">{t("stats.topicEloEmpty")}</p>
         ) : (
           <div className="space-y-2">
-            {stats.topic_elos.map((t) => (
+            {topicElos.map((t) => (
               <div key={t.topic} className="flex items-center gap-3">
                 <span className="sp-dim text-xs w-40 truncate" title={t.topic}>
                   {t.topic}
@@ -196,7 +205,7 @@ export function Stats() {
       </div>
 
       {/* Ranking del grupo */}
-      {rankingData && rankingData.ranking.length > 0 && (
+      {rankingData && ranking.length > 0 && (
         <div className="sp-card">
           <div className="flex items-center justify-between mb-3">
             <h3 style={{ margin: 0 }}>{t("stats.groupRanking")}</h3>
@@ -207,7 +216,7 @@ export function Stats() {
             )}
           </div>
           <div className="space-y-1.5">
-            {rankingData.ranking.slice(0, 10).map((r) => {
+            {ranking.slice(0, 10).map((r) => {
               const isMe = r.user_id === stats.user_id;
               const medal =
                 r.rank_pos === 1 ? "🥇" : r.rank_pos === 2 ? "🥈" : r.rank_pos === 3 ? "🥉" : null;
@@ -229,15 +238,14 @@ export function Stats() {
       <div className="sp-card">
         <h3>
           {t("stats.achievements")}{" "}
-          {achievementsData &&
-            `(${achievementsData.achievements.length}/${achievementsData.catalog.length})`}
+          {achievementsData && `(${earnedAchievements.length}/${achievementCatalog.length})`}
         </h3>
         {achievementsData ? (
           <div className="grid grid-cols-2 gap-2">
             <AnimatePresence>
-              {achievementsData.catalog.map((badge, i) => {
+              {achievementCatalog.map((badge, i) => {
                 const earned = earnedIds.has(badge.badge_id);
-                const earnedAt = achievementsData.achievements.find(
+                const earnedAt = earnedAchievements.find(
                   (a) => a.badge_id === badge.badge_id,
                 )?.earned_at;
                 return (
@@ -277,11 +285,11 @@ export function Stats() {
           <h3 style={{ margin: 0 }}>{t("stats.examHistory")}</h3>
           <p className="sp-mute text-[10px] italic">{t("stats.examNoElo")}</p>
         </div>
-        {examHistory.length === 0 ? (
+        {safeExamHistory.length === 0 ? (
           <p className="sp-empty-text">{t("stats.noExams")}</p>
         ) : (
           <div className="space-y-2">
-            {examHistory.map((session) => {
+            {safeExamHistory.map((session) => {
               const scoreColor =
                 session.score_pct >= 70
                   ? "text-emerald-400"

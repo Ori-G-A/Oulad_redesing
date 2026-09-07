@@ -9,6 +9,7 @@ Dependencias FastAPI reutilizables:
 """
 
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
@@ -75,7 +76,19 @@ def create_refresh_token(user_id: int) -> str:
     payload = {
         "sub": str(user_id),
         "type": "refresh",
+        "jti": uuid.uuid4().hex,
         "exp": expire,
+    }
+    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+
+def create_procedure_review_token(
+    user_id: int, item_id: str, file_hash: str, score: float | None, feedback: str
+) -> str:
+    payload = {
+        "sub": str(user_id), "type": "procedure_review", "item_id": item_id,
+        "file_hash": file_hash, "score": score, "feedback": feedback[:4000],
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
     }
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
@@ -98,6 +111,7 @@ def decode_token(token: str) -> dict:
 
 def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)],
+    repo: RepoDep,
 ) -> dict:
     """
     Extrae el usuario del JWT Bearer token.
@@ -109,17 +123,24 @@ def get_current_user(
             detail="Token de autenticación requerido.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    payload = decode_token(credentials.credentials)
+    return authenticate_access_token(credentials.credentials, repo)
+
+
+def authenticate_access_token(token: str, repo) -> dict:
+    """Valida un access token y el estado actual de la cuenta, también para WebSockets."""
+    payload = decode_token(token)
     if payload.get("type") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Se requiere access token, no refresh token.",
         )
-    return {
-        "user_id": int(payload["sub"]),
-        "username": payload["username"],
-        "role": payload["role"],
-    }
+    user_id = int(payload["sub"])
+    current = repo.get_user_by_id(user_id)
+    if not current or not current.get("active", False):
+        raise HTTPException(status_code=401, detail="Usuario no encontrado o inactivo.")
+    if current["role"] == "teacher" and not current.get("approved", False):
+        raise HTTPException(status_code=403, detail="Cuenta docente pendiente de aprobación.")
+    return {"user_id": user_id, "username": current["username"], "role": current["role"]}
 
 
 CurrentUser = Annotated[dict, Depends(get_current_user)]
@@ -142,7 +163,7 @@ def require_role(*roles: str):
 # ── VectorRating desde DB ─────────────────────────────────────────────────────
 
 
-def build_vector_rating(user_id: int, repo) -> object:
+def build_vector_rating(user_id: int, repo, course_id: str | None = None) -> object:
     """
     Reconstruye el VectorRating del estudiante cargando su historial de ELO
     por tópico desde la DB. Retorna una instancia fresca de VectorRating.
@@ -167,5 +188,13 @@ def build_vector_rating(user_id: int, repo) -> object:
                 else (row[2] if len(row) > 2 else 350.0)
             )
             vector.ratings[topic] = (float(elo), float(rd) if rd else 350.0)
+
+    # La práctica general usa course_id como clave; el diagnóstico guarda sus
+    # baselines por tópico y un promedio por curso. Inicializar esa clave solo
+    # cuando aún no existe progreso de práctica bajo ella.
+    if course_id and course_id not in vector.ratings:
+        diagnostic = repo.get_diagnostic(user_id, course_id)
+        if diagnostic is not None:
+            vector.ratings[course_id] = (float(diagnostic["initial_elo"]), 350.0)
 
     return vector

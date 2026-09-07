@@ -44,4 +44,5 @@ export const authApi = {
   register: (body: RegisterRequest) => api.post<{ message: string }>("/api/auth/register", body),
   me: () => api.get<UserProfile>("/api/auth/me"),
   logout: () => api.post<void>("/api/auth/logout"),
+  refresh: () => api.post<TokenResponse>("/api/auth/refresh"),
 };

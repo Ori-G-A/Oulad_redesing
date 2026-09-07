@@ -9,11 +9,14 @@ Endpoints de IA:
 import json
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, HTTPException, UploadFile, status
+from fastapi import APIRouter, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 
 from api.dependencies import CurrentUser, RepoDep
 from api.schemas.student import SocraticRequest
+from api.config import settings
+from api.rate_limit import limiter
+from api.upload_validation import read_validated_upload
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -22,7 +25,8 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 
 
 @router.post("/socratic")
-async def socratic(body: SocraticRequest, user: CurrentUser, repo: RepoDep):
+@limiter.limit(settings.rate_limit_socratic)
+async def socratic(request: Request, body: SocraticRequest, user: CurrentUser, repo: RepoDep):
     """
     Respuesta socrática de KatIA como Server-Sent Events (streaming).
 
@@ -143,10 +147,12 @@ async def socratic(body: SocraticRequest, user: CurrentUser, repo: RepoDep):
 
 
 @router.post("/review-procedure")
+@limiter.limit(settings.rate_limit_review)
 async def review_procedure(
+    request: Request,
     file: UploadFile,
-    item_id: str,
-    api_key: str = "",
+    item_id: str = Form(...),
+    api_key: str = Form(default=""),
     user: CurrentUser = None,
     repo: RepoDep = None,
 ):
@@ -164,24 +170,12 @@ async def review_procedure(
             detail="No hay API key de IA configurada.",
         )
 
-    if file.content_type not in ("image/jpeg", "image/png", "image/webp", "application/pdf"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tipo de archivo no soportado. Usa JPG, PNG, WebP o PDF.",
-        )
-
-    MAX_SIZE = 10 * 1024 * 1024
-    contents = await file.read()
-    if len(contents) > MAX_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="Archivo demasiado grande (máx 10 MB).",
-        )
+    contents, mime = await read_validated_upload(file)
 
     try:
         from src.infrastructure.external_api.math_procedure_review import review_math_procedure
 
-        result = review_math_procedure(contents, file.content_type, effective_key)
+        result = review_math_procedure(contents, mime, effective_key)
         return result
     except Exception as exc:
         raise HTTPException(

@@ -17,6 +17,13 @@ STABILITY_ERROR_THRESHOLD = 0.15
 STABILITY_SAMPLE_SIZE = 20
 
 
+def procedure_elo_delta(score: float) -> float:
+    """Ajuste oficial de una revisión docente, entre -10 y +10 puntos."""
+    if not 0.0 <= score <= 100.0:
+        raise ValueError("La nota del procedimiento debe estar entre 0 y 100.")
+    return round((score - 50.0) * 0.2, 4)
+
+
 @dataclass
 class Item:
     difficulty: float

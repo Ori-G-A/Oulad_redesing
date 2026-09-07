@@ -14,10 +14,12 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { authApi } from "../../api/auth";
 import { useAuthStore } from "../../stores/authStore";
 import { useThemeStore } from "../../stores/themeStore";
 import { useSettingsStore, PROVIDER_MODELS } from "../../stores/settingsStore";
+import { clearAccountCaches } from "../../lib/accountCleanup";
 import "./TeacherConsole.css";
 
 const NAV = [
@@ -38,6 +40,7 @@ export function TeacherLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
+  const queryClient = useQueryClient();
   const { theme, toggleTheme } = useThemeStore();
   const { apiKey, provider, model, setApiKey, setProvider, setModel } = useSettingsStore();
   const availableModels = PROVIDER_MODELS[provider] ?? [];
@@ -51,6 +54,9 @@ export function TeacherLayout({ children }: { children: ReactNode }) {
     } catch {
       /* ignorar */
     }
+    await clearAccountCaches();
+    queryClient.clear();
+    setApiKey("");
     clearAuth();
     navigate("/login");
   };
