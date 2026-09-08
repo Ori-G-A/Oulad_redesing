@@ -68,6 +68,13 @@ class Settings(BaseSettings):
     admin_user: str = "admin"
     admin_password: str = ""  # solo si se quiere seed automático
 
+    # ── Concurrencia de procesos ──────────────────────────────────────────────
+    # uvicorn y gunicorn leen WEB_CONCURRENCY como número de workers. PvP y las
+    # notificaciones guardan su estado en memoria del proceso, así que con más
+    # de uno los jugadores de procesos distintos no se emparejan y los eventos
+    # solo llegan a los sockets locales. Ver validate_runtime() y AGENTS.md R18.
+    web_concurrency: int = 1
+
     def validate_runtime(self) -> None:
         """Impide arrancar producción con defaults locales o secretos débiles."""
         if self.environment.lower() != "production":
@@ -85,6 +92,14 @@ class Settings(BaseSettings):
             raise RuntimeError("CORS_ORIGINS de producción no puede incluir localhost.")
         if self.rate_limit_storage_uri.strip().lower() == "memory://":
             raise RuntimeError("RATE_LIMIT_STORAGE_URI compartida es obligatoria en producción.")
+        if self.web_concurrency > 1:
+            raise RuntimeError(
+                "WEB_CONCURRENCY debe ser 1: el lobby de PvP y las salas de "
+                "notificaciones viven en memoria del proceso. Con varios workers los "
+                "jugadores de procesos distintos no se emparejan y los eventos solo "
+                "llegan a los sockets locales, sin ningún error visible. Antes de "
+                "subirlo hace falta coordinación compartida — ver AGENTS.md R18."
+            )
 
     # ── Versión ───────────────────────────────────────────────────────────────
     @property

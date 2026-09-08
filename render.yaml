@@ -9,7 +9,17 @@ services:
     runtime: python
     pythonVersion: "3.11.9"
     buildCommand: pip install -r requirements-api.txt
-    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    ## Las migraciones NO corren dentro del proceso HTTP. `_migrate_db()` toma un
+    ## advisory lock de SESIÓN y sobre el pooler de transacciones (6543) la sesión
+    ## no sobrevive al commit, así que el lock deja de proteger. scripts/migrate.py
+    ## es un proceso aparte, corto, que usa MIGRATION_DATABASE_URL (conexión
+    ## directa) y termina antes de que uvicorn acepte tráfico. Si falla, el
+    ## servicio no arranca — es lo correcto: mejor caído que con esquema viejo.
+    ##
+    ## preDeployCommand sería el sitio natural, pero Render no lo ofrece en
+    ## instancias free. Al pasar a un plan de pago, mover esta primera mitad allí:
+    ##   preDeployCommand: python scripts/migrate.py
+    startCommand: python scripts/migrate.py && uvicorn api.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     autoDeploy: true
 
@@ -17,10 +27,27 @@ services:
       - key: ENVIRONMENT
         value: production
 
+      # El proceso web no migra: lo hace la primera mitad del startCommand.
+      - key: RUN_MIGRATIONS
+        value: "0"
+
+      # UN SOLO proceso, y una sola instancia. El lobby de PvP y las salas de
+      # notificaciones viven en memoria: con dos procesos los jugadores no se
+      # emparejan entre ellos y los eventos solo llegan a la mitad, sin error
+      # visible. El arranque falla si esto sube de 1 (api/config.py). Escalar
+      # exige antes la coordinación compartida que describe AGENTS.md R18.
+      - key: WEB_CONCURRENCY
+        value: "1"
+
       # ── Base de datos (Supabase) ──────────────────────────────────────────
-      # Usar el connection pooler, puerto 6543 — no el puerto directo 5432.
+      # Tráfico normal: connection pooler, puerto 6543 — no el directo 5432.
       - key: DATABASE_URL
         sync: false  # Valor secreto — pegar en el dashboard de Render
+
+      # Solo para preDeployCommand: conexión DIRECTA (puerto 5432) o pooler de
+      # sesión, donde el advisory lock de _migrate_db() sí protege.
+      - key: MIGRATION_DATABASE_URL
+        sync: false
 
       # ── Supabase Storage (bucket privado `procedimientos`) ───────────────
       - key: SUPABASE_URL

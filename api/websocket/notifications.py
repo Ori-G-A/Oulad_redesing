@@ -28,9 +28,22 @@ logger = logging.getLogger("api.ws")
 ws_router = APIRouter(prefix="/ws", tags=["websocket"])
 
 # ── Mapa de conexiones activas por sala ───────────────────────────────────────
+# ESTADO POR PROCESO — tener los sockets locales es correcto, pero `notify()`
+# solo alcanza a los de ESTE proceso. Con varios workers un evento llega a unos
+# clientes y a otros no. Ver AGENTS.md R18: el despliegue es de un solo proceso.
 # room → set de WebSocket activos
 _rooms: dict[str, set[WebSocket]] = defaultdict(set)
 _lock = asyncio.Lock()
+
+# Loop del servidor, registrado al arrancar. Los endpoints `def` de FastAPI
+# corren en un hilo del threadpool, donde no hay loop que descubrir.
+_server_loop: asyncio.AbstractEventLoop | None = None
+
+
+def bind_event_loop(loop: asyncio.AbstractEventLoop) -> None:
+    """Registra el event loop del servidor para notify_sync()."""
+    global _server_loop
+    _server_loop = loop
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -144,13 +157,18 @@ async def notify(room: str, event: str, data: dict) -> int:
 
 
 def notify_sync(room: str, event: str, data: dict) -> None:
+    """Programa una notificación desde un endpoint síncrono.
+
+    Buscar el loop desde aquí no funcionaba: FastAPI corre los endpoints
+    `def` en un hilo del threadpool, donde no hay ninguno, así que el aviso
+    se perdía en silencio. Se usa el loop registrado al arrancar.
     """
-    Versión síncrona para llamar desde endpoints no-async.
-    Programa la notificación en el event loop activo.
-    """
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.create_task(notify(room, event, data))
-    except RuntimeError:
-        pass  # No hay loop activo — ignorar silenciosamente
+    loop = _server_loop
+    if loop is None or loop.is_closed():
+        logger.warning(
+            "Notificación '%s' descartada: no hay event loop registrado (sala=%s)",
+            event,
+            room,
+        )
+        return
+    asyncio.run_coroutine_threadsafe(notify(room, event, data), loop)

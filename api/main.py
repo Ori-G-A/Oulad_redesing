@@ -15,6 +15,7 @@ Endpoints base:
     GET /api/redoc   → ReDoc
 """
 
+import asyncio
 import logging
 import os
 import sys
@@ -56,11 +57,16 @@ async def lifespan(app: FastAPI):
         settings.validate_runtime()
         from api.dependencies import get_repository
 
+        from api.websocket.notifications import bind_event_loop
+
+        bind_event_loop(asyncio.get_running_loop())
         repo = get_repository()
-        repo.init_db()
-        logger.info("Base de datos inicializada.")
+        # El esquema NO se aplica aquí: en despliegue lo hace scripts/migrate.py
+        # antes de arrancar uvicorn, con RUN_MIGRATIONS=0 en este proceso.
+        # Ver _bootstrap_schema() y el startCommand de render.yaml.
+        logger.info("Repositorio listo (%s).", type(repo).__name__)
     except Exception as exc:
-        logger.exception("No se pudo inicializar la base de datos: %s", exc)
+        logger.exception("No se pudo preparar el arranque: %s", exc)
         raise
 
     yield

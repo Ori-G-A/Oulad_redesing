@@ -58,10 +58,14 @@ class ActiveMatch:
         return self.done.get(self.p1.user_id) and self.done.get(self.p2.user_id)
 
 
-# course_id → LobbySlot en espera
-_lobby: dict[str, LobbySlot] = {}
-# match_id → ActiveMatch
-_matches: dict[int, ActiveMatch] = {}
+# ESTADO POR PROCESO — el despliegue debe ser de UN SOLO proceso (AGENTS.md R18).
+# Con dos, cada uno tiene su propio lobby: dos jugadores del mismo curso conectados
+# a procesos distintos nunca se emparejan, y sin ningún error visible.
+# `settings.validate_runtime()` rechaza WEB_CONCURRENCY > 1 por esto.
+# Las partidas sí quedan persistidas en `pvp_matches`; las que un reinicio deja
+# huérfanas las cierra `expire_stale_pvp_matches()` al preparar el esquema.
+_lobby: dict[str, LobbySlot] = {}  # course_id → LobbySlot en espera
+_matches: dict[int, ActiveMatch] = {}  # match_id → ActiveMatch
 _lock = asyncio.Lock()
 
 
@@ -112,7 +116,8 @@ async def _finish_match(match: ActiveMatch, repo) -> None:
         d1, d2 = dw, dl
 
     try:
-        repo.finish_pvp_match(
+        await asyncio.to_thread(
+            repo.finish_pvp_match,
             match_id=match.match_id,
             winner_id=winner_id,
             score_p1=s1, score_p2=s2,
@@ -160,12 +165,19 @@ async def pvp_ws(websocket: WebSocket, course_id: str):
         raw = await asyncio.wait_for(websocket.receive_text(), timeout=10.0)
         msg = json.loads(raw)
         repo = get_repository()
-        user = authenticate_access_token(msg.get("token", ""), repo)
+        # El repositorio es síncrono: cada llamada va a un hilo para no
+        # bloquear el event loop y con él a todos los demás sockets.
+        user = await asyncio.to_thread(
+            authenticate_access_token, msg.get("token", ""), repo
+        )
         if user["role"] != "student":
             raise ValueError("Solo estudiantes pueden entrar a PvP")
         user_id = user["user_id"]
         username = user["username"]
-        enrollments = {row["course_id"] for row in repo.get_user_enrollments(user_id)}
+        enrollments = {
+            row["course_id"]
+            for row in await asyncio.to_thread(repo.get_user_enrollments, user_id)
+        }
         if course_id not in enrollments:
             raise ValueError("El estudiante no está inscrito en el curso")
     except Exception as exc:
@@ -175,7 +187,7 @@ async def pvp_ws(websocket: WebSocket, course_id: str):
 
     # Obtener ELO actual del jugador
     try:
-        user_info = repo.get_user_by_id(user_id)
+        user_info = await asyncio.to_thread(repo.get_user_by_id, user_id)
         player_elo = float(user_info.get("current_elo", 1000.0))
     except Exception:
         player_elo = 1000.0
@@ -184,55 +196,72 @@ async def pvp_ws(websocket: WebSocket, course_id: str):
     match: ActiveMatch | None = None
     is_creator = False  # True = segundo en entrar (emite game_start y arranca timer)
 
+    # El lock solo cubre el traspaso del lobby: nada de I/O dentro. Una
+    # consulta a la DB con el lock tomado congela a todos los cursos a la vez.
+    waiting: LobbySlot | None = None
     async with _lock:
-        waiting = _lobby.get(course_id)
+        candidate = _lobby.get(course_id)
         # Descartar slot fantasma: si el que esperaba ya se desconectó, no emparejar
-        if waiting and waiting.ws.client_state != WebSocketState.CONNECTED:
+        if candidate and candidate.ws.client_state != WebSocketState.CONNECTED:
             del _lobby[course_id]
-            waiting = None
-        if waiting and waiting.user_id != user_id:
-            # Emparejar — este jugador es el creador (p2)
+            candidate = None
+        if candidate and candidate.user_id != user_id:
+            # Emparejar — este jugador es el creador (p2). Sacarlo del lobby
+            # aquí deja el emparejamiento decidido: nadie más puede tomarlo.
             del _lobby[course_id]
             is_creator = True
-
-            # Seleccionar ítems aleatorios
-            try:
-                all_items = repo.get_items_from_db(course_id=course_id)
-            except Exception:
-                all_items = []
-
-            selected = random.sample(all_items, min(MATCH_ITEMS, len(all_items)))
-            item_ids = [i["id"] for i in selected]
-            correct = {i["id"]: i["correct_option"] for i in selected}
-            # No revelar correct_option al cliente (V2-R9)
-            safe_items = [
-                {"id": i["id"], "content": i["content"],
-                 "options": i["options"], "topic": i["topic"],
-                 "difficulty": i["difficulty"]}
-                for i in selected
-            ]
-
-            try:
-                match_id = repo.create_pvp_match(course_id, waiting.user_id, user_id, item_ids)
-            except Exception as e:
-                logger.error("create_pvp_match: %s", e)
-                await websocket.close(code=4500, reason="DB error")
-                return
-
-            match = ActiveMatch(
-                match_id=match_id, course_id=course_id,
-                p1=waiting, p2=slot,
-                items=safe_items, correct=correct,
-                score={waiting.user_id: 0, user_id: 0},
-                answered={waiting.user_id: set(), user_id: set()},
-                done={waiting.user_id: False, user_id: False},
-            )
-            _matches[match_id] = match
-            # Despertar al jugador en espera (instantáneo, sin sondeo)
-            waiting.match = match
-            waiting.matched.set()
+            waiting = candidate
         else:
             _lobby[course_id] = slot
+
+    if waiting is not None:
+        # Seleccionar ítems aleatorios — ya fuera del lock
+        try:
+            all_items = await asyncio.to_thread(
+                repo.get_items_from_db, course_id=course_id
+            )
+        except Exception:
+            all_items = []
+
+        selected = random.sample(all_items, min(MATCH_ITEMS, len(all_items)))
+        item_ids = [i["id"] for i in selected]
+        correct = {i["id"]: i["correct_option"] for i in selected}
+        # No revelar correct_option al cliente (V2-R9)
+        safe_items = [
+            {"id": i["id"], "content": i["content"],
+             "options": i["options"], "topic": i["topic"],
+             "difficulty": i["difficulty"]}
+            for i in selected
+        ]
+
+        try:
+            match_id = await asyncio.to_thread(
+                repo.create_pvp_match, course_id, waiting.user_id, user_id, item_ids
+            )
+        except Exception as e:
+            logger.error("create_pvp_match: %s", e)
+            # El que esperaba ya salió del lobby: cerrar los dos sockets en
+            # vez de dejarlo colgado hasta que expire su espera.
+            await websocket.close(code=4500, reason="DB error")
+            try:
+                await waiting.ws.close(code=4500, reason="DB error")
+            except Exception:
+                pass
+            return
+
+        match = ActiveMatch(
+            match_id=match_id, course_id=course_id,
+            p1=waiting, p2=slot,
+            items=safe_items, correct=correct,
+            score={waiting.user_id: 0, user_id: 0},
+            answered={waiting.user_id: set(), user_id: set()},
+            done={waiting.user_id: False, user_id: False},
+        )
+        async with _lock:
+            _matches[match_id] = match
+        # Despertar al jugador en espera (instantáneo, sin sondeo)
+        waiting.match = match
+        waiting.matched.set()
 
     if match is None:
         # En espera — el creador setea slot.matched al emparejar.
@@ -309,7 +338,9 @@ async def pvp_ws(websocket: WebSocket, course_id: str):
                 match.score[user_id] = match.score.get(user_id, 0) + 1
 
             try:
-                repo.save_pvp_answer(match.match_id, user_id, item_id, is_correct)
+                await asyncio.to_thread(
+                    repo.save_pvp_answer, match.match_id, user_id, item_id, is_correct
+                )
             except Exception as e:
                 logger.warning("save_pvp_answer: %s", e)
 
