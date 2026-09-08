@@ -33,7 +33,10 @@ cd frontend && npm install --legacy-peer-deps && npm run dev
 
 Deploys automáticos en push a `main`: Frontend → Vercel (`luislevelupelo.vercel.app`) · Backend → Render (`levelup-elo.onrender.com`)
 
-Documentación V2: `docs/v2-tecnico.md` (gitignoreado) · Plan de sprints: `docs/v2-plan.md`
+Referencia técnica vigente: **[docs/arquitectura.md](docs/arquitectura.md)** — decisiones,
+límites conocidos y procedimiento de despliegue.
+`docs/v2-tecnico.md` y `docs/v2-plan.md` están versionados pero son **históricos**
+(mayo 2026): describen el estado durante los sprints, no el de hoy.
 
 ---
 
@@ -84,12 +87,11 @@ Streamlit 1.55+ interpreta 4+ espacios como bloque de código. Construir el HTML
 ### R12 — PostgresRepository: singleton por proceso
 Se crea UNA SOLA VEZ en `app.py` (`_REPO_SINGLETON` con `threading.Lock`). Nunca instanciar por sesión — cada instancia abre su propio pool y agota Supabase free tier.
 
-### R13 — CognitiveAnalyzer puede ser None
-`enable_cognitive_modifier=False` en producción. Verificar antes de acceder:
-```python
-if st.session_state.student_service.cognitive_analyzer is not None:
-    ...
-```
+### R13 — El CognitiveAnalyzer ya no existe
+Se eliminó: `StudentService` no tiene `cognitive_analyzer` ni acepta `enable_cognitive_modifier`,
+y `impact_modifier` es `1.0` fijo. Esta regla se conserva porque `src/interface/streamlit/app.py`
+siguió pasando ese kwarg mucho después de que desapareciera y **V1 no arrancaba** (`TypeError` en
+el constructor). Si encuentras una referencia más, es residuo: bórrala.
 
 ### R14 — Imports en backfill: locales dentro de la función
 ```python
@@ -97,18 +99,92 @@ def _backfill_prob_failure(self):
     from src.domain.elo.model import expected_score  # aquí, no a nivel de módulo
 ```
 
+### R15 — ELO: `student_topic_elo` es la única fuente
+El rating vive en `student_topic_elo`; `users.current_elo` es su promedio derivado y `attempts` es
+bitácora, no estado. Solo cuatro caminos escriben, y cada uno aplica su efecto **una vez**:
+
+| Camino | Método | Efecto |
+|---|---|---|
+| Diagnóstico | `set_topic_elo_baseline` → `_set_topic_elo` | fija el valor |
+| Respuesta con `elo_valid=1` | `save_answer_transaction` → `_set_topic_elo` | fija el valor |
+| Procedimiento validado | `validate_procedure_submission` → `_bump_topic_elo` | suma `elo_delta`, marca `elo_applied=1` |
+| Partida de PvP cerrada | `finish_pvp_match` → `_bump_topic_elo` | suma el delta al tópico del curso ([R19]) |
+
+Nunca reconstruir el rating desde `attempts` en una lectura. Hacerlo reaplicaba el delta de cada
+procedimiento en toda lectura posterior e ignoraba `elo_valid`, así que un intento fuera del rango
+[3s, 600s] sí movía el rating. `get_latest_elo_by_topic` es un `SELECT` de una tabla y nada más.
+Regresión: `tests/integration/test_elo_single_source.py`.
+
+### R16 — Respuestas: leer, calcular y escribir en la misma transacción
+`save_answer_transaction(user_id, item_id, topic, compute, ...)` es una **unidad de trabajo**: el
+repositorio bloquea (PostgreSQL `FOR UPDATE` sobre `users` y luego `items`, en ese orden fijo;
+SQLite `BEGIN IMMEDIATE`), lee el estado, llama a `compute(state)` —el cálculo de dominio, que
+aporta `StudentService`— y persiste. Nunca leer el rating o la dificultad fuera de esa transacción
+para escribirlos después: dos respuestas concurrentes partirían del mismo valor y una borraría el
+efecto de la otra. `compute` no debe hacer I/O — corre con la conexión tomada y filas bloqueadas.
+
+### R17 — Ni migraciones ni I/O bloqueante dentro del proceso HTTP
+- **Esquema**: el bootstrap (`_bootstrap_schema`: `init_db` + `_migrate_db` + seeds + backfills)
+  corre solo si `RUN_MIGRATIONS` ≠ 0. En despliegue lo aplica `scripts/migrate.py` como proceso
+  aparte, contra `MIGRATION_DATABASE_URL` (conexión directa, puerto 5432). Sobre el pooler de
+  transacciones (6543) el `pg_try_advisory_lock` de `_migrate_db()` es un lock de **sesión** que
+  puede liberarse desde otra sesión física, así que ahí no protege nada.
+- **WebSockets**: los repositorios son síncronos. Toda llamada desde un `async def` va por
+  `await asyncio.to_thread(...)`, y **nunca** dentro de `_lock` — el lock del lobby de PvP solo
+  cubre el traspaso en memoria. Desde un endpoint `def` (que FastAPI corre en el threadpool) se
+  notifica con `notify_sync`, que usa el loop registrado en el arranque; buscar el loop desde ese
+  hilo fallaba siempre y el aviso se perdía en silencio.
+
+### R18 — El backend es de UN SOLO proceso, y está comprobado
+`_lobby` y `_matches` (`api/websocket/pvp.py`) y `_rooms` (`notifications.py`) viven en memoria
+del proceso. Con dos procesos cada uno tiene su lobby: dos jugadores del mismo curso conectados a
+procesos distintos **nunca se emparejan**, y un evento llega solo a los sockets locales — sin
+excepción, sin log, sin nada visible. Por eso `settings.validate_runtime()` **rechaza el arranque**
+en producción si `WEB_CONCURRENCY > 1`, y `render.yaml` lo fija en `"1"`.
+
+Tener los sockets en memoria es correcto: lo que no puede quedarse ahí es la coordinación. Lo que
+sí sobrevive al proceso ya está resuelto: las partidas se persisten en `pvp_matches` y las que un
+reinicio deja huérfanas las cierra `expire_stale_pvp_matches()` como `abandoned` (sin tocar ELO)
+al preparar el esquema, que en despliegue corre en cada arranque.
+
+**Para escalar** hacen falta tres piezas, y las tres antes de subir el número:
+1. **Matchmaking compartido** — el emparejamiento debe ser una operación atómica sobre un almacén
+   común (el Redis de `RATE_LIMIT_STORAGE_URI` ya está disponible), no un `dict` con un `asyncio.Lock`.
+2. **Distribución de eventos** — pub/sub: cada proceso publica y reenvía a *sus* sockets.
+3. **Despertar entre procesos** — hoy el creador hace `slot.matched.set()` sobre un objeto local;
+   entre procesos eso tiene que viajar por el mismo canal pub/sub.
+
+Criterio de aceptación (auditoría, punto 3): dos instancias con usuarios conectados a cada una
+deben emparejarse y recibir sus eventos antes de habilitar más workers.
+
+### R19 — El resultado de PvP mueve `student_topic_elo`, no `users.current_elo`
+`finish_pvp_match` aplica el delta con `_bump_topic_elo` sobre el `course_id` de la partida, que es
+la misma clave que usa la práctica general. Escribir `users.current_elo` directamente —como se hacía—
+no servía de nada: `_refresh_global_elo` lo recalcula como promedio de `student_topic_elo` en la
+siguiente respuesta del alumno y el delta del PvP desaparecía. Es un caso particular de [R15].
+El cierre es idempotente por la guarda `AND status='active'`: si el cronómetro y el último jugador
+disparan a la vez, el ELO se aplica una sola vez.
+
 ---
 
-## Skills disponibles
+## Antes de empezar, según la tarea
 
-Leer el skill correspondiente **antes de empezar**:
+Esta tabla citaba cinco skills en `.Codex/skills/` que **no existen en el repo** ni en ningún
+clon: no había nada que leer. Ahora apunta a lo que sí está y se puede ejecutar.
 
-| Tarea | Skill |
+| Tarea | Qué leer / ejecutar |
 |---|---|
-| Repositorios, tablas, migraciones, queries | `.Codex/skills/db-dual-backend.md` |
-| Domain/application/infrastructure, módulos nuevos | `.Codex/skills/clean-architecture.md` |
-| Ítems, cursos, banco de preguntas, calibración | `.Codex/skills/items-bank.md` · `.Codex/skills/item-calibration/SKILL.md` |
-| Tras modificar cualquier repositorio | `.Codex/skills/db-sync-checker.md` + `python scripts/db_sync_check.py` |
+| Repositorios, tablas, migraciones, queries | [R1](#r1--dual-db-siempre-los-dos-o-ninguno), [R3](#r3--postgresql-rowcolumn-nunca-row0), [R4](#r4--connection-pool-nunca-connclose), [R8](#r8--migraciones-solo-aditivas), [R15](#r15--elo-student_topic_elo-es-la-única-fuente), [R16](#r16--respuestas-leer-calcular-y-escribir-en-la-misma-transacción) |
+| Tras modificar cualquier repositorio | `python scripts/db_sync_check.py` (obligatorio) |
+| Domain/application/infrastructure, módulos nuevos | [R2](#r2--clean-architecture-no-cruzar-capas) + `pytest tests/unit/test_architecture_layers.py` |
+| Contratos de repositorio | `pytest tests/unit/application/test_repository_contracts.py` |
+| Ítems, cursos, banco de preguntas | § Banco de preguntas, abajo · `python scripts/validate_bank.py` |
+| Calibración de dificultad | § Calibración, abajo (`D* = R + 400·log₁₀((1−P*)/P*)`) |
+| Decisiones, límites y despliegue | [docs/arquitectura.md](docs/arquitectura.md) |
+
+Los skills de autoría de nodos (`levelup-node-author`, `prealgebra-node-author`,
+`prealgebra-narrative-style`) sí existen, pero **solo en la máquina local** (`.claude/skills/`,
+gitignoreado): un clon limpio no los tiene. No apoyar reglas obligatorias en ellos.
 
 ---
 
@@ -125,12 +201,14 @@ Clean Architecture — 4 capas en `src/`:
 - `katia/katia_messages.py` — mensajes predefinidos de KatIA por rango de score y racha
 
 **`application/services/`** — casos de uso:
-- `student_service.py` — `process_answer()`, `get_next_question()`, `get_socratic_help()`
+- `student_service.py` — `process_answer()`, `get_next_question()`. El chat socrático de
+  V2 vive en `api/routers/ai.py` (SSE); `get_socratic_help()` era código muerto y se borró.
 - `teacher_service.py` — dashboard y análisis pedagógico
 
 **`infrastructure/`** — implementaciones concretas:
-- `persistence/sqlite_repository.py` — SQLite local (~1200 líneas)
-- `persistence/postgres_repository.py` — PostgreSQL/Supabase, `RealDictCursor`, `SimpleConnectionPool(1–5)`
+- `persistence/sqlite_repository.py` — SQLite local (~5.100 líneas)
+- `persistence/postgres_repository.py` — PostgreSQL/Supabase, `RealDictCursor`,
+  `ThreadedConnectionPool(1–5)` (~5.900 líneas)
 - `storage/supabase_storage.py` — bucket `procedimientos` (PRIVADO)
 - `external_api/ai_client.py` — multi-proveedor IA (detección por prefijo de key)
 - `external_api/math_procedure_review.py` — Groq + Llama 4 Scout, score 0–100, ajuste ELO: `(score−50)×0.2`
@@ -142,7 +220,7 @@ Clean Architecture — 4 capas en `src/`:
 ```
 StudentService.process_answer()
   ├→ VectorRating.update()          ← delta ELO al tópico (impact_modifier=1.0 siempre)
-  ├→ Repository.update_item_rating() ← actualiza dificultad del ítem
+  ├→ UPDATE items                    ← nueva dificultad del ítem (ELO simétrico)
   └→ Repository.save_attempt()       ← persiste intento (transacción atómica)
 ```
 
@@ -349,13 +427,17 @@ Fixes de producción (mayo 2026):
 - CORS: corregida origin `luislevelupelo.vercel.app` en `api/config.py`
 - i18n TypeScript: `DeepString<T>` en `es.ts` para que `en.ts` pueda usar valores de string distintos sin errores de tipo literal
 
-No hay pendientes de desarrollo. V2 lista para etiquetar `v2.0.0`.
+Ese estado describe **mayo de 2026 en el repo de producción** (LuisJRubioH/LevelUp-ELO).
+Este repo es el sandbox de rediseño y sí tiene pendientes: los abiertos están en
+[docs/arquitectura.md](docs/arquitectura.md) § Límites conocidos.
 
 ---
 
 ## Skills externas instaladas
 
-Instalar con `npx skills add <repo>` → quedan en `.Codex/skills/`. Solo invocar en tareas de UI/frontend, no en backend/Python/DB.
+Instalar con `pnpm dlx skills add <repo>` (`npx` no está en el PATH de esta máquina) →
+quedan en `.agents/skills/`, que está gitignoreado. Solo invocar en tareas de UI/frontend,
+no en backend/Python/DB.
 
 | Skill | Cuándo usarla |
 |---|---|
@@ -365,9 +447,9 @@ Instalar con `npx skills add <repo>` → quedan en `.Codex/skills/`. Solo invoca
 
 Instalación:
 ```bash
-npx skills add pbakaus/impeccable
-npx skills add Leonxlnx/taste-skill
-npx skills add emilkowalski/skill
+pnpm dlx skills add pbakaus/impeccable
+pnpm dlx skills add Leonxlnx/taste-skill
+pnpm dlx skills add emilkowalski/skill
 ```
 Después de instalar impeccable, ejecutar una vez: `/impeccable teach`
 
@@ -383,7 +465,7 @@ Tokens como variables CSS en `frontend/src/index.css`. No hardcodear colores en 
 
 ---
 
-## Codex-mem — Memoria persistente
+## claude-mem — Memoria persistente
 
 Plugin instalado. Captura contexto automáticamente desde cada sesión.
 
@@ -394,10 +476,10 @@ Consultas útiles en sesiones futuras:
 "¿Qué archivos tocamos en el Sprint 5?"
 ```
 
-Configuración recomendada (`~/.Codex-mem/settings.json`):
+Configuración recomendada (`~/.claude-mem/settings.json`):
 ```json
 {
-  "CLAUDE_MEM_MODEL": "Codex-haiku-4-5",
+  "CLAUDE_MEM_MODEL": "claude-haiku-4-5",
   "CLAUDE_MEM_CONTEXT_OBSERVATIONS": "50",
   "CLAUDE_MEM_WORKER_PORT": "37777"
 }
@@ -419,11 +501,11 @@ Configuración recomendada (`~/.Codex-mem/settings.json`):
 
 ```
 PROYECTO:    LevelUp-ELO
-VERSIÓN:     V2.0.0-dev (Sprints 1-6 completos)
+VERSIÓN:     sandbox de rediseño sobre V2.0.0 (sprints 1–8 completos)
 STACK:       Python 3.11 · FastAPI · React 19 · TypeScript · Vite · Supabase · Render · Vercel
 DOMINIO:     Plataforma educativa adaptativa con motor ELO vectorial por tópico
 AUDIENCIA:   Semillero matemático + estudiantes de colegio y universidad (Colombia)
 DEPLOY:      V1 en Streamlit Cloud · V2 en Vercel + Render
-PRÓXIMO:     Sprint 7 — calidad y producción
+PRÓXIMO:     ver docs/arquitectura.md § Límites conocidos
 REPO:        https://github.com/LuisJRubioH/LevelUp-ELO
 ```

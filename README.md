@@ -58,8 +58,11 @@ celular, docentes desde el escritorio.
 
 ### Motor adaptativo
 - **ELO vectorial por tópico** — un rating independiente por tema, no uno global.
-- **Factor K dinámico** — el peso de cada respuesta cambia con la experiencia
-  (K=40 → 32 → 16/24), acelerando la convergencia.
+- **Factor K por incertidumbre** — el peso de cada respuesta se escala con la
+  RD del estudiante: `K = 32 × (RD / 350)`, así que las primeras respuestas
+  mueven mucho y luego el rating se asienta. (`calculate_dynamic_k`, con la
+  escala 40/32/16/24, pertenece al modelo escalar y no al vectorial que usa
+  la práctica.)
 - **Rating Deviation tipo Glicko** — incertidumbre por tópico (RD inicial 350,
   mínimo 30). K efectivo = `K_base × (RD / 350)`.
 - **Selector con Fisher Information** — sortea entre preguntas con al menos el
@@ -86,8 +89,9 @@ celular, docentes desde el escritorio.
   docente pone la oficial. Anti-plagio por SHA-256 del archivo.
 - **Bloque Concursos** — UI deliberadamente sobria (sin rachas de colores, sin
   logros, sin KatIA animada) y navegación por bloques temáticos en lista, porque
-  DIAN tiene ~209 tópicos y el mapa visual no escala. El examen **sí** mueve el
-  ELO; los ítems se calibran a P\*=0,25.
+  DIAN tiene ~209 tópicos y el mapa visual no escala. Los ítems se calibran a
+  P\*=0,25. El examen es **evaluativo, no formativo**: `/exam/submit` califica
+  y no toca el ELO, ni en Concursos ni en ningún otro bloque.
 
 ### IA pedagógica
 - **KatIA** — tutora socrática con avatar y GIFs. Chat con streaming SSE, tope de
@@ -178,7 +182,7 @@ verifica y corre en CI.
 ```
 StudentService.process_answer()
   ├→ VectorRating.update()           ← delta ELO al tópico
-  ├→ Repository.update_item_rating()  ← actualiza la dificultad del ítem
+  ├→ Repository.update de items       ← nueva dificultad del ítem (ELO simétrico)
   └→ Repository.save_answer_transaction()
        ├→ INSERT attempts
        ├→ UPSERT student_topic_elo
@@ -344,7 +348,7 @@ Prioridad por request: key del usuario > key de función > key general
 > **API keys nunca se persisten en la base ni se loggean.**
 
 > **Supabase:** usar el connection pooler (puerto 6543). El pool interno es
-> `SimpleConnectionPool(1, 5)`; no subir `maxconn` en el free tier. Y nunca
+> `ThreadedConnectionPool(1, 5)`; no subir `maxconn` en el free tier. Y nunca
 > `conn.close()` — siempre `put_connection(conn)`, o el pool se agota.
 
 ---
@@ -360,7 +364,7 @@ Solo para **UX testing**. No es producción y no comparte base con producción.
 | Frontend | Vercel, *Root Directory* = `frontend` | El SPA. Config en `frontend/vercel.json` |
 
 **Por qué Render y no Vercel Functions para el backend:** cada invocación
-serverless abriría su propio `SimpleConnectionPool(1, 5)` y agotaría el free
+serverless abriría su propio `ThreadedConnectionPool(1, 5)` y agotaría el free
 tier de Supabase en minutos. Render mantiene un proceso vivo, y con él el pool
 singleton y el WebSocket del PvP.
 
