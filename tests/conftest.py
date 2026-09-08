@@ -123,10 +123,27 @@ def mock_repository() -> MagicMock:
     repo = MagicMock()
     repo.get_items_from_db.return_value = []
     repo.get_answered_item_ids.return_value = []
-    repo.save_answer_transaction.return_value = None
+    repo.save_answer_transaction.side_effect = _fake_answer_transaction
     repo.get_study_streak.return_value = 0
     repo.save_katia_interaction.return_value = None
     return repo
+
+
+def _fake_answer_transaction(*, compute, default_elo=1000.0, default_rd=350.0, **_kwargs):
+    """Ejecuta el callback de dominio como haría el repositorio real.
+
+    La unidad de trabajo lee el estado bajo bloqueo y se lo pasa a `compute`;
+    si el mock no lo invocara, los tests del servicio no ejercitarían el cálculo.
+    """
+    compute(
+        {
+            "elo": default_elo,
+            "rd": default_rd,
+            "item_difficulty": 1000.0,
+            "item_rd": 350.0,
+        }
+    )
+    return True
 
 
 @pytest.fixture

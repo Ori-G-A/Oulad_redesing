@@ -89,7 +89,12 @@ router = APIRouter(prefix="/student", tags=["student"])
 
 
 def _make_service(repo) -> StudentService:
-    return StudentService(repository=repo)
+    """Composición: la capa de entrada es la que conoce infrastructure (R2)."""
+    from src.infrastructure.ml.calibration import IsotonicCalibrator
+
+    calibrator = IsotonicCalibrator()
+    calibrator.load()  # False si no hay modelo entrenado — se usa p_raw
+    return StudentService(repository=repo, calibrator=calibrator)
 
 
 # ── Preguntas ──────────────────────────────────────────────────────────────────
@@ -216,8 +221,11 @@ def answer(
         if saved:
             return replay(saved)
 
-    elo_after = vector.get(elo_topic)
-    rd_after = vector.get_rd(elo_topic)
+    # Los valores autoritativos salen de la transacción, no de la lectura previa:
+    # entre una y otra pudo entrar otra respuesta del mismo estudiante.
+    elo_before = cog_data.get("elo_before", elo_before)
+    elo_after = cog_data.get("elo_after", vector.get(elo_topic))
+    rd_after = cog_data.get("rd_after", vector.get_rd(elo_topic))
 
     return AnswerResponse(
         is_correct=is_correct,

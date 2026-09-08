@@ -1,8 +1,6 @@
 from src.domain.elo.model import expected_score
-from src.domain.elo.calibration import IsotonicCalibrator
 from src.domain.selector.item_selector import AdaptiveItemSelector
 from src.domain.entities import VALID_LEVELS, LEVEL_UNIVERSIDAD, LEVEL_SEMILLERO
-from src.infrastructure.external_api.ai_client import get_socratic_guidance
 from src.application.interfaces.repositories import IStudentRepository
 
 
@@ -15,15 +13,19 @@ class StudentService:
         self,
         repository: IStudentRepository,
         ai_client=None,
+        calibrator=None,
     ):
+        """El calibrador se inyecta desde la composición (R2).
+
+        `calibrator` es cualquier objeto con `predict(p_raw) -> float`; vive en
+        infrastructure/ml porque carga un pickle de disco. Sin él —tests, o
+        despliegue sin modelo entrenado— se usa p_raw, que es exactamente lo
+        que hacía el calibrador sin modelo. El delta ELO siempre usa p_raw:
+        el valor calibrado solo alimenta los dashboards.
+        """
         self.repository = repository
         self.ai_client = ai_client
-
-        # Calibrador isotónico: corrige sesgo en expected_score guardado en DB.
-        # Si no hay modelo entrenado, degrada con gracia (retorna p_raw).
-        # El delta ELO siempre usa p_raw — nunca el valor calibrado.
-        self._calibrator = IsotonicCalibrator()
-        self._calibrator.load()
+        self._calibrator = calibrator
 
     def get_next_question(
         self,
@@ -132,50 +134,64 @@ class StudentService:
         """
         is_correct = selected_option == item_data["correct_option"]
         _topic_key = elo_topic or item_data["topic"]
-        current_elo = vector_rating.get(_topic_key)
-
-        impact_modifier = 1.0
+        result = 1.0 if is_correct else 0.0
         cog_data = {"confidence_score": None, "error_type": "none", "impact_modifier": 1.0}
 
-        # 2. Actualizar ELO del estudiante
-        result = 1.0 if is_correct else 0.0
-        new_r, new_rd = vector_rating.update(
-            _topic_key,
-            item_data["difficulty"],
-            result,
-            impact_modifier=impact_modifier,
-        )
+        def compute(state):
+            """Cálculo de dominio sobre el estado leído bajo bloqueo.
 
-        # 3. Calcular nueva dificultad del ítem (ELO simétrico)
-        p_success = expected_score(current_elo, item_data["difficulty"])
-        item_score = 1.0 - result
-        p_item_wins = 1.0 - p_success
-        k_item = 32.0
-        new_item_difficulty = item_data["difficulty"] + k_item * (item_score - p_item_wins)
-        item_rd_current = item_data.get("rating_deviation", 350.0)
+            Corre dentro de la transacción del repositorio: el rating y la
+            dificultad que entran aquí son los canónicos en ese instante, no
+            una lectura previa que otra respuesta concurrente pudo invalidar.
+            """
+            current_elo = state["elo"]
+            difficulty = state["item_difficulty"]
 
-        # Calibrar expected_score para el dashboard (no afecta el delta ELO).
-        # El delta siempre usa p_success raw — regla crítica del calibrador.
-        p_success_display = self._calibrator.predict(p_success)
+            # 1. Actualizar ELO del estudiante. El vector se siembra con el
+            #    estado canónico para que el llamador lo lea correcto después.
+            vector_rating.ratings[_topic_key] = (current_elo, state["rd"])
+            new_r, new_rd = vector_rating.update(
+                _topic_key, difficulty, result, impact_modifier=1.0
+            )
 
-        # 4. Persistir ítem + intento de forma atómica
-        attempt_data = {
-            "is_correct": is_correct,
-            "difficulty": item_data["difficulty"],
-            "topic": _topic_key,
-            "elo_after": new_r,
-            "prob_failure": 1.0 - p_success_display,
-            "expected_score": p_success_display,
-            "time_taken": time_taken,
-            "confidence_score": cog_data["confidence_score"],
-            "error_type": cog_data["error_type"],
-            "rating_deviation": new_rd,
-            "elo_before": current_elo,
-        }
+            # 2. Nueva dificultad del ítem (ELO simétrico)
+            p_success = expected_score(current_elo, difficulty)
+            item_score = 1.0 - result
+            p_item_wins = 1.0 - p_success
+            k_item = 32.0
+            new_item_difficulty = difficulty + k_item * (item_score - p_item_wins)
+
+            # Calibrar expected_score para el dashboard (no afecta el delta ELO).
+            # El delta siempre usa p_success raw — regla crítica del calibrador.
+            p_success_display = (
+                self._calibrator.predict(p_success) if self._calibrator else p_success
+            )
+
+            cog_data["elo_before"] = current_elo
+            cog_data["elo_after"] = new_r
+            cog_data["rd_after"] = new_rd
+
+            attempt_data = {
+                "is_correct": is_correct,
+                "difficulty": difficulty,
+                "topic": _topic_key,
+                "elo_after": new_r,
+                "prob_failure": 1.0 - p_success_display,
+                "expected_score": p_success_display,
+                "time_taken": time_taken,
+                "confidence_score": cog_data["confidence_score"],
+                "error_type": cog_data["error_type"],
+                "rating_deviation": new_rd,
+                "elo_before": current_elo,
+            }
+            return attempt_data, new_item_difficulty, state["item_rd"]
+
+        # 3. Persistir: el repositorio bloquea, lee, llama a compute() y escribe.
         save_kwargs = dict(
             user_id=user_id, item_id=item_data["id"],
-            item_difficulty_new=new_item_difficulty, item_rd_new=item_rd_current,
-            attempt_data=attempt_data,
+            topic=_topic_key, compute=compute,
+            default_elo=vector_rating.get(_topic_key),
+            default_rd=vector_rating.get_rd(_topic_key),
         )
         if request_id is not None:
             save_kwargs.update(request_id=request_id, request_fingerprint=request_fingerprint)
@@ -184,12 +200,12 @@ class StudentService:
             cog_data["idempotent_replay"] = True
             return is_correct, cog_data
 
-        # 5. Verificar y otorgar logros (no bloquea si falla)
+        # 4. Verificar y otorgar logros (no bloquea si falla)
         try:
             new_badges = self._check_and_award_achievements(
                 user_id=user_id,
                 is_correct=is_correct,
-                new_elo=new_r,
+                new_elo=cog_data.get("elo_after", vector_rating.get(_topic_key)),
             )
             if new_badges:
                 cog_data["new_badges"] = new_badges
@@ -316,26 +332,3 @@ class StudentService:
         if level == LEVEL_SEMILLERO:
             grade = self.repository.get_grade(user_id)
         return self.repository.get_available_courses_by_level(level, grade=grade)
-
-    def get_socratic_help(
-        self,
-        student_rating,
-        topic,
-        content,
-        last_answer,
-        correct_answer,
-        all_options,
-        model_name,
-        ai_url,
-    ):
-        """Orquesta la obtención de guía socrática adaptativa y contextualizada."""
-        return get_socratic_guidance(
-            student_rating,
-            topic,
-            content,
-            last_answer,
-            correct_answer=correct_answer,
-            all_options=all_options,
-            base_url=ai_url,
-            model_name=model_name,
-        )

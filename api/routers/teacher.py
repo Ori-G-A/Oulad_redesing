@@ -48,7 +48,10 @@ router = APIRouter(
 
 
 def _svc(repo) -> TeacherService:
-    return TeacherService(repository=repo)
+    """Composición: la capa de entrada es la que conoce infrastructure (R2)."""
+    from src.infrastructure.external_api.ai_client import get_pedagogical_analysis
+
+    return TeacherService(repository=repo, pedagogical_analysis=get_pedagogical_analysis)
 
 
 def _require_teacher_group(repo, group_id: int, user: dict) -> None:

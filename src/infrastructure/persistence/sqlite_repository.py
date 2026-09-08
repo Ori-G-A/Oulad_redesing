@@ -8,6 +8,20 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: reemplazar SQLite por DB externa (PostgreSQL, etc.) en producción
+def _migrations_enabled() -> bool:
+    """Indica si este proceso debe crear esquema, seeds y backfills.
+
+    Por defecto sí, para que desarrollo local y tests no cambien. En
+    despliegue se pone RUN_MIGRATIONS=0 en el proceso web y el esquema lo
+    aplica un paso previo (scripts/migrate.py): ver _bootstrap_schema().
+    """
+    return os.environ.get("RUN_MIGRATIONS", "1").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+    )
+
+
 class SQLiteRepository:
     # Ruta fija — garantiza que todos los datos persistan entre ejecuciones.
     _DEFAULT_DB_PATH = os.path.join("data", "elo_database.db")
@@ -16,6 +30,18 @@ class SQLiteRepository:
         self.db_name = db_name or os.environ.get("DB_PATH", self._DEFAULT_DB_PATH)
         os.makedirs(os.path.dirname(self.db_name), exist_ok=True)
         self.hashing = HashingService()
+        if _migrations_enabled():
+            self._bootstrap_schema()
+
+    def _bootstrap_schema(self):
+        """Esquema, seeds y backfills: un solo paso, fuera del arranque HTTP.
+
+        Sobre el pooler de transacciones de Supabase (puerto 6543) la sesión
+        no sobrevive al commit, así que el pg_try_advisory_lock que toma
+        _migrate_db() puede terminar liberándose desde otra sesión física.
+        Por eso esto corre una sola vez y por conexión directa o pooler de
+        sesión — ver scripts/migrate.py y el startCommand de render.yaml.
+        """
         self.init_db()
         self._migrate_db()
         self._seed_admin()
@@ -26,6 +52,7 @@ class SQLiteRepository:
         if os.environ.get("ENVIRONMENT", "development").lower() != "production":
             self._seed_test_students()
         self._backfill_current_elo()
+        self.expire_stale_pvp_matches()
 
     def get_connection(self, timeout: float = 30.0):
         return sqlite3.connect(self.db_name, timeout=timeout)
@@ -385,6 +412,10 @@ class SQLiteRepository:
         # v4 — delta ELO calculado al momento de la validación docente (Task 5)
         # Formula: elo_delta = (final_score - 50) * 0.2  (nunca desde ai_proposed_score)
         self._add_column_if_not_exists(cursor, "procedure_submissions", "elo_delta", "REAL")
+        # v4b — marca de que elo_delta ya se aplicó al rating canónico
+        self._add_column_if_not_exists(
+            cursor, "procedure_submissions", "elo_applied", "INTEGER DEFAULT 0"
+        )
         # v5 — retroalimentación textual generada por la IA (evaluacion_global del modelo)
         self._add_column_if_not_exists(cursor, "procedure_submissions", "ai_feedback", "TEXT")
         # v6 — hash SHA-256 del archivo subido para detección anti-plagio (T7)
@@ -1256,8 +1287,7 @@ class SQLiteRepository:
                 rating_deviation,
             ),
         )
-        # Actualizar current_elo en users (promedio de últimos ELO por tópico)
-        self._update_current_elo(cursor, user_id)
+        self._set_topic_elo(cursor, user_id, topic, elo_after, rating_deviation)
         conn.commit()
         conn.close()
 
@@ -1271,24 +1301,62 @@ class SQLiteRepository:
         self,
         user_id: int,
         item_id: str,
-        item_difficulty_new: float,
-        item_rd_new: float,
-        attempt_data: dict,
+        topic: str,
+        compute,
+        default_elo: float = 1000.0,
+        default_rd: float = 350.0,
         request_id: str | None = None,
         request_fingerprint: str | None = None,
     ) -> bool:
-        """
-        Persiste el resultado de una respuesta de forma atómica.
-        El intento siempre se guarda. La actualización de ELO (ítem +
-        current_elo del usuario) solo ocurre si el tiempo de respuesta
-        está en el rango válido [3s, 600s] (elo_valid=1).
-        """
-        time_taken = attempt_data.get("time_taken", 30.0) or 30.0
-        elo_valid = 1 if self._tiempo_valido(time_taken) else 0
+        """Unidad de trabajo de una respuesta: bloquea, lee, calcula y persiste.
 
+        El ciclo entero corre en una transacción con la fila del estudiante y
+        la del ítem bloqueadas. Sin eso, dos respuestas concurrentes parten
+        del mismo rating y una pisa el efecto de la otra.
+
+        `compute` es el cálculo de dominio, que aporta la capa de aplicación:
+
+            compute({"elo", "rd", "item_difficulty", "item_rd"})
+                -> (attempt_data, item_difficulty_new, item_rd_new)
+
+        Recibe el estado ya bloqueado y no debe hacer I/O: corre con la
+        conexión tomada y la fila del ítem bloqueada.
+
+        El intento siempre se guarda; el ELO solo se mueve si el tiempo de
+        respuesta cae en [3s, 600s]. Devuelve False si `request_id` ya estaba
+        registrado (reintento del cliente).
+        """
         conn = self.get_connection()
+        # Transacción explícita gestionada aquí, no por el autocommit de sqlite3.
+        conn.isolation_level = None
         cursor = conn.cursor()
         try:
+            # BEGIN IMMEDIATE bloquea la escritura ANTES de leer, así que el
+            # ciclo leer→calcular→escribir queda serializado entre respuestas.
+            cursor.execute("BEGIN IMMEDIATE")
+            cursor.execute(
+                "SELECT difficulty, rating_deviation FROM items WHERE id = ?", (item_id,)
+            )
+            item = cursor.fetchone()
+            if item is None:
+                raise ValueError("Ítem '%s' no encontrado." % item_id)
+            cursor.execute(
+                "SELECT current_elo, rd FROM student_topic_elo WHERE user_id = ? AND topic = ?",
+                (user_id, topic),
+            )
+            rating = cursor.fetchone()
+
+            attempt_data, item_difficulty_new, item_rd_new = compute(
+                {
+                    "elo": float(rating[0]) if rating else float(default_elo),
+                    "rd": float(rating[1]) if rating else float(default_rd),
+                    "item_difficulty": float(item[0]),
+                    "item_rd": float(item[1] or 350.0),
+                }
+            )
+            time_taken = attempt_data.get("time_taken", 30.0) or 30.0
+            elo_valid = 1 if self._tiempo_valido(time_taken) else 0
+
             # Siempre registrar el intento
             cursor.execute(
                 """INSERT INTO attempts
@@ -1324,7 +1392,13 @@ class SQLiteRepository:
                     "UPDATE items SET difficulty = ?, rating_deviation = ? WHERE id = ?",
                     (item_difficulty_new, item_rd_new, item_id),
                 )
-                self._update_current_elo(cursor, user_id)
+                self._set_topic_elo(
+                    cursor,
+                    user_id,
+                    attempt_data.get("topic"),
+                    attempt_data["elo_after"],
+                    attempt_data.get("rating_deviation"),
+                )
             conn.commit()
             return inserted
         except Exception:
@@ -2134,94 +2208,29 @@ class SQLiteRepository:
         return {r[0]: {"elo": r[1], "rd": r[2]} for r in rows}
 
     def get_latest_elo_by_topic(self, user_id):
-        """Devuelve {topic: (elo_actual, rd_actual)} incluyendo ajustes de procedimientos.
+        """Devuelve {topic: (elo, rd)} leyendo student_topic_elo, el estado canónico.
 
-        Fuentes de ELO (en orden de aplicación):
-          1. Intentos de preguntas (tabla `attempts`) — base cronológica.
-          2. Procedimientos validados por docente (elo_delta de procedure_submissions).
-             INVARIANTE: solo elo_delta de status='VALIDATED_BY_TEACHER' se aplica aquí.
-             ai_proposed_score NUNCA afecta este cálculo.
+        Esa tabla es la única fuente del rating: la escriben el diagnóstico
+        (baseline), cada respuesta con tiempo válido y la validación docente de
+        un procedimiento. No se reconstruye desde attempts: hacerlo reaplicaba
+        el delta de cada procedimiento en toda lectura posterior e ignoraba
+        elo_valid, así que un intento fuera de rango sí movía el rating.
         """
         conn = self.get_connection()
         cursor = conn.cursor()
-
-        # 1. ELO base: solo el último intento por tópico
-        cursor.execute(
-            """
-            SELECT topic, elo_after, rating_deviation
-            FROM attempts
-            WHERE user_id = ? AND timestamp = (
-                SELECT MAX(a2.timestamp) FROM attempts a2
-                WHERE a2.user_id = attempts.user_id AND a2.topic = attempts.topic
-            )
-            """,
-            (user_id,),
-        )
-        elo_map = {}
-        for topic, elo, rd in cursor.fetchall():
-            elo_map[topic] = (elo, rd if rd is not None else 350.0)
-
-        # El diagnóstico no genera attempts. Recuperar sus tópicos todavía sin
-        # práctica, sin reemplazar un rating que ya tenga historial de respuestas.
         cursor.execute(
             "SELECT topic, current_elo, rd FROM student_topic_elo WHERE user_id = ?",
             (user_id,),
         )
-        for topic, elo, rd in cursor.fetchall():
-            elo_map.setdefault(topic, (elo, rd if rd is not None else 350.0))
-
-        # 2. Sumar deltas ELO de procedimientos validados por el docente (agrupados por tópico)
-        cursor.execute(
-            """
-            SELECT i.topic, SUM(ps.elo_delta)
-            FROM procedure_submissions ps
-            JOIN items i ON ps.item_id = i.id
-            WHERE ps.student_id = ?
-              AND ps.status = 'VALIDATED_BY_TEACHER'
-              AND ps.elo_delta IS NOT NULL
-            GROUP BY i.topic
-        """,
-            (user_id,),
-        )
-        for topic, total_delta in cursor.fetchall():
-            if topic in elo_map:
-                base_elo, rd = elo_map[topic]
-                elo_map[topic] = (round(base_elo + total_delta, 2), rd)
-            else:
-                # Tópico solo en procedimientos (sin intentos de preguntas aún)
-                elo_map[topic] = (round(1000.0 + total_delta, 2), 350.0)
-
+        elo_map = {
+            topic: (float(elo), float(rd) if rd is not None else 350.0)
+            for topic, elo, rd in cursor.fetchall()
+        }
         conn.close()
         return elo_map
 
-    def _update_current_elo(self, cursor, user_id):
-        """Recalcula y persiste ELO por tópico y global tras cada respuesta/validación.
-
-        Actualiza:
-          1. student_topic_elo — fila por cada tópico (UPSERT)
-          2. users.current_elo — promedio global derivado
-
-        Se invoca dentro de transacciones existentes (save_attempt,
-        save_answer_transaction, validate_procedure_submission).
-        No abre ni cierra conexión — recibe el cursor de la transacción padre.
-        """
-        # 1. Upsert ELO por tópico en student_topic_elo
-        cursor.execute(
-            """
-            INSERT OR REPLACE INTO student_topic_elo (user_id, topic, current_elo, rd, updated_at)
-            SELECT ?, a1.topic, a1.elo_after, COALESCE(a1.rating_deviation, 350.0),
-                   CURRENT_TIMESTAMP
-            FROM attempts a1
-            WHERE a1.user_id = ?
-              AND a1.timestamp = (
-                  SELECT MAX(a2.timestamp) FROM attempts a2
-                  WHERE a2.user_id = a1.user_id AND a2.topic = a1.topic
-              )
-            """,
-            (user_id, user_id),
-        )
-
-        # 2. Actualizar users.current_elo como promedio de student_topic_elo
+    def _refresh_global_elo(self, cursor, user_id):
+        """users.current_elo = promedio de student_topic_elo (estado derivado)."""
         cursor.execute(
             """
             UPDATE users SET current_elo = COALESCE((
@@ -2233,6 +2242,38 @@ class SQLiteRepository:
             """,
             (user_id, user_id),
         )
+
+    def _set_topic_elo(self, cursor, user_id, topic, elo, rd):
+        """Fija el rating canónico de un tópico al valor calculado en esta transacción.
+
+        Recibe el cursor de la transacción padre: no abre ni cierra conexión.
+        """
+        cursor.execute(
+            """
+            INSERT INTO student_topic_elo (user_id, topic, current_elo, rd, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id, topic) DO UPDATE
+                SET current_elo = excluded.current_elo,
+                    rd          = excluded.rd,
+                    updated_at  = CURRENT_TIMESTAMP
+            """,
+            (user_id, topic, round(float(elo), 2), float(rd) if rd is not None else 350.0),
+        )
+        self._refresh_global_elo(cursor, user_id)
+
+    def _bump_topic_elo(self, cursor, user_id, topic, delta):
+        """Aplica un ajuste aditivo (procedimiento docente) al rating canónico."""
+        cursor.execute(
+            """
+            INSERT INTO student_topic_elo (user_id, topic, current_elo, rd, updated_at)
+            VALUES (?, ?, ?, 350.0, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id, topic) DO UPDATE
+                SET current_elo = MAX(0, ROUND(student_topic_elo.current_elo + ?, 2)),
+                    updated_at  = CURRENT_TIMESTAMP
+            """,
+            (user_id, topic, max(0.0, round(1000.0 + float(delta), 2)), float(delta)),
+        )
+        self._refresh_global_elo(cursor, user_id)
 
     def _backfill_current_elo(self):
         """Rellena student_topic_elo y users.current_elo para usuarios existentes.
@@ -2269,6 +2310,33 @@ class SQLiteRepository:
                   AND EXISTS (SELECT 1 FROM student_topic_elo WHERE user_id = users.id)
                 """
             )
+
+            # 3. Aplicar una sola vez los deltas de procedimientos ya validados.
+            #    Antes se sumaban en cada lectura de get_latest_elo_by_topic.
+            cursor.execute(
+                """
+                SELECT ps.student_id, i.topic, SUM(ps.elo_delta)
+                FROM procedure_submissions ps
+                JOIN items i ON ps.item_id = i.id
+                WHERE ps.status = 'VALIDATED_BY_TEACHER'
+                  AND ps.elo_delta IS NOT NULL
+                  AND COALESCE(ps.elo_applied, 0) = 0
+                GROUP BY ps.student_id, i.topic
+                """
+            )
+            pending = cursor.fetchall()
+            for student_id, topic, total_delta in pending:
+                self._bump_topic_elo(cursor, student_id, topic, total_delta)
+            if pending:
+                cursor.execute(
+                    """
+                    UPDATE procedure_submissions SET elo_applied = 1
+                    WHERE status = 'VALIDATED_BY_TEACHER'
+                      AND elo_delta IS NOT NULL
+                      AND COALESCE(elo_applied, 0) = 0
+                    """
+                )
+
             conn.commit()
         except Exception:
             conn.rollback()
@@ -3672,21 +3740,49 @@ class SQLiteRepository:
     ) -> None:
         conn = self.get_connection()
         cursor = conn.cursor()
+        # La guarda de status hace el cierre idempotente: si el timer y el
+        # último jugador disparan a la vez, el ELO se aplica una sola vez.
         cursor.execute(
             """UPDATE pvp_matches SET status='finished', winner_id=?, score_p1=?, score_p2=?,
-               elo_delta_p1=?, elo_delta_p2=?, finished_at=CURRENT_TIMESTAMP WHERE id=?""",
+               elo_delta_p1=?, elo_delta_p2=?, finished_at=CURRENT_TIMESTAMP
+               WHERE id=? AND status='active'
+               RETURNING course_id""",
             (winner_id, score_p1, score_p2, elo_delta_p1, elo_delta_p2, match_id),
         )
-        cursor.execute(
-            "UPDATE users SET current_elo = MAX(0, current_elo + ?) WHERE id = ?",
-            (elo_delta_p1, p1_id),
-        )
-        cursor.execute(
-            "UPDATE users SET current_elo = MAX(0, current_elo + ?) WHERE id = ?",
-            (elo_delta_p2, p2_id),
-        )
+        row = cursor.fetchone()
+        if row is not None:
+            # El delta va al rating canónico del curso. users.current_elo es un
+            # promedio derivado: escribirlo directo se perdía en la siguiente
+            # respuesta del alumno (R15).
+            self._bump_topic_elo(cursor, p1_id, row[0], elo_delta_p1)
+            self._bump_topic_elo(cursor, p2_id, row[0], elo_delta_p2)
         conn.commit()
         conn.close()
+
+    def expire_stale_pvp_matches(self, max_age_seconds: int = 600) -> int:
+        """Cierra partidas que quedaron 'active' sin que nadie las terminara.
+
+        Una partida dura 180s y su cronómetro vive en el proceso que la creó:
+        un reinicio lo pierde y la fila se queda activa para siempre, invisible
+        en el historial (que filtra status='finished'). Se marcan 'abandoned'
+        y no tocan ELO — nadie ganó. Devuelve cuántas se cerraron.
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE pvp_matches SET status='abandoned', finished_at=CURRENT_TIMESTAMP
+            WHERE status='active'
+              AND started_at < datetime('now', ?)
+            """,
+            ("-%d seconds" % max_age_seconds,),
+        )
+        closed = cursor.rowcount
+        conn.commit()
+        conn.close()
+        if closed:
+            logger.info("Partidas PvP huérfanas cerradas: %d", closed)
+        return closed
 
     def get_pvp_history(self, user_id: int, limit: int = 20) -> list[dict]:
         import json
@@ -4199,6 +4295,7 @@ class SQLiteRepository:
                 final_score      = ?,
                 teacher_feedback = ?,
                 elo_delta        = ?,
+                elo_applied      = 1,
                 status           = 'VALIDATED_BY_TEACHER',
                 reviewed_at      = CURRENT_TIMESTAMP
             WHERE id = ?
@@ -4208,15 +4305,19 @@ class SQLiteRepository:
             tuple(params),
         )
         updated = cursor.rowcount == 1
-        # Recalcular current_elo del estudiante
+        # El delta se aplica aquí una sola vez; la guarda de status impide
+        # revalidar la misma entrega.
         if updated:
             cursor.execute(
-                "SELECT student_id FROM procedure_submissions WHERE id = ?",
+                """SELECT ps.student_id, i.topic
+                   FROM procedure_submissions ps
+                   JOIN items i ON ps.item_id = i.id
+                   WHERE ps.id = ?""",
                 (submission_id,),
             )
             row = cursor.fetchone()
             if row:
-                self._update_current_elo(cursor, row[0])
+                self._bump_topic_elo(cursor, row[0], row[1], elo_delta)
         conn.commit()
         conn.close()
         return updated
@@ -4580,19 +4681,7 @@ class SQLiteRepository:
         global del usuario como promedio. Sobrescribe si ya existía."""
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            """INSERT OR REPLACE INTO student_topic_elo
-               (user_id, topic, current_elo, rd, updated_at)
-               VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)""",
-            (user_id, topic, round(elo, 2), rd),
-        )
-        cursor.execute(
-            """UPDATE users SET current_elo = COALESCE(
-                   (SELECT ROUND(AVG(current_elo), 2) FROM student_topic_elo WHERE user_id = ?),
-                   1000.0)
-               WHERE id = ?""",
-            (user_id, user_id),
-        )
+        self._set_topic_elo(cursor, user_id, topic, elo, rd)
         conn.commit()
         conn.close()
 

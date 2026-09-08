@@ -1,4 +1,3 @@
-from src.infrastructure.external_api.ai_client import get_pedagogical_analysis
 from src.domain.elo.model import procedure_elo_delta
 
 
@@ -7,8 +6,15 @@ class TeacherService:
     Servicio de aplicación que orquesta los casos de uso del profesor.
     """
 
-    def __init__(self, repository):
+    def __init__(self, repository, pedagogical_analysis=None):
+        """`pedagogical_analysis` se inyecta desde la composición (R2).
+
+        Es el callable de infrastructure que habla con el proveedor de IA.
+        Sin él, generate_ai_analysis() degrada con gracia, igual que hacía
+        cuando no había proveedor configurado.
+        """
         self.repository = repository
+        self._pedagogical_analysis = pedagogical_analysis
 
     def get_dashboard_data(self, teacher_id):
         """Recupera datos consolidados para el dashboard del profesor."""
@@ -135,4 +141,6 @@ class TeacherService:
         if model_name:
             kwargs["model_name"] = model_name
 
-        return get_pedagogical_analysis(student_data, **kwargs)
+        if self._pedagogical_analysis is None:
+            return "Análisis con IA no disponible: no se configuró un proveedor."
+        return self._pedagogical_analysis(student_data, **kwargs)

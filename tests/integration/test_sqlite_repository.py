@@ -143,26 +143,30 @@ class TestAtomicTransaction:
 
         item_id, item_difficulty = row[0], row[1]
 
-        # Ejecutar transacción atómica
-        attempt_data = {
-            "is_correct": True,
-            "difficulty": item_difficulty,
-            "topic": "Test",
-            "elo_after": 1050.0,
-            "prob_failure": 0.4,
-            "expected_score": 0.6,
-            "time_taken": 10.0,
-            "confidence_score": None,
-            "error_type": "none",
-            "rating_deviation": 300.0,
-        }
+        # Ejecutar la unidad de trabajo: el cálculo corre dentro de la transacción
+        def compute(state):
+            attempt_data = {
+                "is_correct": True,
+                "difficulty": state["item_difficulty"],
+                "topic": "Test",
+                "elo_after": 1050.0,
+                "prob_failure": 0.4,
+                "expected_score": 0.6,
+                "time_taken": 10.0,
+                "confidence_score": None,
+                "error_type": "none",
+                "rating_deviation": 300.0,
+                "elo_before": state["elo"],
+            }
+            return attempt_data, state["item_difficulty"] + 5, 200.0
+
         repo.save_answer_transaction(
             user_id=user_id,
             item_id=item_id,
-            item_difficulty_new=item_difficulty + 5,
-            item_rd_new=200.0,
-            attempt_data=attempt_data,
+            topic="Test",
+            compute=compute,
         )
+        assert item_difficulty is not None
 
         # Verificar que el intento quedó guardado
         conn2 = repo.get_connection()

@@ -129,10 +129,10 @@ class TestGenerateAiAnalysis:
             {"is_correct": True, "topic": "Álgebra", "time_taken": 8.0},
         ]
         repo.get_latest_elo_by_topic.return_value = {}
-        with patch(
-            "src.application.services.teacher_service.get_pedagogical_analysis",
-            return_value="Análisis generado",
-        ) as mock_ai:
-            result = service.generate_ai_analysis(student_id=1, global_elo=1200, api_key="test_key")
+        # El análisis de IA se inyecta desde la composición (R2): ya no hay un
+        # import de infrastructure en el servicio al que apuntar con patch().
+        mock_ai = MagicMock(return_value="Análisis generado")
+        service._pedagogical_analysis = mock_ai
+        result = service.generate_ai_analysis(student_id=1, global_elo=1200, api_key="test_key")
         mock_ai.assert_called_once()
         assert result == "Análisis generado"

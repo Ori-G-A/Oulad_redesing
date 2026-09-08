@@ -18,6 +18,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
 from api.config import settings
+from src.application.interfaces.repositories import IRepository
 
 # ── Bearer token extractor ────────────────────────────────────────────────────
 
@@ -53,7 +54,7 @@ def get_repository():
     return _repo_instance
 
 
-RepoDep = Annotated[object, Depends(get_repository)]
+RepoDep = Annotated[IRepository, Depends(get_repository)]
 
 
 # ── JWT helpers ───────────────────────────────────────────────────────────────
